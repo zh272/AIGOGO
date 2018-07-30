@@ -45,12 +45,13 @@ def xgb_trainer(X_train, y_train, X_test, y_test):
     return train_pred, test_pred
 
 if __name__ == '__main__':
+    np.random.seed(103)
+
     print("Boston Housing: regression")
     boston = load_boston()
     y = boston['target']
     X = boston['data']
-    rng = np.random.RandomState(31337)
-    kf = KFold(n_splits=2, shuffle=True, random_state=rng)
+    kf = KFold(n_splits=2, shuffle=True, random_state=12345)
     for train_index, test_index in kf.split(X):
         xgb_trainer(X[train_index], y[train_index], X[test_index], y[test_index])
 
