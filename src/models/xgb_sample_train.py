@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
 
 from xgb_trainer import xgb_trainer
 
@@ -35,13 +36,13 @@ class MultiColumnLabelEncoder:
 
 
 
-def feature_extract():
+def feature_extract(data_path):
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    tableName = os.path.join(dir_path, 'data\\sample-set.csv')
+    tableName = os.path.join(dir_path, data_path)
     try:
         df = pd.read_csv(tableName)
-    except (IOError, pd.errors.EmptyDataError) as e:
-        return
+    except (IOError, pd.errors.EmptyDataError):
+        return None, None
 
 
     # colNames = list(df)
@@ -65,6 +66,7 @@ def feature_extract():
 
     temp_list = encodeCols+nonencodeCols
     feature_list = []
+    print('===== {:20s} ====='.format('Disgarded Features'))
     for name in temp_list:
         variance = df[name].unique()
         # ignore low distinct features
@@ -72,7 +74,7 @@ def feature_extract():
         if len(variance) > 1 and len(variance) < len(df):
             feature_list.append(name)
         else:
-            print('Non-distinguishable features: [{}]'.format(name),  len(variance))
+            print('[{:50s}]'.format(name),  len(variance))
 
     features = df[feature_list]
 
@@ -80,4 +82,27 @@ def feature_extract():
     
 
 if __name__ == '__main__':
-    features, labels = feature_extract()
+    # random.seed(100)
+    np.random.seed(103)
+    # torch.manual_seed(101)
+    # torch.cuda.manual_seed_all(102)
+
+    data_path = '..\\..\\zhiyong\\data\\sample-set.csv'
+    features, labels = feature_extract(data_path)
+    if features is None:
+        quit()
+    X_train, X_test, y_train, y_test = train_test_split(features.values, labels.values, test_size=0.25, random_state=0)
+
+    params = {
+        'n_estimators':100, 'learning_rate':0.1, 'objective':'reg:linear',
+        'max_delta_step':5, 'max_depth':3, 'gamma':0.0, 'subsample':0.7, 
+        'colsample_bytree':0.5, 'colsample_bylevel':1.0, 'reg_alpha':0.0, 'reg_lambda':2.0
+    }
+
+    train_pred, test_pred, feature_importances = xgb_trainer(X_train, y_train, X_test, y_test, params=params)
+
+    feature_names = features.columns
+    sorted_idx = np.argsort(-feature_importances) # descending order
+    print('===== feature importances =====')
+    for idx in sorted_idx:
+        print('[{:50s}]'.format(feature_names[idx]), '{:7.4f}'.format(feature_importances[idx]))
