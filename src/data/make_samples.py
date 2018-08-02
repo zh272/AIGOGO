@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pandas as pd
 
-def read_raw_data(file_name):
+def read_raw_data(file_name, index_col='Policy_Number'):
     '''
     In: file_name
 
@@ -14,53 +14,105 @@ def read_raw_data(file_name):
     raw_data_path = os.path.join(os.path.pardir, os.path.pardir, 'data', 'raw')
 
     file_path = os.path.join(raw_data_path, file_name)
-    raw_data = pd.read_csv(file_path, index_col='Policy_Number')
+    raw_data = pd.read_csv(file_path, index_col=index_col)
 
     return(raw_data)
 
 
-def create_sample_data(df_train, df_claim, df_policy, data_size=2000):
+def get_main_coverage_aggregated_policy(df_policy):
     '''
     In:
-        df_train, # contains dependent variable
-        df_claim,
-        df_policy,
-        data_size, # sample size of df_train
-
+        DataFrame(df_policy),
     Out:
-        df_sample
-
+        DataFrame(df_sample),
     Description:
-        join method - aggregate claim and policy information by policy number
-        limitation - lost information on claim and policy
+        Aggregate policy infos on policy id using folloing methods:
+            (1) for common information, keep the first row
+            (2) sum up ['Insured_Amount1', 'Insured_Amount2', 'Insured_Amount3', 'Premium'] by 'Main_Insurance_Coverage_Group'
+            (3) count 'Insurance_Coverage' by 'Main_Insurance_Coverage_Group'
+            (4) label whether any 'Coverage_Deductible_if_applied' is positive by 'Main_Insurance_Coverage_Group'
     '''
-    # sample train data
-    df_sample = df_train.sample(n=data_size, random_state=0)
+    # aggregate coverage on Policy_Number
+        # get columns per coverage
+    col_coverage = ['Main_Insurance_Coverage_Group', 'Insurance_Coverage', 'Insured_Amount1', 'Insured_Amount2', 'Insured_Amount3', 'Coverage_Deductible_if_applied', 'Premium']
+        # group coverage by Main_Insurance_Coverage_Group
+    df_coverage = df_policy[col_coverage]
+    df_coverage['Main_Insurance_Coverage_Group'] = df_coverage['Main_Insurance_Coverage_Group'].map({'車損': 'Damage', '竊盜': 'Theft', '車責': 'Liability'})
+    df_coverage = df_coverage.set_index(['Main_Insurance_Coverage_Group'], append = True)
+        # aggegate coverage items by sum
+    key_coverage = [col for col in col_coverage if col != 'Main_Insurance_Coverage_Group']
+    map_coverage = dict.fromkeys(key_coverage, np.sum)
+    map_coverage['Insurance_Coverage'] = lambda x: len(x)
+    map_coverage['Coverage_Deductible_if_applied'] = lambda x: x.sum() > 0
+    agg_coverage = df_coverage.groupby(level=[0, 1]).agg(map_coverage)
+    agg_coverage = agg_coverage.unstack(level=1)
 
-    # get aggregate function maps
-    cols_polisum = ['Insured_Amount1', 'Insured_Amount2', 'Insured_Amount3', 'Premium']
-    cols_polimix = ['Main_Insurance_Coverage_Group', 'Insurance_Coverage']
-    map_policy = dict.fromkeys(df_policy.columns, lambda x: x.iloc[0])
-    map_policy.update(dict.fromkeys(cols_polisum, np.sum))
-    # select policies relevant to sample train data, aggregate at policy number level
-    # insurance coverage info lost
-    agg_policy = df_policy.loc[df_sample.index]
-    agg_policy = agg_policy.groupby(level=0).agg(map_policy)
-    agg_policy[cols_polimix] = 'Mix'
+    # each policy id corresponds to a unique row of policy columns
+        # get columns per policy
+    col_policy = [col for col in df_policy.columns if col not in col_coverage]
+            # get policy info from first row, all rows should give the same info
+    map_policy = dict.fromkeys(col_policy, lambda x: x.iloc[0])
+    agg_policy = df_policy.groupby(level=0).agg(map_policy)
 
+    # merge coverage info and policy info
+    agg_policy = agg_policy.merge(agg_coverage, left_index=True, right_index=True)
+
+    return(agg_policy)
+
+
+def get_main_coverage_aggregated_claim(df_claim, df_map_coverage):
+    # get Main_Insurance_Coverage_Group from Coverage
+    df_claim['Main_Insurance_Coverage_Group'] =  df_claim['Coverage'].map(df_map_coverage['Main_Insurance_Coverage_Group'])
+
+    # aggregate claim by Main_Insurance_Coverage_Group to
+    df_claim = df_claim.set_index(['Main_Insurance_Coverage_Group'], append = True)
     # get aggregate function maps
     map_claim = {
                     'Paid_Loss_Amount': np.sum,
                     'paid_Expenses_Amount': np.sum,
-                    'Claim_Number': lambda x: len(x[x.notnull()])
+                    'Salvage_or_Subrogation?': np.sum,
+                    'At_Fault?': np.mean,
+                    'Deductible': np.sum,
+                    'number_of_claimants': np.sum,
+                    'Claim_Number': lambda x: x.nunique()
                 }
     # select claims relevant to sample train data, aggregate at policy number level
-    agg_claim = df_claim.loc[df_sample.index]
-    agg_claim = agg_claim.groupby(level=0).agg(map_claim)
+    agg_claim = df_claim.groupby(level=[0, 1]).agg(map_claim)
+    agg_claim = agg_claim.unstack(level=1)
+
+    return(agg_claim)
+
+
+def create_sample_data_main_coverage(df_train, df_policy, df_claim, df_map_coverage, data_size=2000):
+    '''
+    In:
+        DataFrame(df_train), # contains dependent variable
+        DataFrame(df_policy),
+        DataFrame(df_claim),
+        DataFrame(df_coverage), # maps coverage to main coverage group
+        int(data_size), # sample size of df_train
+
+    Out:
+        DataFrame(df_sample),
+
+    Description:
+        Take a few samples and aggregate policy info and claim info
+        Data should be ready for model
+    '''
+    # sample train data
+    df_sample = df_train.sample(n=data_size, random_state=0)
+    df_policy = df_policy.loc[df_sample.index]
+    df_claim = df_claim.loc[df_sample.index]
+
+    # aggregate policy info by Policy_Number
+    agg_policy = get_main_coverage_aggregated_policy(df_policy)
+
+    # aggregate claim info by Policy_Number
+    agg_claim = get_main_coverage_aggregated_claim(df_claim, df_map_coverage)
 
     # merge train, policy, and claim data
-    df_sample = df_sample.merge(agg_policy, left_index=True, right_index=True)
-    df_sample = df_sample.merge(agg_claim, left_index=True, right_index=True)
+    df_sample = df_sample.merge(agg_policy, how='left', left_index=True, right_index=True)
+    df_sample = df_sample.merge(agg_claim, how='left', left_index=True, right_index=True)
 
     return(df_sample)
 
@@ -91,7 +143,8 @@ if __name__ == '__main__':
     #df_train = read_raw_data('training-set.csv')
     #df_test = read_raw_data('testing-set.csv')
     #df_claim = read_raw_data('claim_0702.csv')
-    #df_policy = read_raw_data('claim_0702.csv')
+    #df_policy = read_raw_data('policy_0702.csv')
+    #df_map_coverage = read_raw_data('coverage_map.csv', index_col='Coverage')
 
-    df_sample = create_sample_data(df_train, df_claim, df_policy)
+    df_sample = create_sample_data_main_coverage(df_train, df_policy, df_claim, df_map_coverage, data_size=2000)
     write_sample_data(df_sample)
