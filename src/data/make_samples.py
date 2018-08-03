@@ -61,6 +61,18 @@ def get_main_coverage_aggregated_policy(df_policy):
 
 
 def get_main_coverage_aggregated_claim(df_claim, df_map_coverage):
+    '''
+    In:
+        DataFrame(df_claim),
+        DataFrame(df_map_coverage), # maps coverage to main coverage group
+    Out:
+        DataFrame(agg_Claim),
+    Description:
+        Aggregate claim infos on policy id using folloing methods:
+            (1) sum up ['Paid_Loss_Amount', 'paid_Expenses_Amount', 'Salvage_or_Subrogation?', 'Deductible', 'number_of_claimants'] by 'Main_Insurance_Coverage_Group'
+            (2) count 'Claim_Number' by 'Main_Insurance_Coverage_Group'
+            (3) average 'At_Fault?' by 'Main_Insurance_Coverage_Group'
+    '''
     # get Main_Insurance_Coverage_Group from Coverage
     df_claim['Main_Insurance_Coverage_Group'] =  df_claim['Coverage'].map(df_map_coverage['Main_Insurance_Coverage_Group'])
 
