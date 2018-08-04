@@ -95,6 +95,237 @@ def get_main_coverage_aggregated_claim(df_claim, df_map_coverage):
     return(agg_claim)
 
 
+def get_id_aggregated_insured(df_policy, df_claim):
+    '''
+    In:
+        DataFrame(df_policy),
+        DataFrame(df_claim),
+
+    Out:
+        DataFrame(agg_insured),
+
+    Description:
+        (1) transform birth dates into age groups
+        (2) aggregate claim data at insured level: count, paid amount, salvage amount
+        (3) aggregate policy data at insured level: count, average coverage of each policy, average premium of each policy
+        (4) aggregate vehicle data at insured level: average replacement cost of each vehicle
+    '''
+    # transform basic info
+    def get_age_label_id(ibirth):
+        if pd.isnull(ibirth):
+            return np.nan
+        else:
+            age = 2014 - int(ibirth[3:]);
+            if age < 25:
+                return 0
+            elif age < 30:
+                return 1
+            elif age < 60:
+                return 2
+            elif age < 70:
+                return 3
+            else:
+                return 4
+
+    agg_basic = df_policy[["Insured's_ID", 'fsex', 'fmarriage']]
+    agg_basic['iage_lab'] = df_policy['ibirth'].map(get_age_label_id)
+    agg_basic['iassured_lab'] = df_policy['fassured'].map(lambda x: x % 2)
+    map_agg_basic = {'fmarriage': lambda x: x.iloc[0],
+                     'fsex': lambda x: x.iloc[0],
+                     'iage_lab': lambda x: x.iloc[0],
+                     'iassured_lab': lambda x: x.iloc[0],
+                     }
+    agg_basic = agg_basic.groupby(by=["Insured's_ID"]).agg(map_agg_basic)
+    agg_insured = agg_basic
+
+    # transform policy and vehicle info
+    agg_policy = df_policy[["Insured's_ID", 'Insurance_Coverage', 'Premium', 'Replacement_cost_of_insured_vehicle']]
+    # 1. aggregate at policy level
+    map_agg_policy = {"Insured's_ID": lambda x: x.iloc[0],
+                      'Insurance_Coverage': lambda x: len(x),
+                      'Premium': np.sum,
+                      'Replacement_cost_of_insured_vehicle': lambda x: x.iloc[0]
+                      }
+    agg_policy = agg_policy.groupby(level=0).agg(map_agg_policy)
+    agg_policy["Policy's_ID"] = agg_policy.index
+    # 2. average at insured's level
+    map_agg_policy = {'Insurance_Coverage': np.mean,
+                      'Premium': np.mean,
+                      'Replacement_cost_of_insured_vehicle': np.mean,
+                      "Policy's_ID": lambda x: len(x),
+                      }
+    agg_policy = agg_policy.groupby(["Insured's_ID"]).agg(map_agg_policy)
+    agg_policy.columns = ['ipolicy_coverage_avg', 'ipolicy_premium_avg', 'ivehicle_repcost_avg', 'ipolicies']
+    agg_insured = agg_insured.merge(agg_policy, how='left', left_index=True, right_index=True)
+
+    # transform claim info
+    agg_claim = df_claim[['Claim_Number', 'Paid_Loss_Amount', 'paid_Expenses_Amount', 'Salvage_or_Subrogation?']]
+    #1. map insured's id to claim
+    agg_claim = agg_claim.merge(df_policy[["Insured's_ID"]], how='left', left_index=True, right_index=True)
+    #2. sum up paid loss amount and paid expense amount
+    agg_claim['Paid_Amount'] = agg_claim['Paid_Loss_Amount'] + agg_claim['paid_Expenses_Amount']
+    #3. aggregate at policy level
+    map_agg_claim = {'Claim_Number': lambda x: x.nunique(),
+                     'Paid_Amount': np.sum,
+                     'Salvage_or_Subrogation?': np.sum}
+    agg_claim = agg_claim.groupby(by=["Insured's_ID"]).agg(map_agg_claim)
+    agg_claim.columns = ['iclaims', 'iclaim_paid_amount', 'iclaim_salvage_amount']
+    agg_insured = agg_insured.merge(agg_claim, how='left', left_index=True, right_index=True)
+
+    return(agg_insured)
+
+
+def get_id_aggregated_vehicle(df_policy):
+    '''
+    In:
+        DataFrame(df_policy),
+
+    Out:
+        DataFrame(agg_vehicle),
+
+    Description:
+        (1) placeholder for further info extraction
+        (2) tranform manufacture year to vehicle age group
+        (3) separate domestic vehicle from imported
+        (4) separate locomotive vehicle from others
+        (5) group engine displacement
+    '''
+    agg_vehicle = df_policy[['Vehicle_identifier', 'Coding_of_Vehicle_Branding_&_Type', 'Vehicle_Make_and_Model1', 'Vehicle_Make_and_Model2']]
+
+    def get_vehicleage_label_id(vyear):
+        vyear = 2014 - vyear
+        if vyear <= 3:
+            return vyear
+        else:
+            return (vyear - 3) / 5 + 4
+
+    agg_vehicle['vlocomotive'] = df_policy['qpt'].map(lambda x: x<4)
+    agg_vehicle['vyear_lab'] = df_policy['Manafactured_Year_and_Month'].map(get_vehicleage_label_id)
+    agg_vehicle['vregion_lab'] = df_policy['Imported_or_Domestic_Car'].map(lambda x: x==10)
+    agg_vehicle['vengine_lab'] = df_policy['Engine_Displacement_(Cubic_Centimeter)'].map(lambda x: int(x/1000))
+    agg_vehicle = agg_vehicle.groupby(level=0).agg(dict.fromkeys(agg_vehicle.columns, lambda x: x.iloc[0]))
+
+    return(agg_vehicle)
+
+
+def get_id_aggregated_coverage(df_policy):
+    '''
+    In:
+        DataFrame(df_policy),
+
+    Out:
+        DataFrame(agg_coverage),
+
+    Description:
+        (1) placeholder for further info extraction
+        (2) tranform manufacture year to vehicle age group
+        (3) separate domestic vehicle from imported
+        (4) separate locomotive vehicle from others
+    '''
+    # get bucket coverage ID at policy level
+    agg_coverage = df_policy.groupby(level=0).agg({'Insurance_Coverage': lambda x: '|'.join(list(x[~x.sort_values().isnull()].unique()))})
+    agg_coverage.columns = ['cbucket']
+
+    # get premium by main coverage group
+    map_agg_premium = {'車損': 'Dmg',
+                       '竊盜': 'Thf',
+                       '車責': 'Lia'}
+    # 1. group premium by Main_Insurance_Coverage_Group
+    agg_premium = df_policy[['Main_Insurance_Coverage_Group', 'Premium']]
+    agg_premium['Main_Insurance_Coverage_Group'] = agg_premium['Main_Insurance_Coverage_Group'].map(map_agg_premium)
+    agg_premium = agg_premium.set_index(['Main_Insurance_Coverage_Group'], append = True)
+    agg_premium = agg_premium.groupby(level=[0,1]).agg({'Premium': np.sum})
+    # 2. aggregate at policy level
+    agg_premium = agg_premium.unstack(level=1)
+    agg_premium.columns = ['cpremium_dmg', 'cpremium_lia', 'cpremium_thf']
+
+    agg_coverage = agg_coverage.merge(agg_premium, how='left', left_index=True, right_index=True)
+
+    return(agg_coverage)
+
+
+def get_id_aggregated_policy(df_policy):
+    '''
+    In:
+        DataFrame(df_policy),
+
+    Out:
+        DataFrame(agg_policy),
+
+    Description:
+        get aggregated policy using the first row
+    '''
+    cols_policy = ['aassured_zip', 'iply_area', 'Distribution_Channel', 'Multiple_Products_with_TmNewa_(Yes_or_No?)']
+    agg_policy = df_policy.groupby(level=0).agg(dict.fromkeys(cols_policy, lambda x: x.iloc[0]))
+
+    return(agg_policy)
+
+
+def get_id_aggregated_claim(df_claim):
+    '''
+    In:
+        DataFrame(df_claim),
+
+    Out:
+        DataFrame(agg_claim),
+
+    Description:
+        get aggregated claim based on sums
+    '''
+    df_claim['closs'] = df_claim['paid_Expenses_Amount'] + df_claim['Paid_Loss_Amount']
+    map_agg_claim = {'Vehicle_identifier': lambda x: x.iloc[0],
+                     'Claim_Number': lambda x: x.nunique(),
+                     'closs': np.sum,
+                     'Salvage_or_Subrogation?': np.sum,
+                     'Cause_of_Loss': lambda x: '|'.join(list(x[~x.sort_values().isnull()].unique()))}
+    agg_claim = df_claim.groupby(level=0).agg(map_agg_claim)
+    agg_claim.columns = ['cclaim_id', 'cclaims', 'closs', 'csalvate', 'ccause_type']
+
+    return(agg_claim)
+
+
+def get_id_merged_data(df_policy, df_claim):
+    '''
+    In:
+        DataFrame(df_policy),
+        DataFrame(df_claim),
+
+    Out:
+        DataFramed(df_X),
+
+    Description:
+        merge independent variables
+    '''
+    cols_id = ["Insured's_ID"]
+    df_X = df_policy.groupby(level=0).agg(dict.fromkeys(cols_id, lambda x: x.iloc[0]))
+    df_policy = df_policy.loc[df_X.index]
+    df_claim = df_claim.loc[df_X.index]
+
+    # aggregate insurer info
+    agg_insured = get_id_aggregated_insured(df_policy, df_claim)
+
+    # aggregate vehicle info
+    agg_vehicle = get_id_aggregated_vehicle(df_policy)
+
+    # aggregate coverage info
+    agg_coverage = get_id_aggregated_coverage(df_policy)
+
+    # aggregate policy info
+    agg_policy = get_id_aggregated_policy(df_policy)
+
+    # aggregate claim info
+    agg_claim = get_id_aggregated_claim(df_claim)
+
+    # merge train, policy, and claim data
+    df_X = df_X.merge(agg_insured, how='left', left_on="Insured's_ID", right_index=True)
+    df_X = df_X.merge(agg_vehicle, how='left', left_index=True, right_index=True)
+    df_X = df_X.merge(agg_coverage, how='left', left_index=True, right_index=True)
+    df_X = df_X.merge(agg_policy, how='left', left_index=True, right_index=True)
+    df_X = df_X.merge(agg_claim, how='left', left_index=True, right_index=True)
+
+    return(df_X)
+
+
 def create_sample_data_main_coverage(df_train, df_policy, df_claim, df_map_coverage, data_size=2000):
     '''
     In:
@@ -129,7 +360,30 @@ def create_sample_data_main_coverage(df_train, df_policy, df_claim, df_map_cover
     return(df_sample)
 
 
-def write_sample_data(df):
+def create_sample_data_id(df_train, df_policy, df_claim, data_size=10000):
+    '''
+    In:
+        DataFrame(df_train), # contains dependent variable
+        DataFrame(df_policy),
+        DataFrame(df_claim),
+        int(data_size), # sample size of df_train
+
+    Out:
+        DataFrame(df_sample),
+
+    Description:
+        Take a few samples and aggregate policy info and claim info
+        Data should be ready for model
+    '''
+    # sample train data
+    df_sample = df_train.sample(n=data_size, random_state=0)
+    df_X = get_id_merged_data(df_policy.loc[df_sample.index], df_claim.loc[df_sample.index])
+    df_sample = df_sample.merge(df_X, how='left', left_index=True, right_index=True)
+
+    return(df_sample)
+
+
+def write_sample_data(df, file_name):
     '''
     In: df
 
@@ -138,7 +392,7 @@ def write_sample_data(df):
     Description: write sample data to directory /data/interim
     '''
     interim_data_path = os.path.join(os.path.pardir, os.path.pardir, 'data', 'interim')
-    write_sample_path = os.path.join(interim_data_path, 'sample-set.csv')
+    write_sample_path = os.path.join(interim_data_path, file_name)
     df.to_csv(write_sample_path)
 
     return(None)
@@ -158,5 +412,6 @@ if __name__ == '__main__':
     #df_policy = read_raw_data('policy_0702.csv')
     #df_map_coverage = read_raw_data('coverage_map.csv', index_col='Coverage')
 
-    df_sample = create_sample_data_main_coverage(df_train, df_policy, df_claim, df_map_coverage, data_size=2000)
-    write_sample_data(df_sample)
+    #df_sample = create_sample_data_main_coverage(df_train, df_policy, df_claim, df_map_coverage, data_size=2000)
+    df_sample = create_sample_data_id(df_train, df_policy, df_claim)
+    #write_sample_data(df_sample, 'sample-set-id.csv')
