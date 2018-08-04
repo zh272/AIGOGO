@@ -1,0 +1,79 @@
+===== Disgarded Features   =====
+[fpt                                               ] 1
+[fequipment4                                       ] 1
+[fequipment5                                       ] 1
+[fequipment6                                       ] 1
+===== feature importances =====
+[Vehicle_identifier                                ]  0.0825
+[Insured's_ID                                      ]  0.0817
+[Prior_Policy_Number                               ]  0.0657
+[('Premium', 'Liability')                          ]  0.0512
+[Coding_of_Vehicle_Branding_&_Type                 ]  0.0508
+[Vehicle_Make_and_Model2                           ]  0.0504
+[Replacement_cost_of_insured_vehicle               ]  0.0489
+[('Insured_Amount3', 'Liability')                  ]  0.0415
+[aassured_zip                                      ]  0.0387
+[('Premium', 'Theft')                              ]  0.0375
+[('Premium', 'Damage')                             ]  0.0357
+[ibirth                                            ]  0.0313
+[dbirth                                            ]  0.0304
+[('Insured_Amount3', 'Theft')                      ]  0.0289
+[Distribution_Channel                              ]  0.0263
+[Engine_Displacement_(Cubic_Centimeter)            ]  0.0255
+[('Insured_Amount1', 'Liability')                  ]  0.0244
+[('Insured_Amount3', 'Damage')                     ]  0.0242
+[Vehicle_Make_and_Model1                           ]  0.0231
+[Manafactured_Year_and_Month                       ]  0.0225
+[iply_area                                         ]  0.0180
+[('Insured_Amount2', 'Liability')                  ]  0.0179
+[('Paid_Loss_Amount', 'Liability')                 ]  0.0119
+[lia_class                                         ]  0.0119
+[('Insured_Amount1', 'Damage')                     ]  0.0103
+[('Insurance_Coverage', 'Liability')               ]  0.0103
+[('Paid_Loss_Amount', 'Damage')                    ]  0.0096
+[qpt                                               ]  0.0075
+[Multiple_Products_with_TmNewa_(Yes_or_No?)        ]  0.0064
+[Imported_or_Domestic_Car                          ]  0.0059
+[('paid_Expenses_Amount', 'Damage')                ]  0.0056
+[('Insurance_Coverage', 'Damage')                  ]  0.0054
+[fsex                                              ]  0.0054
+[('paid_Expenses_Amount', 'Liability')             ]  0.0052
+[('number_of_claimants', 'Damage')                 ]  0.0052
+[('number_of_claimants', 'Liability')              ]  0.0046
+[pdmg_acc                                          ]  0.0044
+[('At_Fault?', 'Liability')                        ]  0.0042
+[plia_acc                                          ]  0.0041
+[fmarriage                                         ]  0.0033
+[('Coverage_Deductible_if_applied', 'Damage')      ]  0.0029
+[('Insurance_Coverage', 'Theft')                   ]  0.0028
+[('Salvage_or_Subrogation?', 'Damage')             ]  0.0027
+[Cancellation                                      ]  0.0027
+[('Coverage_Deductible_if_applied', 'Liability')   ]  0.0023
+[('Insured_Amount1', 'Theft')                      ]  0.0017
+[('At_Fault?', 'Damage')                           ]  0.0015
+[fassured                                          ]  0.0010
+[nequipment9                                       ]  0.0008
+[('Claim_Number', 'Damage')                        ]  0.0006
+[('Insured_Amount2', 'Damage')                     ]  0.0005
+[('Deductible', 'Liability')                       ]  0.0005
+[('Insured_Amount2', 'Theft')                      ]  0.0004
+[('Coverage_Deductible_if_applied', 'Theft')       ]  0.0004
+[('number_of_claimants', 'Theft')                  ]  0.0004
+[('Claim_Number', 'Liability')                     ]  0.0004
+[('Salvage_or_Subrogation?', 'Liability')          ]  0.0001
+[('Deductible', 'Damage')                          ]  0.0001
+[('Paid_Loss_Amount', 'Theft')                     ]  0.0001
+[('Deductible', 'Theft')                           ]  0.0001
+[('paid_Expenses_Amount', 'Theft')                 ]  0.0000
+[fequipment9                                       ]  0.0000
+[('Salvage_or_Subrogation?', 'Theft')              ]  0.0000
+[fequipment1                                       ]  0.0000
+[('At_Fault?', 'Theft')                            ]  0.0000
+[('Claim_Number', 'Theft')                         ]  0.0000
+[fequipment3                                       ]  0.0000
+[fequipment2                                       ]  0.0000
+===== Performance Summary  =====
+Training Loss (158072samples):
+3794.8322538332727
+Testing Loss: (52691samples):
+4385.433361057648
