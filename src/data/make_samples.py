@@ -377,6 +377,7 @@ def create_sample_data_id(df_train, df_policy, df_claim, data_size=10000):
     '''
     # sample train data
     df_sample = df_train.sample(n=data_size, random_state=0)
+    #df_sample = df_train
     df_X = get_id_merged_data(df_policy.loc[df_sample.index], df_claim.loc[df_sample.index])
     df_sample = df_sample.merge(df_X, how='left', left_index=True, right_index=True)
 
@@ -406,10 +407,10 @@ if __name__ == '__main__':
     independent_policy: policy_0702.csv
     '''
 
-    #df_train = read_raw_data('training-set.csv')
-    #df_test = read_raw_data('testing-set.csv')
-    #df_claim = read_raw_data('claim_0702.csv')
-    #df_policy = read_raw_data('policy_0702.csv')
+    df_train = read_raw_data('training-set.csv')
+    df_test = read_raw_data('testing-set.csv')
+    df_claim = read_raw_data('claim_0702.csv')
+    df_policy = read_raw_data('policy_0702.csv')
     #df_map_coverage = read_raw_data('coverage_map.csv', index_col='Coverage')
 
     #df_sample = create_sample_data_main_coverage(df_train, df_policy, df_claim, df_map_coverage, data_size=2000)

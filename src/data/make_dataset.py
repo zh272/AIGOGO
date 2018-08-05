@@ -373,7 +373,7 @@ def create_train_test_data_id(df_train, df_test, df_policy, df_claim):
     y_train = df_train
 
     # get test data
-    X_test = get_id_merged_data(df_policy.loc[df_train.index], df_claim.loc[df_train.index])
+    X_test = get_id_merged_data(df_policy.loc[df_test.index], df_claim.loc[df_test.index])
 
     return(X_train, X_test, y_train)
 
@@ -404,10 +404,10 @@ if __name__ == '__main__':
     independent_policy: policy_0702.csv
     '''
 
-    #df_train = read_raw_data('training-set.csv')
-    #df_test = read_raw_data('testing-set.csv')
-    #df_claim = read_raw_data('claim_0702.csv')
-    #df_policy = read_raw_data('policy_0702.csv')
+    df_train = read_raw_data('training-set.csv')
+    df_test = read_raw_data('testing-set.csv')
+    df_claim = read_raw_data('claim_0702.csv')
+    df_policy = read_raw_data('policy_0702.csv')
     #df_map_coverage = read_raw_data('coverage_map.csv', index_col='Coverage')
 
     #X_train, X_test, y_train = create_train_test_data_main_coverage(df_train, df_test, df_policy, df_claim, df_map_coverage)
