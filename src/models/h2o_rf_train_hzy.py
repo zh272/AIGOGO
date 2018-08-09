@@ -1,7 +1,8 @@
 import h2o
 import os
-from tabulate import tabulate
 import pandas as pd
+from tabulate import tabulate
+from sklearn.metrics import confusion_matrix
 from h2o.estimators.random_forest import H2ORandomForestEstimator
 
 import warnings
@@ -38,15 +39,26 @@ def get_submission(X_train, y_train, X_test, params, cate_col=None, col_types=No
     regressor = H2ORandomForestEstimator(**params)
     regressor.train(col_X, col_y, training_frame=train, validation_frame=valid)
 
-    training_mae = (regressor.predict(train[col_X]) - train[col_y]).abs().mean()
-    testing_mae = (regressor.predict(valid[col_X]) - valid[col_y]).abs().mean()
-    
+    train_output = regressor.predict(train[col_X])
+    valid_output = regressor.predict(valid[col_X])
+
+    train_target = train[col_y]
+    valid_target = valid[col_y]
+
+    # print('=== Train Confusion matrix ===')
+    # print(confusion_matrix(train_target.as_data_frame().values, train_output.as_data_frame().values[:,0]))
+    # print('=== Valid Confusion matrix ===')
+    # print(confusion_matrix(valid_target.as_data_frame().values, valid_output.as_data_frame().values[:,0]))
+
+
+    training_mae = (train_output - train_target).abs().mean()
+    valid_mae = (valid_output - valid_target).abs().mean()
     
     fea_imp = regressor.varimp(use_pandas=True)
     print('====== Feature Importances ======')
     print(fea_imp)
     print('training MAE:{}'.format(training_mae))
-    print('validation MAE:{}'.format(testing_mae))
+    print('validation MAE:{}'.format(valid_mae))
     
     content = tabulate(fea_imp.values.tolist(), list(fea_imp.columns), tablefmt="plain")
     with open('summary.txt', 'w') as f:
@@ -55,7 +67,7 @@ def get_submission(X_train, y_train, X_test, params, cate_col=None, col_types=No
         f.write(content)
         f.write('\n')
         f.write('training MAE:{}\n'.format(training_mae))
-        f.write('validation MAE:{}\n'.format(testing_mae))
+        f.write('validation MAE:{}\n'.format(valid_mae))
 
 
     submission = regressor.predict(h2o_test[col_X]).as_data_frame()
@@ -108,7 +120,7 @@ if __name__ == '__main__':
     # ### Start H2O
     # Start up a 1-node H2O cloud on your local machine, and allow it to use all CPU cores and up to 2GB of memory:
 
-    h2o.init(ip="localhost", port=54323, max_mem_size = "20G")             #specify max number of bytes. uses all cores by default.
+    h2o.init(ip="localhost", port=54323, max_mem_size = "2G")             #specify max number of bytes. uses all cores by default.
     h2o.remove_all()                          #clean slate, in case cluster was already running
 
     X_train = read_interim_data('X_train_id.csv')
@@ -167,12 +179,15 @@ if __name__ == '__main__':
     # default ntrees=50, max_depth=20, stopping_rounds=0
     params = {
         'model_id':"rf_v1",
-        'ntrees':300, 'max_depth':15, 'stopping_metric':'mae',
+        'ntrees':500, 'max_depth':15, 'stopping_metric':'mae',
         'stopping_rounds':2, 'score_each_iteration':True,
         'seed':1000000
     }
 
+    # y_train[y_train>0] = 1
+    # col_types['Next_Premium'] = 'categorical'
+
     model_output = get_submission(X_train, y_train, X_test, params, cate_col=cat_features, col_types=col_types)
-    write_precessed_data(model_output['submission'])
+    # write_precessed_data(model_output['submission'])
 
     h2o.cluster().shutdown()
