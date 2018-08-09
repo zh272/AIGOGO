@@ -1,75 +1,223 @@
 import h2o
+import numpy as np
 import os
 import pandas as pd
 from h2o.estimators.random_forest import H2ORandomForestEstimator
+from h2o.estimators.xgboost import H2OXGBoostEstimator
+from h2o.estimators.glm import H2OGeneralizedLinearEstimator
+from h2o.estimators.gbm import H2OGradientBoostingEstimator
 
-def train_h2orf_sample(h2o_sample):
+schema = {'Coding_of_Vehicle_Branding_&_Type': 'string',
+             'Distribution_Channel': 'enum',
+             "Insured's_ID": 'string',
+             'Multiple_Products_with_TmNewa_(Yes_or_No?)': 'int',
+             'Premium_00I': 'int',
+             'Premium_04M': 'int',
+             'Premium_05E': 'int',
+             'Premium_05N': 'int',
+             'Premium_29B': 'int',
+             'Premium_55J': 'int',
+             'Vehicle_Make_and_Model1': 'enum',
+             'Vehicle_Make_and_Model2': 'string',
+             'Vehicle_identifier': 'string',
+             'aassured_zip': 'string',
+             'cbucket': 'string',
+             'ccause_type': 'enum',
+             'cclaim_id': 'enum',
+             'cclaims': 'int',
+             'closs': 'real',
+             'cpremium_dmg': 'int',
+             'cpremium_lia': 'int',
+             'cpremium_thf': 'int',
+             'csalvate': 'real',
+             'fmarriage': 'int',
+             'iage_lab': 'real',
+             'iassured_lab': 'int',
+             'iclaim_paid_amount': 'real',
+             'iclaim_salvage_amount': 'real',
+             'iclaims': 'int',
+             'iply_area': 'enum',
+             'ipolicies': 'int',
+             'ipolicy_coverage_avg': 'real',
+             'ipolicy_premium_avg': 'real',
+             'isex_lab': 'int',
+             'ivehicle_repcost_avg': 'real',
+             'vengine_lab': 'int',
+             'vlocomotive': 'enum',
+             'vregion_lab': 'enum',
+             'vyear_lab': 'int'}
+
+######## get model input func ########
+def get_train_input(train_only=False, seed=0):
     '''
     In:
-        H2OFrame(h2o_sample)
+        bool(train_only),
+        int(seed)
+
     Out:
-        Any(rf_v1) -> random forest model
+        DataFrame(X_train),
+        DataFrame(X_test),
+        DataFrame(y_train),
+        DataFrame(y_test),
+
     Description:
-        basic random forest model on samples
+        if train_only, then split train data into 80/20
+        else read in train and test data
     '''
-    # split train, valid, and test data set
-    train, valid, test = h2o_sample.split_frame([0.6, 0.2], seed=0)
-    # separate independent variables from dependent variables
-    col_y = 'Next_Premium'
-    col_X = [col for col in h2o_sample.columns if col != col_y]
-    # create random forest model
-    rf_v1 = H2ORandomForestEstimator(
-        model_id="rf_v1",
-        ntrees=200,
-        stopping_metric='mae',
-        stopping_rounds=2,
-        score_each_iteration=True,
-        seed=1000000)
-    # train random forest model
-    rf_v1.train(col_X, col_y, training_frame=train, validation_frame=valid)
+    if train_only:
+        np.random.seed(seed)
+        X_all = read_interim_data('X_train_id.csv')
+        y_all = read_interim_data('y_train_id.csv')
 
-    # get model output
-    output = {'model': rf_v1,
-              'test_mae': (rf_v1.predict(test[col_X]) - test[col_y]).abs().mean(),
-              }
+        msk = np.random.rand(len(X_all)) < 0.8
+        X_train = X_all[msk]
+        y_train = y_all[msk]
+        X_test = X_all[~msk]
+        y_test = y_all[~msk]
+    else:
+        X_train = read_interim_data('X_train_id.csv')
+        X_test = read_interim_data('X_test_id.csv')
+        y_train = read_interim_data('y_train_id.csv')
+        y_test = read_raw_data('testing-set.csv')
 
-    return(output)
+    return(X_train, X_test, y_train, y_test)
 
-def get_h2orf_submission(X_train, y_train, X_test, y_test):
+
+######## train model func ########
+def train_h2o_model(X_train, X_test, y_train, model, params):
     '''
     In:
-        H2OFrame(h2o_sample)
+        DataFrame(X_train),
+        DataFrame(X_test),
+        DataFrame(y_train)
     Out:
-        Any(rf_v1) -> random forest model
+        dict(output) -> includes model, fit_test, fit_train
     Description:
-        basic random forest model for submission
+        train h2o random forest model
     '''
+    global schema
+    # transform to h2o format
     df_train = y_train.merge(X_train, how='left', left_index=True, right_index=True)
-    h2o_train = h2o.H2OFrame(df_train)
+    h2o_train = h2o.H2OFrame(df_train, column_types=schema)
+
     # split train into train and valid
     train, valid = h2o_train.split_frame(ratios = [0.8], seed=0)
     # separate independent variables from dependent variables
     col_y = 'Next_Premium'
     col_X = list(X_train.columns)
     # create random forest model
-    rf_v1 = H2ORandomForestEstimator(
-        model_id="rf_v1",
-        ntrees=200,
-        stopping_metric='mae',
-        stopping_rounds=2,
-        score_each_iteration=True,
-        seed=1000000)
-    # train random forest model
-    rf_v1.train(col_X, col_y, training_frame=train, validation_frame=valid)
+    rf_v1 = cv_h2o(col_X, col_y, train, valid, model, params)
 
-    df_test = y_test.merge(X_train, how='left', left_index=True, right_index=True)
-    test = h2o.H2OFrame(df_test, column_types=h2o_train.types)
-    submission = rf_v1.predict(test[col_X]).as_data_frame()
-    submission['Policy_Number'] = y_test.index
-    submission = submission.set_index(['Policy_Number'])
-    submission.columns = ['Next_Premium']
+    # fit model to train and test data
+    output = {'model': rf_v1,
+              'fit_train': get_fit_data(rf_v1, X_train, schema),
+              'fit_test': get_fit_data(rf_v1, X_test, schema)
+              }
 
-    return({'model': rf_v1, 'submission': submssion})
+    return(output)
+
+
+######## get cross validation func ########
+def cv_h2o(col_X, col_y, train, valid, model, params):
+    '''
+    In:
+        list(col_X),
+        str(col_y),
+        DataFrame(train),
+        DataFrame(valid),
+        list(params),
+    Out:
+        H2ORandomForestEstimator(rf)
+    Description:
+        train h2o random forest model
+    '''
+    params = [dict(zip(params,t)) for t in zip(*params.values())]
+
+    rf_list = []
+    mae_list = []
+    for p in params:
+        #H2ORandomForestEstimator
+        rf = model(**p)
+        rf.train(col_X, col_y, training_frame=train, validation_frame=valid)
+        mae = rf.mae(valid=True)
+
+        mae_list.append(mae)
+        rf_list.append(rf)
+        print(mae)
+
+    mae_min, idx = min((val, idx) for (idx, val) in enumerate(mae_list))
+
+    return rf_list[idx]
+
+
+######## get model prediction func ########
+def get_fit_data(model, X, schema):
+    '''
+    In:
+        Any(model),
+        DataFrame(X),
+        dict(schema),
+
+    Out:
+        DataFrame(fit)
+
+    Description:
+        fit model and generate submission df
+    '''
+    h2o_X = h2o.H2OFrame(X, column_types=schema)
+    fit = model.predict(h2o_X).as_data_frame()
+    fit = fit.assign(Policy_Number = X.index)
+    fit = fit.set_index(['Policy_Number'])
+    fit.columns = ['Next_Premium']
+
+    return(fit)
+
+
+######## get model summary func ########
+def get_analysis_on_model(model, X, y, fit):
+    '''
+    In:
+        DataFrame(X),
+        DataFrame(y),
+        DataFrame(fit),
+
+    Out:
+        dict(summary)
+
+    Description:
+        analyze model output
+    '''
+    # mae
+    mae = (y['Next_Premium'] - fit['Next_Premium']).abs().mean()
+
+    varimp = pd.DataFrame(model.varimp())
+
+    scoring_history = pd.DataFrame(model.scoring_history())
+
+    output = {'mae': mae,
+              'varimp': varimp,
+              'scoring_history': scoring_history,
+              }
+
+    return(output)
+
+
+######## read/write func ########
+def read_raw_data(file_name, index_col='Policy_Number'):
+    '''
+    In: file_name
+
+    Out: raw_data
+
+    Description: read data from directory /data/raw
+    '''
+    # set the path of raw data
+    raw_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'raw')
+
+    file_path = os.path.join(raw_data_path, file_name)
+    raw_data = pd.read_csv(file_path, index_col=index_col)
+
+    return(raw_data)
 
 
 def read_interim_data(file_name, index_col='Policy_Number'):
@@ -81,7 +229,7 @@ def read_interim_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/interim
     '''
     # set the path of raw data
-    interim_data_path = os.path.join(os.path.pardir, os.path.pardir, 'data', 'interim')
+    interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
 
     file_path = os.path.join(interim_data_path, file_name)
     interim_data = pd.read_csv(file_path, index_col=index_col)
@@ -99,7 +247,7 @@ def write_precessed_data(df):
     Description:
         Write sample data to directory /data/interim
     '''
-    precessed_data_path = os.path.join(os.path.pardir, os.path.pardir, 'data', 'precessed')
+    precessed_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'processed')
     write_sample_path = os.path.join(precessed_data_path, 'testing-set.csv')
     df.to_csv(write_sample_path)
 
@@ -113,15 +261,57 @@ if __name__ == '__main__':
     h2o.init(max_mem_size = "2G")             #specify max number of bytes. uses all cores by default.
     h2o.remove_all()                          #clean slate, in case cluster was already running
 
-    X_train_id = read_interim_data('X_train_id.csv')
-    X_test_id = read_interim_data('X_test_id.csv')
-    y_train_id = read_interim_data('y_train_id.csv')
+    X_train, X_test, y_train, y_test = get_train_input(train_only=True)
 
-    #h2o_sample = read_interim_data('sample-set-id.csv')
-    #mod_train_sample = train_h2orf_sample(h2o_sample)
+    # define model and parameters
+    rf_params = {
+        'ntrees': [20] * 3,
+        'max_depth':[15] * 3,
+        'stopping_metric': ['mae'] * 3,
+        'stopping_rounds': [2] * 3,
+        'score_each_iteration': [True] * 3,
+        #'col_sample_rate_per_tree': [0.6, 0.8, 1],
+        'sample_rate': [0.4, 0.6, 0.8],
+        'seed': [1000000] * 3
+    }
+    output_rf = train_h2o_model(X_train, X_test, y_train, H2ORandomForestEstimator, rf_params)
+    perf_rf_train = get_analysis_on_model(output_rf['model'], X_train, y_train, output_rf['fit_train'])
+    perf_rf_test = get_analysis_on_model(output_rf['model'], X_test, y_test, output_rf['fit_test'])
 
-    mod_output = get_h2orf_submission(X_train_id, y_train_id, X_test_id)
+    xg_params = {
+        #'ntrees': [100, 200, 300],
+        #'max_depth':[15] * 3,
+        'learn_rate': [0.5] * 3,
+        'stopping_metric': ['mae'] * 3,
+        'stopping_rounds': [2] * 3,
+        'score_each_iteration': [True] * 3,
+        #'col_sample_rate_per_tree': [0.6, 0.8, 1],
+        #'sample_rate': [0.6, 0.8, 1],
+        'seed': [1000000] * 3
+    }
+    output_xg = train_h2o_model(X_train, X_test, y_train, H2OXGBoostEstimator, xg_params)
+    perf_xg_train = get_analysis_on_model(output_xg['model'], X_train, y_train, output_xg['fit_train'])
+    perf_xg_test = get_analysis_on_model(output_xg['model'], X_test, y_test, output_xg['fit_test'])
 
-    write_precessed_data(model_output['submission'])
+    ln_params = {
+        'lambda_search': [True],
+        'seed': [1000000]
+    }
+    output_ln = train_h2o_model(X_train, X_test, y_train, H2OGeneralizedLinearEstimator, ln_params)
+    perf_ln_train = get_analysis_on_model(output_ln['model'], X_train, y_train, output_ln['fit_train'])
+    perf_ln_test = get_analysis_on_model(output_ln['model'], X_test, y_test, output_ln['fit_test'])
+
+    gb_params = {
+        'learn_rate': [0.1, 0.2, 0.3],
+        'stopping_metric': ['mae'] * 3,
+        'stopping_rounds': [2] * 3,
+        'score_each_iteration': [True] * 3,
+        #'col_sample_rate_per_tree': [0.6, 0.8, 1],
+        #'sample_rate': [0.6, 0.8, 1],
+        'seed': [1000000] * 3
+    }
+    output_gb = train_h2o_model(X_train, X_test, y_train, H2OGradientBoostingEstimator, gb_params)
+    perf_gb_train = get_analysis_on_model(output_gb['model'], X_train, y_train, output_gb['fit_train'])
+    perf_gb_test = get_analysis_on_model(output_gb['model'], X_test, y_test, output_gb['fit_test'])
 
     h2o.shutdown(prompt=False)

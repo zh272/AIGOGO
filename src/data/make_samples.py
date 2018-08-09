@@ -11,7 +11,7 @@ def read_raw_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/raw
     '''
     # set the path of raw data
-    raw_data_path = os.path.join(os.path.pardir, os.path.pardir, 'data', 'raw')
+    raw_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'raw')
 
     file_path = os.path.join(raw_data_path, file_name)
     raw_data = pd.read_csv(file_path, index_col=index_col)
@@ -208,7 +208,7 @@ def get_id_aggregated_vehicle(df_policy):
     return(agg_vehicle)
 
 
-def get_id_aggregated_coverage(df_policy):
+def get_id_aggregated_main_coverage(df_policy):
     '''
     In:
         DataFrame(df_policy),
@@ -242,6 +242,23 @@ def get_id_aggregated_coverage(df_policy):
     agg_coverage = agg_coverage.merge(agg_premium, how='left', left_index=True, right_index=True)
 
     return(agg_coverage)
+
+
+def get_id_aggregated_coverage(df_policy):
+    '''
+    In:
+        DataFrame(df_policy),
+
+    Out:
+        DataFrame(agg_coverage),
+
+    Description:
+        (1) weighted average of insured amount by coverage
+        (2) direct and indirect distribution factor
+        (3) claim factor
+        (4) age factor
+    '''
+
 
 
 def get_id_aggregated_policy(df_policy):
@@ -307,8 +324,11 @@ def get_id_merged_data(df_policy, df_claim):
     # aggregate vehicle info
     agg_vehicle = get_id_aggregated_vehicle(df_policy)
 
+    # aggregate main coverage info
+    agg_main = get_id_aggregated_main_coverage(df_policy)
+
     # aggregate coverage info
-    agg_coverage = get_id_aggregated_coverage(df_policy)
+    agg_coverage = get_id_aggregated_main_coverage(df_policy)
 
     # aggregate policy info
     agg_policy = get_id_aggregated_policy(df_policy)
@@ -319,6 +339,7 @@ def get_id_merged_data(df_policy, df_claim):
     # merge train, policy, and claim data
     df_X = df_X.merge(agg_insured, how='left', left_on="Insured's_ID", right_index=True)
     df_X = df_X.merge(agg_vehicle, how='left', left_index=True, right_index=True)
+    df_X = df_X.merge(agg_main, how='left', left_index=True, right_index=True)
     df_X = df_X.merge(agg_coverage, how='left', left_index=True, right_index=True)
     df_X = df_X.merge(agg_policy, how='left', left_index=True, right_index=True)
     df_X = df_X.merge(agg_claim, how='left', left_index=True, right_index=True)
@@ -392,7 +413,7 @@ def write_sample_data(df, file_name):
 
     Description: write sample data to directory /data/interim
     '''
-    interim_data_path = os.path.join(os.path.pardir, os.path.pardir, 'data', 'interim')
+    interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
     write_sample_path = os.path.join(interim_data_path, file_name)
     df.to_csv(write_sample_path)
 
