@@ -496,7 +496,11 @@ def read_raw_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/raw
     '''
     # set the path of raw data
-    raw_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'raw')
+    if os.getcwd()[-1]=='o':
+        raw_data_path = os.path.join(os.getcwd(), 'data', 'raw') #os.getcwd(), should direct to the path /AIGOGO
+    else: #os.getcwd()[-1]=='a':
+        raw_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'raw')
+    
 
     file_path = os.path.join(raw_data_path, file_name)
     raw_data = pd.read_csv(file_path, index_col=index_col)
