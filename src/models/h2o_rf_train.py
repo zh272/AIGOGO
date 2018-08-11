@@ -7,45 +7,34 @@ from h2o.estimators.xgboost import H2OXGBoostEstimator
 from h2o.estimators.glm import H2OGeneralizedLinearEstimator
 from h2o.estimators.gbm import H2OGradientBoostingEstimator
 
-schema = {'Coding_of_Vehicle_Branding_&_Type': 'string',
-             'Distribution_Channel': 'enum',
-             "Insured's_ID": 'string',
-             'Multiple_Products_with_TmNewa_(Yes_or_No?)': 'int',
-             'Premium_00I': 'int',
-             'Premium_04M': 'int',
-             'Premium_05E': 'int',
-             'Premium_05N': 'int',
-             'Premium_29B': 'int',
-             'Premium_55J': 'int',
-             'Vehicle_Make_and_Model1': 'enum',
-             'Vehicle_Make_and_Model2': 'string',
-             'Vehicle_identifier': 'string',
-             'aassured_zip': 'string',
-             'cbucket': 'string',
-             'ccause_type': 'enum',
-             'cclaim_id': 'enum',
-             'cclaims': 'int',
-             'closs': 'real',
-             'cpremium_dmg': 'int',
-             'cpremium_lia': 'int',
-             'cpremium_thf': 'int',
-             'csalvate': 'real',
-             'fmarriage': 'int',
-             'iage_lab': 'real',
-             'iassured_lab': 'int',
-             'iclaim_paid_amount': 'real',
-             'iclaim_salvage_amount': 'real',
-             'iclaims': 'int',
-             'iply_area': 'enum',
-             'ipolicies': 'int',
-             'ipolicy_coverage_avg': 'real',
-             'ipolicy_premium_avg': 'real',
-             'isex_lab': 'int',
-             'ivehicle_repcost_avg': 'real',
-             'vengine_lab': 'int',
-             'vlocomotive': 'enum',
-             'vregion_lab': 'enum',
-             'vyear_lab': 'int'}
+schema = {'cat_age': 'enum',
+ 'cat_area': 'enum',
+ 'cat_assured': 'enum',
+ 'cat_cancel': 'enum',
+ 'cat_distr': 'enum',
+ 'cat_marriage': 'enum',
+ 'cat_sex': 'enum',
+ 'cat_vc': 'enum',
+ 'cat_vmm1': 'enum',
+ 'cat_vmm2': 'enum',
+ 'cat_vmy': 'enum',
+ 'cat_vqpt': 'enum',
+ 'cat_vregion': 'enum',
+ 'cat_zip': 'enum',
+ 'int_acc_lia': 'int',
+ 'int_claim_plc': 'int',
+ 'int_others': 'int',
+ 'real_acc_dmg': 'real',
+ 'real_acc_lia': 'real',
+ 'real_loss_plc': 'real',
+ 'real_prem_dmg': 'real',
+ 'real_prem_ins': 'real',
+ 'real_prem_lia': 'real',
+ 'real_prem_plc': 'real',
+ 'real_prem_thf': 'real',
+ 'real_prem_vc': 'real',
+ 'real_vcost': 'real',
+ 'real_ved': 'real'}
 
 ######## get model input func ########
 def get_train_input(train_only=False, seed=0):
@@ -66,8 +55,8 @@ def get_train_input(train_only=False, seed=0):
     '''
     if train_only:
         np.random.seed(seed)
-        X_all = read_interim_data('X_train_id.csv')
-        y_all = read_interim_data('y_train_id.csv')
+        X_all = read_interim_data('X_train_bs.csv')
+        y_all = read_interim_data('y_train_bs.csv')
 
         msk = np.random.rand(len(X_all)) < 0.8
         X_train = X_all[msk]
@@ -75,9 +64,9 @@ def get_train_input(train_only=False, seed=0):
         X_test = X_all[~msk]
         y_test = y_all[~msk]
     else:
-        X_train = read_interim_data('X_train_id.csv')
-        X_test = read_interim_data('X_test_id.csv')
-        y_train = read_interim_data('y_train_id.csv')
+        X_train = read_interim_data('X_train_bs.csv')
+        X_test = read_interim_data('X_test_bs.csv')
+        y_train = read_interim_data('y_train_bs.csv')
         y_test = read_raw_data('testing-set.csv')
 
     return(X_train, X_test, y_train, y_test)
@@ -261,33 +250,35 @@ if __name__ == '__main__':
     h2o.init(max_mem_size = "2G")             #specify max number of bytes. uses all cores by default.
     h2o.remove_all()                          #clean slate, in case cluster was already running
 
-    X_train, X_test, y_train, y_test = get_train_input(train_only=True)
+    X_train, X_test, y_train, y_test = get_train_input(train_only=False)
 
     # define model and parameters
     rf_params = {
-        'ntrees': [20] * 3,
-        'max_depth':[15] * 3,
-        'stopping_metric': ['mae'] * 3,
-        'stopping_rounds': [2] * 3,
-        'score_each_iteration': [True] * 3,
-        #'col_sample_rate_per_tree': [0.6, 0.8, 1],
-        'sample_rate': [0.4, 0.6, 0.8],
-        'seed': [1000000] * 3
+        'ntrees': [30],
+        'max_depth':[15],
+        'stopping_metric': ['mae'],
+        'stopping_rounds': [2],
+        'score_each_iteration': [True],
+        'col_sample_rate_per_tree': [1],
+        #'sample_rate': [0.4, 0.6, 0.8],
+        'seed': [1000000]
     }
     output_rf = train_h2o_model(X_train, X_test, y_train, H2ORandomForestEstimator, rf_params)
     perf_rf_train = get_analysis_on_model(output_rf['model'], X_train, y_train, output_rf['fit_train'])
     perf_rf_test = get_analysis_on_model(output_rf['model'], X_test, y_test, output_rf['fit_test'])
 
+    write_precessed_data(output_rf['fit_test'])
+
     xg_params = {
-        #'ntrees': [100, 200, 300],
+        'ntrees': [300],
         #'max_depth':[15] * 3,
-        'learn_rate': [0.5] * 3,
-        'stopping_metric': ['mae'] * 3,
-        'stopping_rounds': [2] * 3,
-        'score_each_iteration': [True] * 3,
+        'learn_rate': [0.1],
+        'stopping_metric': ['mae'],
+        'stopping_rounds': [2],
+        'score_each_iteration': [True],
         #'col_sample_rate_per_tree': [0.6, 0.8, 1],
         #'sample_rate': [0.6, 0.8, 1],
-        'seed': [1000000] * 3
+        'seed': [1000000]
     }
     output_xg = train_h2o_model(X_train, X_test, y_train, H2OXGBoostEstimator, xg_params)
     perf_xg_train = get_analysis_on_model(output_xg['model'], X_train, y_train, output_xg['fit_train'])
