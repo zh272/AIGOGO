@@ -13,7 +13,7 @@ from sklearn.model_selection import KFold, train_test_split, GridSearchCV
 from sklearn.metrics import confusion_matrix, mean_squared_error, mean_absolute_error
 from sklearn.datasets import load_iris, load_digits, load_boston
 
-def xgb_trainer(X_train, y_train, X_test, y_test):
+def xgb_trainer(X_train, y_train, X_test, y_test, params=None):
 
     # >>> Default params:
     # max_depth=3, learning_rate=0.1, n_estimators=100, silent=True, objective='reg:linear', 
@@ -26,23 +26,24 @@ def xgb_trainer(X_train, y_train, X_test, y_test):
 
     # objective reference: 
     # https://xgboost.readthedocs.io/en/latest/parameter.html
-        
-    params = {'n_estimators': 50, 'learning_rate': 0.01, 'objective':'reg:tweedie',
-        'max_delta_step':10, 'subsample':0.8, 'colsample_bytree':0.8}
+    if params is None:
+        params = {'n_estimators': 100, 'learning_rate': 0.1, 'max_depth':3, 'objective':'reg:tweedie',
+            'max_delta_step':0, 'subsample':0.8, 'colsample_bytree':0.8}
 
     regressor = xgb.XGBRegressor(**params)
     regressor.fit(X_train, y_train, eval_metric='mae')
-    # xxx=regressor.feature_importances_
+    feature_importances = regressor.feature_importances_
 
     train_pred = regressor.predict(X_train)
     test_pred = regressor.predict(X_test)
-    print('Training stats:')
+    print('===== {:20s} ====='.format('Performance Summary'))
+    print('Training Loss ({}samples):'.format(len(train_pred)))
     print(mean_absolute_error(y_train, train_pred))
-    print('Testing stats:')
+    print('Testing Loss: ({}samples):'.format(len(test_pred)))
     print(mean_absolute_error(y_test, test_pred))
     # acc = regressor.score(X_test, y_test)
 
-    return train_pred, test_pred
+    return train_pred, test_pred, feature_importances
 
 if __name__ == '__main__':
     np.random.seed(103)
