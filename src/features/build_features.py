@@ -2,6 +2,9 @@ import numpy as np
 import os
 import pandas as pd
 from catboost import CatBoostRegressor
+from sklearn.metrics import mean_absolute_error
+from helpers import MultiColumnLabelEncoder
+import lightgbm as lgb
 
 ######## get pre feature selection data set ########
 def create_feature_selection_data(df_policy, df_claim):
@@ -102,7 +105,32 @@ def create_feature_selection_data(df_policy, df_claim):
 
 
 ######## get feature selection ########
-def get_fs_mae(cols_train, train, valid, params):
+def get_lgb_mae(cols_train, train, valid, params):
+    '''
+    In:
+        list(cols_train),
+        DataFrame(train),
+        DataFrame(valid),
+        dict(params),
+
+    Out:
+        float(mae)
+
+    Description:
+        get valid dataset mae from lightgbm
+    '''
+    lgb_train = lgb.Dataset(train[cols_train].values, train['Next_Premium'].values.flatten(), free_raw_data=False)
+    lgb_valid = lgb.Dataset(valid[cols_train].values, valid['Next_Premium'].values.flatten(), reference=lgb_train, free_raw_data=False)
+    model = lgb.train(
+        params['model'], lgb_train, valid_sets=lgb_valid, **params['train']
+    )
+    valid_pred =model.predict(valid[cols_train])
+    valid_mae = mean_absolute_error(valid['Next_Premium'], valid_pred)
+
+    return(valid_mae)
+
+
+def get_cat_mae(cols_train, train, valid, params):
     '''
     In:
         list(cols_train),
@@ -140,7 +168,7 @@ def get_fs_mae(cols_train, train, valid, params):
     return(np.mean(abs(y_valid - model.get_test_eval())))
 
 
-def stepwise_feature_selection(params, max_rounds=60, num_only=False, forward_only=False, cols_init=['real_prem_plc']):
+def stepwise_feature_selection(get_fs_mae, params, max_rounds=60, num_only=False, forward_only=False, cols_init=['real_prem_plc']):
     '''
     In:
         dict(params),
@@ -166,6 +194,19 @@ def stepwise_feature_selection(params, max_rounds=60, num_only=False, forward_on
 
     All_train = y_train.merge(X_train, how='left', left_index=True, right_index=True)
     All_valid = y_valid.merge(X_valid, how='left', left_index=True, right_index=True)
+
+    categorical_features = []
+    for name in All_train.columns.values:
+        if 'cat' in name or 'int' in name:
+            categorical_features.append(name)
+            All_train[name] = All_train[name].astype('category')
+            All_valid[name] = All_valid[name].astype('category')
+
+
+    le = MultiColumnLabelEncoder(columns=categorical_features)
+    le.fit(pd.concat([All_train, All_valid]))
+    All_train = le.transform(All_train)
+    All_valid = le.transform(All_valid)
 
     # initialize add delete columns
     # h2o test 1: ['real_prem_plc', 'real_prem_ic_distr', 'real_prem_lia', 'cat_distr', 'int_acc_lia', 'cat_zip', 'cat_sex', 'real_acc_dmg', 'cat_vmy']
@@ -997,9 +1038,32 @@ if __name__ == '__main__':
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 
-    params = {
+    create_feature_selection_data(df_policy, df_claim)
+
+    '''
+    cat_params = {
         'n_estimators':100000, 'learning_rate':100, 'objective':'MAE', 'verbose':False,
         'max_depth':4, 'colsample_bylevel':0.7, 'reg_lambda':None, 'task_type': 'CPU'
     }
-    create_feature_selection_data(df_policy, df_claim)
-    stepwise_feature_selection(params, max_rounds=60, num_only=False, forward_only=True)
+    '''
+    lgb_model_params = {
+        'boosting_type': 'gbdt',
+        'num_iterations': 500,
+        'max_depth':-1,
+        'objective': 'regression',
+        'metric': 'mae',
+        'reg_alpha':0.5,
+        'num_leaves': 31,
+        'learning_rate': 0.05,
+        'colsample_bytree': 0.9,
+        'subsample': 0.8,
+        'subsample_freq': 5
+    }
+    lgb_train_params = {
+        'early_stopping_rounds':None,
+        'learning_rates': None, # lambda iter: 0.1*(0.99**iter),
+        'verbose_eval': False,
+    }
+    lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
+
+    stepwise_feature_selection(get_lgb_mae, lgb_params, max_rounds=60, num_only=False, forward_only=False)
