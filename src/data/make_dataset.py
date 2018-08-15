@@ -3,6 +3,40 @@ import os
 import pandas as pd
 import h2o
 import matplotlib.pyplot as plt
+from h2o.estimators.random_forest import H2ORandomForestEstimator
+
+######## template function ########
+def get_bs_cat(df_policy, idx_df, col):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df)
+        str(col),
+    Out:
+        Series(cat_),
+    Description:
+        get category directly from df_policy
+    '''
+    df = df_policy.groupby(level=0).agg({col: lambda x: x.iloc[0]})
+    return(df.loc[idx_df, col])
+
+def get_bs_agg_premium(df_policy, idx_df, col):
+    '''
+    In:
+        DataFrame(df_policy),
+        str(col),
+    Out:
+        Series(real_prem_),
+    Description:
+        get premium aggregated on different level
+    '''
+    df = df_policy.groupby(level=0).agg({'Premium': np.nansum, col: lambda x: x.iloc[0]})
+    df = df.groupby([col]).agg({'Premium': np.nanmedian})
+    df = df_policy[[col]].merge(df, how='left', left_on=[col], right_index=True)
+    df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
+    df = df.assign(real_prem = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
+    return(df.loc[idx_df, 'real_prem'])
+
 
 ######## column generate functions ########
 def get_bs_cat_age(df_policy, idx_df):
@@ -30,8 +64,7 @@ def get_bs_cat_area(df_policy, idx_df):
     Description:
         get area label
     '''
-    df = df_policy.groupby(level=0).agg({'iply_area': lambda x: x.iloc[0]})
-    return(df['iply_area'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'iply_area'))
 
 
 def get_bs_cat_assured(df_policy, idx_df):
@@ -44,8 +77,7 @@ def get_bs_cat_assured(df_policy, idx_df):
     Description:
         get assured label
     '''
-    df = df_policy.groupby(level=0).agg({'fassured': lambda x: x.iloc[0]})
-    return(df['fassured'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'fassured'))
 
 
 def get_bs_cat_cancel(df_policy, idx_df):
@@ -73,8 +105,7 @@ def get_bs_cat_distr(df_policy, idx_df):
     Description:
         get distribution channel label
     '''
-    df = df_policy.groupby(level=0).agg({'Distribution_Channel': lambda x: x.iloc[0]})
-    return(df['Distribution_Channel'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'Distribution_Channel'))
 
 
 def get_bs_cat_marriage(df_policy, idx_df):
@@ -103,8 +134,8 @@ def get_bs_cat_sex(df_policy, idx_df):
         get sex label
     '''
     df = df_policy.groupby(level=0).agg({'fsex': lambda x: x.iloc[0]})
-    df = df.assign(cat_marriage = df['fsex'].map(lambda x: 0 if pd.isnull(x) else x))
-    return(df['fsex'][idx_df])
+    df = df.assign(cat_sex = df['fsex'].map(lambda x: 0 if pd.isnull(x) else x))
+    return(df['cat_sex'][idx_df])
 
 
 def get_bs_cat_vc(df_policy, idx_df):
@@ -117,8 +148,7 @@ def get_bs_cat_vc(df_policy, idx_df):
     Description:
         get vehicle code label
     '''
-    df = df_policy.groupby(level=0).agg({'Coding_of_Vehicle_Branding_&_Type': lambda x: x.iloc[0]})
-    return(df['Coding_of_Vehicle_Branding_&_Type'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'Coding_of_Vehicle_Branding_&_Type'))
 
 
 def get_bs_cat_vmm1(df_policy, idx_df):
@@ -131,8 +161,7 @@ def get_bs_cat_vmm1(df_policy, idx_df):
     Description:
         get vehicle code label
     '''
-    df = df_policy.groupby(level=0).agg({'Vehicle_Make_and_Model1': lambda x: x.iloc[0]})
-    return(df['Vehicle_Make_and_Model1'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'Vehicle_Make_and_Model1'))
 
 
 def get_bs_cat_vmm2(df_policy, idx_df):
@@ -145,8 +174,7 @@ def get_bs_cat_vmm2(df_policy, idx_df):
     Description:
         get vehicle code label
     '''
-    df = df_policy.groupby(level=0).agg({'Vehicle_Make_and_Model2': lambda x: x.iloc[0]})
-    return(df['Vehicle_Make_and_Model2'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'Vehicle_Make_and_Model2'))
 
 
 def get_bs_cat_vmy(df_policy, idx_df):
@@ -190,8 +218,7 @@ def get_bs_cat_vregion(df_policy, idx_df):
     Description:
         get vehicle imported or domestic label
     '''
-    df = df_policy.groupby(level=0).agg({'Imported_or_Domestic_Car': lambda x: x.iloc[0]})
-    return(df['Imported_or_Domestic_Car'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'Imported_or_Domestic_Car'))
 
 
 def get_bs_cat_zip(df_policy, idx_df):
@@ -204,8 +231,7 @@ def get_bs_cat_zip(df_policy, idx_df):
     Description:
         get assured zip label
     '''
-    df = df_policy.groupby(level=0).agg({'aassured_zip': lambda x: x.iloc[0]})
-    return(df['aassured_zip'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'aassured_zip'))
 
 
 def get_bs_int_acc_lia(df_policy, idx_df):
@@ -218,8 +244,7 @@ def get_bs_int_acc_lia(df_policy, idx_df):
     Description:
         get liability class label
     '''
-    df = df_policy.groupby(level=0).agg({'lia_class': lambda x: x.iloc[0]})
-    return(df['lia_class'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'lia_class'))
 
 
 def get_bs_int_claim_plc(df_policy, df_claim, idx_df):
@@ -250,8 +275,7 @@ def get_bs_int_others(df_policy, idx_df):
     Description:
         get number of other policies
     '''
-    df = df_policy.groupby(level=0).agg({'Multiple_Products_with_TmNewa_(Yes_or_No?)': lambda x: x.iloc[0]})
-    return(df['Multiple_Products_with_TmNewa_(Yes_or_No?)'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'Multiple_Products_with_TmNewa_(Yes_or_No?)'))
 
 
 def get_bs_real_acc_dmg(df_policy, idx_df):
@@ -264,8 +288,7 @@ def get_bs_real_acc_dmg(df_policy, idx_df):
     Description:
         get liability class label
     '''
-    df = df_policy.groupby(level=0).agg({'pdmg_acc': lambda x: x.iloc[0]})
-    return(df['pdmg_acc'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'pdmg_acc'))
 
 
 def get_bs_real_acc_lia(df_policy, idx_df):
@@ -278,26 +301,25 @@ def get_bs_real_acc_lia(df_policy, idx_df):
     Description:
         get liability class label
     '''
-    df = df_policy.groupby(level=0).agg({'plia_acc': lambda x: x.iloc[0]})
-    return(df['plia_acc'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'plia_acc'))
 
 
-def get_bs_real_loss(df_policy, df_claim, idx_df):
+def get_bs_real_loss_plc(df_policy, df_claim, idx_df):
     '''
     In:
         DataFrame(df_policy),
         DataFrame(df_claim),
         Any(idx_df),
     Out:
-        Series(real_loss),
+        Series(real_loss_plc),
     Description:
         get total loss of claims on the policy
     '''
     df = df_claim.groupby(level=0).agg({'Paid_Loss_Amount': np.nansum})
     df = df_policy.merge(df, how='left', left_index=True, right_index=True)
     df = df.groupby(level=0).agg({'Paid_Loss_Amount': lambda x: x.iloc[0]})
-    df = df.assign(real_loss = df['Paid_Loss_Amount'].map(lambda x: 0 if pd.isnull(x) else x))
-    return(df['real_loss'][idx_df])
+    df = df.assign(real_loss_plc = df['Paid_Loss_Amount'].map(lambda x: 0 if pd.isnull(x) else x))
+    return(df['real_loss_plc'][idx_df])
 
 
 def get_bs_real_prem_dmg(df_policy, idx_df):
@@ -328,11 +350,7 @@ def get_bs_real_prem_ins(df_policy, idx_df):
     Description:
         get premium by insured
     '''
-    df = df_policy.groupby(["Insured's_ID"]).agg({'Premium': np.nanmedian})
-    df = df_policy[["Insured's_ID"]].merge(df, how='left', left_on=["Insured's_ID"], right_index=True)
-    df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
-    df = df.assign(real_prem_ins = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
-    return(df['real_prem_ins'][idx_df])
+    return(get_bs_agg_premium(df_policy, idx_df, "Insured's_ID"))
 
 
 def get_bs_real_prem_lia(df_policy, idx_df):
@@ -391,15 +409,11 @@ def get_bs_real_prem_vc(df_policy, idx_df):
         DataFrame(df_policy),
         Any(idx_df),
     Out:
-        Series(real_prem_ins),
+        Series(real_prem_vc),
     Description:
         get premium by insured
     '''
-    df = df_policy.groupby(["Coding_of_Vehicle_Branding_&_Type"]).agg({'Premium': np.nanmedian})
-    df = df_policy[["Coding_of_Vehicle_Branding_&_Type"]].merge(df, how='left', left_on=["Coding_of_Vehicle_Branding_&_Type"], right_index=True)
-    df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
-    df = df.assign(real_prem_vc = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
-    return(df['real_prem_vc'][idx_df])
+    return(get_bs_agg_premium(df_policy, idx_df, "Coding_of_Vehicle_Branding_&_Type"))
 
 
 def get_bs_real_vcost(df_policy, idx_df):
@@ -412,8 +426,7 @@ def get_bs_real_vcost(df_policy, idx_df):
     Description:
         get replacement cost
     '''
-    df = df_policy.groupby(level=0).agg({'Replacement_cost_of_insured_vehicle': np.nanmedian})
-    return(df['Replacement_cost_of_insured_vehicle'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'Replacement_cost_of_insured_vehicle'))
 
 
 def get_bs_real_ved(df_policy, idx_df):
@@ -426,8 +439,7 @@ def get_bs_real_ved(df_policy, idx_df):
     Description:
         get engine displacement
     '''
-    df = df_policy.groupby(level=0).agg({'Engine_Displacement_(Cubic_Centimeter)': np.nanmedian})
-    return(df['Engine_Displacement_(Cubic_Centimeter)'][idx_df])
+    return(get_bs_cat(df_policy, idx_df, 'Engine_Displacement_(Cubic_Centimeter)'))
 
 
 ######## get dataset aggregate ########
@@ -445,6 +457,8 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     Description:
         create X, and y variables for training and testing
     '''
+    # baseline columns
+
     df_bs = pd.concat([df_train, df_test])
 
     print('Getting column cat_age')
@@ -493,7 +507,7 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     df_bs = df_bs.assign(int_acc_lia = get_bs_int_acc_lia(df_policy, df_bs.index))
 
     print('Getting column int_claim')
-    df_bs = df_bs.assign(int_claim = get_bs_int_claim(df_policy, df_claim, df_bs.index))
+    df_bs = df_bs.assign(int_claim_plc = get_bs_int_claim_plc(df_policy, df_claim, df_bs.index))
 
     print('Getting column int_others')
     df_bs = df_bs.assign(int_others = get_bs_int_others(df_policy, df_bs.index))
@@ -505,7 +519,7 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     df_bs = df_bs.assign(real_acc_lia = get_bs_real_acc_lia(df_policy, df_bs.index))
 
     print('Getting column real_loss')
-    df_bs = df_bs.assign(real_loss = get_bs_real_loss(df_policy, df_claim, df_bs.index))
+    df_bs = df_bs.assign(real_loss_plc = get_bs_real_loss_plc(df_policy, df_claim, df_bs.index))
 
     print('Getting column real_prem_dmg')
     df_bs = df_bs.assign(real_prem_dmg = get_bs_real_prem_dmg(df_policy, df_bs.index))
@@ -530,13 +544,18 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
 
     print('Getting column real_ved')
     df_bs = df_bs.assign(real_ved = get_bs_real_ved(df_policy, df_bs.index))
+    '''
+    X_train = read_interim_data('X_train_bs.csv')
+    X_test = read_interim_data('X_test_bs.csv')
+    df_bs = pd.concat([X_train, X_test])
+    '''
 
     col_y = 'Next_Premium'
     cols_X = [col for col in df_bs.columns if col != col_y]
 
     X_train = df_bs.loc[df_train.index, cols_X]
     X_test = df_bs.loc[df_test.index, cols_X]
-    y_train = df_bs.loc[df_train.index, [col_y]]
+    y_train = df_train.loc[X_train.index]
 
     return(X_train, X_test, y_train)
 
@@ -557,6 +576,23 @@ def read_raw_data(file_name, index_col='Policy_Number'):
     raw_data = pd.read_csv(file_path, index_col=index_col)
 
     return(raw_data)
+
+
+def read_interim_data(file_name, index_col='Policy_Number'):
+    '''
+    In: file_name
+
+    Out: interim_data
+
+    Description: read data from directory /data/interim
+    '''
+    # set the path of raw data
+    interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
+
+    file_path = os.path.join(interim_data_path, file_name)
+    interim_data = pd.read_csv(file_path, index_col=index_col)
+
+    return(interim_data)
 
 
 def write_test_data(df, file_name):
@@ -589,7 +625,6 @@ if __name__ == '__main__':
     df_test = read_raw_data('testing-set.csv')
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
-    #df_map_coverage = read_raw_data('coverage_map.csv', index_col='Coverage')
 
     #X_train, X_test, y_train = create_train_test_data_main_coverage(df_train, df_test, df_policy, df_claim, df_map_coverage)
 

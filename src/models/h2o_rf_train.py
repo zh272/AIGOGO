@@ -11,7 +11,7 @@ schema = {'cat_age': 'enum',
  'cat_area': 'enum',
  'cat_assured': 'enum',
  'cat_cancel': 'enum',
- 'cat_distr': 'enum',
+ #'cat_distr': 'enum',
  'cat_marriage': 'enum',
  'cat_sex': 'enum',
  'cat_vc': 'enum',
@@ -37,7 +37,7 @@ schema = {'cat_age': 'enum',
  'real_ved': 'real'}
 
 ######## get model input func ########
-def get_train_input(train_only=False, seed=0):
+def get_train_input(train_only=False, ext='bs', seed=0):
     '''
     In:
         bool(train_only),
@@ -55,8 +55,8 @@ def get_train_input(train_only=False, seed=0):
     '''
     if train_only:
         np.random.seed(seed)
-        X_all = read_interim_data('X_train_bs.csv')
-        y_all = read_interim_data('y_train_bs.csv')
+        X_all = read_interim_data('X_train_{}.csv'.format(ext))
+        y_all = read_interim_data('y_train_{}.csv'.format(ext))
 
         msk = np.random.rand(len(X_all)) < 0.8
         X_train = X_all[msk]
@@ -64,11 +64,22 @@ def get_train_input(train_only=False, seed=0):
         X_test = X_all[~msk]
         y_test = y_all[~msk]
     else:
-        X_train = read_interim_data('X_train_bs.csv')
-        X_test = read_interim_data('X_test_bs.csv')
-        y_train = read_interim_data('y_train_bs.csv')
+        X_train = read_interim_data('X_train_{}.csv'.format(ext))
+        X_test = read_interim_data('X_test_{}.csv'.format(ext))
+
+        y_train = read_interim_data('y_train_{}.csv'.format(ext))
         y_test = read_raw_data('testing-set.csv')
 
+    cols = ['real_prem_plc',
+  'real_prem_lia',
+  'cat_distr',
+  'int_acc_lia',
+  'cat_zip',
+  'cat_sex',
+  'real_acc_dmg',]
+
+    X_train = X_train[cols]
+    X_test = X_test[cols]
     return(X_train, X_test, y_train, y_test)
 
 
@@ -84,7 +95,15 @@ def train_h2o_model(X_train, X_test, y_train, model, params):
     Description:
         train h2o random forest model
     '''
-    global schema
+    schema = dict()
+    for col in X_train.columns:
+        if col.startswith('cat'):
+            schema[col] = 'enum'
+        elif col.startswith('int'):
+            schema[col] = 'int'
+        else:
+            schema[col] = 'real'
+
     # transform to h2o format
     df_train = y_train.merge(X_train, how='left', left_index=True, right_index=True)
     h2o_train = h2o.H2OFrame(df_train, column_types=schema)
@@ -250,12 +269,12 @@ if __name__ == '__main__':
     h2o.init(max_mem_size = "2G")             #specify max number of bytes. uses all cores by default.
     h2o.remove_all()                          #clean slate, in case cluster was already running
 
-    X_train, X_test, y_train, y_test = get_train_input(train_only=False)
+    X_train, X_test, y_train, y_test = get_train_input(train_only=False, ext='fs')
 
     # define model and parameters
     rf_params = {
-        'ntrees': [30],
-        'max_depth':[15],
+        'ntrees': [50],
+        'max_depth':[20],
         'stopping_metric': ['mae'],
         'stopping_rounds': [2],
         'score_each_iteration': [True],
@@ -266,9 +285,7 @@ if __name__ == '__main__':
     output_rf = train_h2o_model(X_train, X_test, y_train, H2ORandomForestEstimator, rf_params)
     perf_rf_train = get_analysis_on_model(output_rf['model'], X_train, y_train, output_rf['fit_train'])
     perf_rf_test = get_analysis_on_model(output_rf['model'], X_test, y_test, output_rf['fit_test'])
-
-    write_precessed_data(output_rf['fit_test'])
-
+    #write_precessed_data(output_rf['fit_test'])
     xg_params = {
         'ntrees': [300],
         #'max_depth':[15] * 3,
