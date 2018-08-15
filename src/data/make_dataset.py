@@ -570,7 +570,10 @@ def read_raw_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/raw
     '''
     # set the path of raw data
-    raw_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'raw')
+    if os.getcwd()[-1]=='O':
+        raw_data_path = os.path.join(os.getcwd(), 'data', 'raw')
+    else:
+        raw_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'raw')
 
     file_path = os.path.join(raw_data_path, file_name)
     raw_data = pd.read_csv(file_path, index_col=index_col)
@@ -587,7 +590,10 @@ def read_interim_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/interim
     '''
     # set the path of raw data
-    interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
+    if os.getcwd()[-1]=='O':
+        interim_data_path = os.path.join(os.getcwd(), 'data', 'interim')
+    else:
+        interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
 
     file_path = os.path.join(interim_data_path, file_name)
     interim_data = pd.read_csv(file_path, index_col=index_col)
@@ -606,6 +612,7 @@ def write_test_data(df, file_name):
     Description:
         Write sample data to directory /data/interim
     '''
+    
     interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
     write_sample_path = os.path.join(interim_data_path, file_name)
     df.to_csv(write_sample_path)
