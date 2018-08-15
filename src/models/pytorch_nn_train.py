@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 import torch.nn.functional as F
 
-import matplotlib
-matplotlib.use('Agg')
+### to detach from monitor
+# import matplotlib
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from trainer import Trainer
@@ -31,6 +32,22 @@ def get_submission(
         }
     }
 
+
+
+
+    # temp_path = 'feature_distr'
+    # if not os.path.isdir(temp_path): os.makedirs(temp_path)
+    # for i in range(X_train.values.shape[1]):
+    #     idx = np.random.permutation(X_train.values.shape[0])[0:10000]
+    #     plt.figure()
+    #     plt.scatter(np.random.randn(10000,1), X_train.values[idx, i])
+    #     plt.title(X_train.columns[i])
+    #     plt.savefig(os.path.join(temp_path, '{}.png'.format(X_train.columns[i][0:30])))
+    #     plt.close()
+    
+    
+    
+    
     train_set, X_test_np = get_dataset(X_train.values, y_train.values, X_test.values)
 
     trainer = Trainer(
@@ -55,7 +72,7 @@ def get_submission(
         plt.xlabel('steps')
         plt.title('Training MAE')
         plt.grid()
-        plt.savefig(os.path.join('figures', 'training_plot.png'))
+        plt.savefig(os.path.join(fig_path, 'training_plot.png'))
         plt.close()
 
     valid_loss = trainer.loss_epoch()

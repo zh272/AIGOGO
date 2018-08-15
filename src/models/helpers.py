@@ -3,17 +3,65 @@ import torch
 import numpy as np
 import torch.optim as optim
 import torch.nn.functional as F
+from sklearn import preprocessing
 from torch.autograd import Variable
 from bisect import bisect_right, bisect_left
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+
+
+class MultiColumnLabelEncoder:
+    def __init__(self,columns = None):
+        self.columns = columns # array of column names to encode
+        self.le_list = {}
+
+    def fit(self,X,y=None):
+        if self.columns is None:
+            for colname,col in X.items():
+                self.le_list[colname] = preprocessing.LabelEncoder()
+                self.le_list[colname].fit(col.astype(str))
+        else:
+            for colname in self.columns:
+                self.le_list[colname] = preprocessing.LabelEncoder()
+                self.le_list[colname].fit(X[colname].astype(str))
+        return self
+
+    def transform(self,X):
+        '''
+        Transforms columns of X specified in self.columns using
+        LabelEncoder(). If no columns specified, transforms all
+        columns in X.
+        '''
+        output = X.copy()
+        for colname, le in self.le_list.items():
+            try:
+                output[colname] = le.transform(output[colname].astype(str))
+            except ValueError:
+                print('New Labels Found in column [{}]'.format(colname))
+                if colname == "('Insurance_Coverage', 'Liability')":
+                    print('')
+                if colname == "Distribution_Channel":
+                    print('')
+                le.classes_ = np.append('0000000', le.classes_) # treat all unseen labels as on class
+                classes = np.unique(output[colname].astype(str))
+                diff = np.setdiff1d(classes, le.classes_)
+                for value in diff:
+                    # output[colname].iloc[output[colname][output[colname]==value]] = np.nan
+                    indices = output[colname][output[colname].astype(str)==value].index.tolist()
+                    for idx in indices:
+                        output.at[idx, colname] = '0000000'
+                output[colname] = le.transform(output[colname].astype(str))
+        return output
+
+    def fit_transform(self,X,y=None):
+        return self.fit(X,y).transform(X)
+
 
 
 def get_dataset(X_train, y_train, X_test, target_type=torch.FloatTensor, target_shape=None):
     if target_shape:
         y_train = y_train.reshape(*target_shape)
     # X_train, X_valid, y_train, y_valid = train_test_split(X_train,y_train,test_size=0.2,random_state=101)
-    scaler = MinMaxScaler()
+    scaler = preprocessing.MinMaxScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 

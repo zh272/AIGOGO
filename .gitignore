@@ -87,3 +87,4 @@ target/
 # Zhiyong
 zhiyong/xgboost/
 zhiyong/data/
+/catboost_info/

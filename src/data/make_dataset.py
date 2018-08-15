@@ -30,12 +30,13 @@ def get_bs_agg_premium(df_policy, idx_df, col):
     Description:
         get premium aggregated on different level
     '''
-    df = df_policy.groupby(level=0).agg({'Premium': np.nansum})
+    df = df_policy.groupby(level=0).agg({'Premium': np.nansum, col: lambda x: x.iloc[0]})
     df = df.groupby([col]).agg({'Premium': np.nanmedian})
     df = df_policy[[col]].merge(df, how='left', left_on=[col], right_index=True)
     df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
     df = df.assign(real_prem = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df.loc[idx_df, 'real_prem'])
+
 
 ######## column generate functions ########
 def get_bs_cat_age(df_policy, idx_df):
@@ -133,8 +134,8 @@ def get_bs_cat_sex(df_policy, idx_df):
         get sex label
     '''
     df = df_policy.groupby(level=0).agg({'fsex': lambda x: x.iloc[0]})
-    df = df.assign(cat_marriage = df['fsex'].map(lambda x: 0 if pd.isnull(x) else x))
-    return(df['fsex'][idx_df])
+    df = df.assign(cat_sex = df['fsex'].map(lambda x: 0 if pd.isnull(x) else x))
+    return(df['cat_sex'][idx_df])
 
 
 def get_bs_cat_vc(df_policy, idx_df):
@@ -441,373 +442,6 @@ def get_bs_real_ved(df_policy, idx_df):
     return(get_bs_cat(df_policy, idx_df, 'Engine_Displacement_(Cubic_Centimeter)'))
 
 
-######## get extention columns ########
-def get_bs_real_prem_vmm1(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(real_prem_vmm1),
-    Description:
-        get premium by vehicle model1
-    '''
-    return(get_bs_agg_premium(df_policy, idx_df, 'Vehicle_Make_and_Model1'))
-
-def get_bs_real_prem_vmm2(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(real_prem_vmm2),
-    Description:
-        get premium by vehicle model2
-    '''
-    return(get_bs_agg_premium(df_policy, idx_df, 'Vehicle_Make_and_Model2'))
-
-
-def get_bs_real_prem_vmy(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(real_prem_vmy),
-    Description:
-        get premium by vehicle manufacture year
-    '''
-    df = df_policy.assign(cat_vmy = get_bs_cat_vmy(df_policy, df_policy.index))
-    return(get_bs_agg_premium(df, idx_df, 'cat_vmy'))
-
-
-def get_bs_cat_ved(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(cat_ved),
-    Description:
-        cut engine displacement into 10 bins
-    '''
-    df = df_policy.groupby(level=0).agg({'Engine_Displacement_(Cubic_Centimeter)': lambda x: x.iloc[0]})
-    df = pd.qcut(df['Engine_Displacement_(Cubic_Centimeter)'], 10)
-    return(df.loc[idx_df])
-
-
-def get_bs_real_prem_ved(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(real_prem_ved),
-    Description:
-        get premium by engine displacement label
-    '''
-    df = df_policy.assign(cat_ved = get_bs_cat_ved(df_policy, df_policy.index))
-    return(get_bs_agg_premium(df, idx_df, 'cat_ved'))
-
-
-def get_bs_cat_vdom(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(cat_vdom),
-    Description:
-        get whether the vehicle is produced domestically
-    '''
-    df = df_policy['Imported_or_Domestic_Car'].map(lambda x: 1 if x == 10 else 0)
-    return(df.loc[idx_df])
-
-
-def get_bs_real_prem_vregion(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(real_prem_vregion),
-    Description:
-        get premium by manufacture location
-    '''
-    return(get_bs_agg_premium(df_policy, idx_df, 'Imported_or_Domestic_Car'))
-
-
-def get_bs_cat_vmotor(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(cat_motor),
-    Description:
-        get vehicle type by fpt and qpt
-    '''
-    df = df_policy.groupby(level=0).agg({'qpt': lambda x: x.iloc[0], 'fpt': lambda x: x.iloc[0]})
-    cat_vmotor = np.where((df['qpt'] <= 3) & (df['qpt'] == 'P'), 2, 1)
-    cat_vmotor = np.where(df['qpt'] != 'P', 0, cat_vmotor)
-    return(cat_vmotor.loc[idx_df])
-
-
-def get_bs_real_prem_vqpt(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(real_prem_vqpt),
-    Description:
-        get premium by number of vehicle seats
-    '''
-    df = df_policy.assign(cat_vqpt = get_bs_cat_vqpt(df_policy, df_policy.index))
-    return(get_bs_agg_premium(df, idx_df, 'cat_vqpt'))
-
-
-def get_bs_cat_sex_marr(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(cat_sex_marr),
-    Description:
-        get cross category of sex and marriage
-    '''
-    df = df_policy.assign(cat_sex = get_bs_cat_sex(df_policy, df_policy.index))
-    df = df.assign(cat_marriage = get_bs_cat_marriage(df_policy, df.index))
-    df = df['cat_sex'] + df['cat_marriage'] * 3
-    return(df.loc[idx_df])
-
-
-def get_bs_real_prem_distr(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(real_prem_distr),
-    Description:
-        get premium by distribution channel
-    '''
-    df = df_policy.groupby(["Distribution_Channel"]).agg({'Premium': np.nanmedian})
-    df = df_policy[["Distribution_Channel"]].merge(df, how='left', left_on=["Distribution_Channel"], right_index=True)
-    df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
-    df = df.assign(real_prem_distr = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
-    return(df['real_prem_distr'][idx_df])
-
-
-def get_bs_real_prem_ic_distr(df_policy, df_claim, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        DataFrame(df_claim),
-        Any(idx_df),
-    Out:
-        Series(real_prem_ic_distr),
-    Description:
-        get premium by distribution channel * insurance coverage
-    '''
-    df = df_policy.groupby(['Insurance_Coverage', "Distribution_Channel"]).agg({'Premium': np.nanmedian})
-    df = df_policy[['Insurance_Coverage', "Distribution_Channel"]].merge(df, how='left', left_on=['Insurance_Coverage', "Distribution_Channel"], right_index=True)
-    df = df.groupby(level=0).agg({'Premium': np.nansum})
-    df = df.assign(real_prem_ic_distr = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
-    return(df['real_prem_ic_distr'][idx_df])
-
-
-def get_bs_real_prem_area_distr(df_policy, df_claim, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        DataFrame(df_claim),
-        Any(idx_df),
-    Out:
-        Series(real_prem_area_distr),
-    Description:
-        get premium by distribution channel * insurance coverage
-    '''
-    df = df_policy.groupby(['Insurance_Coverage', "Distribution_Channel"]).agg({'Premium': np.nanmedian})
-    df = df_policy[['Insurance_Coverage', "Distribution_Channel"]].merge(df, how='left', left_on=['Insurance_Coverage', "Distribution_Channel"], right_index=True)
-    df = df.groupby(level=0).agg({'Premium': np.nansum})
-    df = df.assign(real_prem_ic_distr = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
-    return(df['real_prem_ic_distr'][idx_df])
-
-
-def get_bs_real_freq_distr(df_policy, df_claim, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        DataFrame(df_claim),
-        Any(idx_df),
-    Out:
-        Series(real_freq_distr),
-    Description:
-        get frequency of distribution channel occurance
-    '''
-    df = df_policy.groupby(level=0).agg({'Distribution_Channel': lambda x: x.iloc[0]})
-    df = pd.DataFrame(df['Distribution_Channel'].value_counts(normalize=True))
-    df.columns = ['real_freq_distr']
-    df = df_policy.merge(df, how='left', left_on=['Distribution_Channel'], right_index=True)
-    df = df.groupby(level=0).agg({'real_freq_distr': lambda x: x.iloc[0]})
-    return(df['real_freq_distr'][idx_df])
-
-
-######## get feature selection ########
-def create_feature_selection_data(df_policy, df_claim):
-    '''
-    In:
-        DataFrame(df_policy),
-        DataFrame(df_claim),
-
-    Out:
-        DataFrame(X_fs),
-        DataFrame(y_fs),
-
-    Description:
-        create train dataset with additional columns
-    '''
-    X_bs = read_interim_data('X_train_bs.csv')
-    y_bs = read_interim_data('y_train_bs.csv')
-
-    X_fs = X_bs
-    y_fs = y_bs
-
-    print('Getting column real_prem_vmm1')
-    X_fs = X_fs.assign(real_prem_vmm1 = get_bs_real_prem_vmm1(df_policy, X_fs.index))
-
-    write_test_data(X_train, "X_train_fs.csv")
-    write_test_data(y_train, "y_train_fs.csv")
-
-    return(X_fs, y_fs)
-
-
-def stepwise_policy_feature_selection(df_policy, df_claim, dict_add=dict(), max_rounds=20, num_only=False):
-    '''
-    In:
-        DataFrame(df_policy),
-        DataFrame(df_claim),
-        dict(dict_add), # add features on the fly
-        float(max_rounds),
-        bool(num_only), # include numeric features only
-    Out:
-        dict(output), # test mae and selected columns
-    Description:
-        do forward feature selection with penalty on additional freedom
-    '''
-    X_all = read_interim_data('X_train_fs.csv')
-    y_all = read_interim_data('y_train_fs.csv')
-    All_all = y_all.merge(X_all, how='left', left_index=True, right_index=True)
-
-    # add new feature
-    for col, func in dict_add.items():
-        print('Getting column {}'.format(col))
-        All_all[col] = func(df_policy, df_claim, All_all.index)
-
-    # train test split
-    np.random.seed(0)
-    msk = np.random.rand(len(All_all)) < 0.8
-    All_train = All_all[msk]
-    All_test = All_all[~msk]
-
-    # get schema
-    schema = dict()
-    for col in All_train.columns:
-        if col.startswith('cat'):
-            schema[col] = 'enum'
-        elif col.startswith('int'):
-            schema[col] = 'int'
-        else:
-            schema[col] = 'real'
-
-    # get valid mae
-    h2o.init(max_mem_size = "2G")
-    def get_mae(cols_train, All_train=All_train, All_test=pd.DataFrame(), schema=schema):
-        # clean memory
-        h2o.remove_all()
-        # get random forest model
-        model = H2ORandomForestEstimator(ntrees = 30,
-                                          max_depth = 15,
-                                          stopping_metric = 'mae',
-                                          stopping_rounds = 2,
-                                          seed = 1000000
-                                          )
-
-        # tranform to h2o dataset
-        h2o_train = h2o.H2OFrame(All_train, column_types=schema)
-        if len(All_test) == 0:
-            train, valid = h2o_train.split_frame(ratios = [0.8], seed=0)
-        else:
-            h2o_test = h2o.H2OFrame(All_test, column_types=schema)
-            train, valid = (h2o_train, h2o_test)
-
-        model.train(cols_train, 'Next_Premium', training_frame=train, validation_frame=valid)
-
-        mae = model.mae(valid=True)
-        return(mae)
-
-    # initialize add delete columns
-    cols_del = ['real_prem_plc', 'real_prem_ic_distr', 'real_prem_lia', 'cat_distr', 'int_acc_lia', 'cat_zip', 'cat_sex', 'real_acc_dmg', 'cat_vmy']
-    cols_add = [col for col in X_all.columns if col not in cols_del] + list(dict_add.keys())
-
-    if num_only:
-        cols_add = [col for col in cols_add if not col.startswith('cat')]
-
-    # stepwise select features
-    col_change = 'init'
-    rounds = 0
-    print('sth')
-    mae_min = get_mae(cols_del)
-    print('Baseline data gives minimum mae {}'.format(mae_min))
-    while(col_change and rounds < max_rounds):
-        # initialize
-        rounds = rounds + 1
-        mae_lag = mae_min
-        panelty_add = len(cols_add) / 10
-        # backward step
-        '''
-        for col_del in cols_del:
-            print('Testing delete column {}'.format(col_del))
-            cols_train = [col for col in cols_del if col != col_del]
-            mae = get_mae(cols_train)
-            print('MAE changes to {}'.format(mae))
-            col_change = col_change if mae >= mae_min else col_del
-            mae_min = mae_min if mae >= mae_min else mae
-        '''
-        # forward step
-        for col_add in cols_add:
-            print('Testing add column {}'.format(col_add))
-            cols_train = cols_del + [col_add]
-            mae = get_mae(cols_train)
-            print('MAE changes to {}'.format(mae))
-            col_change = col_change if mae >= mae_min else col_add
-            mae_min = mae_min if mae >= mae_min else mae
-
-        if col_change in cols_add:
-            print('Round {} adds column {}'.format(rounds, col_change))
-            cols_del = cols_del + [col_change]
-            cols_add = [col for col in cols_add if col != col_change]
-        elif col_change in cols_del:
-            print('Round {} removes column {}'.format(rounds, col_change))
-            cols_add = cols_add + [col_change]
-            cols_del = [col for col in cols_del if col != col_change]
-
-        if mae_lag <= mae_min + panelty_add:
-            col_change = None
-
-        print('Existing {} columns are: {}'.format(len(cols_del), ', '.join(cols_del)))
-        print('Round {} minimum mae is {}'.format(rounds, mae_min))
-
-    result = {'mae': get_mae(cols_del, All_test=All_test),
-              'cols': cols_del}
-
-    h2o.shutdown(prompt=False)
-
-    return(result)
-
-
 ######## get dataset aggregate ########
 def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     '''
@@ -824,7 +458,7 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
         create X, and y variables for training and testing
     '''
     # baseline columns
-    '''
+
     df_bs = pd.concat([df_train, df_test])
 
     print('Getting column cat_age')
@@ -914,12 +548,7 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     X_train = read_interim_data('X_train_bs.csv')
     X_test = read_interim_data('X_test_bs.csv')
     df_bs = pd.concat([X_train, X_test])
-
-    # feature transformation
-    print('Getting column real_prem_distr')
-    df_bs = df_bs.drop(['cat_distr'], axis=1)
-    #df_bs = df_bs.assign(real_prem_distr = get_bs_real_prem_distr(df_policy, df_bs.index))
-    df_bs = df_bs.assign(real_prem_ic_distr = get_bs_real_prem_ic_distr(df_policy, df_bs.index))
+    '''
 
     col_y = 'Next_Premium'
     cols_X = [col for col in df_bs.columns if col != col_y]
@@ -996,15 +625,15 @@ if __name__ == '__main__':
     independent_policy: policy_0702.csv
     '''
 
-    #df_train = read_raw_data('training-set.csv')
-    #df_test = read_raw_data('testing-set.csv')
-    #df_claim = read_raw_data('claim_0702.csv')
-    #df_policy = read_raw_data('policy_0702.csv')
+    df_train = read_raw_data('training-set.csv')
+    df_test = read_raw_data('testing-set.csv')
+    df_claim = read_raw_data('claim_0702.csv')
+    df_policy = read_raw_data('policy_0702.csv')
 
     #X_train, X_test, y_train = create_train_test_data_main_coverage(df_train, df_test, df_policy, df_claim, df_map_coverage)
 
     X_train, X_test, y_train = create_train_test_data_bs(df_train, df_test, df_policy, df_claim)
 
-    write_test_data(X_train, "X_train_bs_ext.csv")
-    write_test_data(X_test, "X_test_bs_ext.csv")
-    write_test_data(y_train, "y_train_bs_ext.csv")
+    write_test_data(X_train, "X_train_bs.csv")
+    write_test_data(X_test, "X_test_bs.csv")
+    write_test_data(y_train, "y_train_bs.csv")
