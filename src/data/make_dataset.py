@@ -570,7 +570,7 @@ def read_raw_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/raw
     '''
     # set the path of raw data
-    if os.getcwd()[-1]=='o':
+    if os.getcwd()[-1]=='O':
         raw_data_path = os.path.join(os.getcwd(), 'data', 'raw') #os.getcwd(), should direct to the path /AIGOGO
     else: #os.getcwd()[-1]=='a':
         raw_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'raw')
@@ -591,7 +591,10 @@ def read_interim_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/interim
     '''
     # set the path of raw data
-    interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
+    if os.getcwd()[-1]=='O':
+        interim_data_path = os.path.join(os.getcwd(), 'data', 'interim') #os.getcwd(), should direct to the path /AIGOGO
+    else: #os.getcwd()[-1]=='a':
+        interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
 
     file_path = os.path.join(interim_data_path, file_name)
     interim_data = pd.read_csv(file_path, index_col=index_col)
