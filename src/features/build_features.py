@@ -6,103 +6,22 @@ from sklearn.metrics import mean_absolute_error
 from helpers import MultiColumnLabelEncoder
 import lightgbm as lgb
 
-######## get pre feature selection data set ########
-def create_feature_selection_data(df_policy, df_claim):
-    '''
-    In:
-        DataFrame(df_policy),
-        DataFrame(df_claim),
+'''
+Steps to add a new feature:
 
-    Out:
-        DataFrame(X_fs),
-        DataFrame(y_fs),
+    (1) add your function definition to section ##feature explosion##; the function should take in (df_policy[, df_claim], index); Index instance: X_train.index
 
-    Description:
-        create train dataset with additional columns
-    '''
-    #X_bs = read_interim_data('X_train_bs.csv')
-    #y_bs = read_interim_data('y_train_bs.csv')
+    (2) call your function in create_feature_selection_data(df_policy, df_claim)
 
-    X_train = read_interim_data('X_train_bs.csv')
-    X_test = read_interim_data('X_test_bs.csv')
+    (3) ensure the main function uses lgm to select features, run the script, and move any features that are kicked out by feature selection to recycle bin
+'''
 
-    y_train = read_raw_data('training-set.csv')
-    y_test = read_raw_data('testing-set.csv')
+######## recycle bin ########
+'''
+print('Getting column real_prem_vregion')
+X_fs = X_fs.assign(real_prem_vregion = get_bs_real_prem_vregion(df_policy, X_fs.index))
 
-    X_fs = pd.concat([X_train, X_test])
-    y_fs = pd.concat([y_train, y_test])
-
-    #print('Getting column cat_sex_marr')
-    #X_fs = X_fs.assign(cat_sex_marr = get_bs_cat_sex_marr(df_policy, X_fs.index))
-
-    #print('Getting column cat_vdom')
-    #X_fs = X_fs.assign(cat_vdom = get_bs_cat_vdom(df_policy, X_fs.index))
-
-    #print('Getting column cat_ved')
-    #X_fs = X_fs.assign(cat_ved = get_bs_cat_ved(df_policy, X_fs.index))
-
-    #print('Getting column cat_vmotor')
-    #X_fs = X_fs.assign(cat_vmotor = get_bs_cat_vmotor(df_policy, X_fs.index))
-
-    #print('Getting column real_freq_distr')
-    #X_fs = X_fs.assign(real_freq_distr = get_bs_real_freq_distr(df_policy, X_fs.index))
-
-    #print('Getting column real_prem_area_distr')
-    #X_fs = X_fs.assign(real_prem_area_distr = get_bs_real_prem_area_distr(df_policy, X_fs.index))
-
-    print('Getting column real_prem_ic_distr')
-    X_fs = X_fs.assign(real_prem_ic_distr = get_bs_real_prem_ic_distr(df_policy, X_fs.index))
-
-    print('Getting column real_prem_distr')
-    X_fs = X_fs.assign(real_prem_distr = get_bs_real_prem_distr(df_policy, X_fs.index))
-
-    #print('Getting column real_prem_ved')
-    #X_fs = X_fs.assign(real_prem_ved = get_bs_real_prem_ved(df_policy, X_fs.index))
-
-    #print('Getting column real_prem_vmm1')
-    #X_fs = X_fs.assign(real_prem_vmm1 = get_bs_real_prem_vmm1(df_policy, X_fs.index))
-
-    #print('Getting column real_prem_vmm2')
-    #X_fs = X_fs.assign(real_prem_vmm2 = get_bs_real_prem_vmm2(df_policy, X_fs.index))
-
-    #print('Getting column real_prem_vmy')
-    #X_fs = X_fs.assign(real_prem_vmy = get_bs_real_prem_vmy(df_policy, X_fs.index))
-
-    #print('Getting column real_prem_vqpt')
-    #X_fs = X_fs.assign(real_prem_vqpt = get_bs_real_prem_vqpt(df_policy, X_fs.index))
-
-    #print('Getting column real_prem_vregion')
-    #X_fs = X_fs.assign(real_prem_vregion = get_bs_real_prem_vregion(df_policy, X_fs.index))
-
-    X_train = X_fs.loc[X_train.index]
-    y_train = y_fs.loc[y_train.index]
-    X_test = X_fs.loc[X_test.index]
-    y_test = y_fs.loc[y_test.index]
-
-    np.random.seed(0)
-    msk = np.random.rand(len(X_train)) < 0.8
-    X_train_v = X_train[~msk]
-    y_train_v = y_train[~msk]
-    X_train_t = X_train[msk]
-    y_train_t = y_train[msk]
-
-    # add mean encoding
-    print('Getting column real_mc_prob_distr')
-    X_test = X_test.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train, y_train, X_valid=X_test, train_only=False))
-
-    X_train_v = X_train_v.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train_t, y_train_t, X_valid=X_train_v, train_only=False))
-
-    X_train_t = X_train_t.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train_t, y_train_t, train_only=True, fold=5))
-
-    write_test_data(X_train_t, "X_train_prefs.csv")
-    write_test_data(y_train_t, "y_train_prefs.csv")
-    write_test_data(X_train_v, "X_valid_prefs.csv")
-    write_test_data(y_train_v, "y_valid_prefs.csv")
-    write_test_data(X_test, "X_test_prefs.csv")
-    write_test_data(y_test, "y_test_prefs.csv")
-
-    return(None)
-
+'''
 
 ######## get feature selection ########
 def get_lgb_mae(cols_train, train, valid, params):
@@ -124,10 +43,17 @@ def get_lgb_mae(cols_train, train, valid, params):
     model = lgb.train(
         params['model'], lgb_train, valid_sets=lgb_valid, **params['train']
     )
-    valid_pred =model.predict(valid[cols_train])
+    valid_pred = model.predict(valid[cols_train])
     valid_mae = mean_absolute_error(valid['Next_Premium'], valid_pred)
+    varimp = list(model.feature_importance())
 
-    return(valid_mae)
+    cols_wst = []
+    for i in range(min(20, len(varimp) - 1)):
+        idx_min = varimp.index(min(varimp))
+        varimp[idx_min] = max(varimp) + 1
+        cols_wst.append(cols_train[idx_min])
+
+    return(valid_mae, cols_wst)
 
 
 def get_cat_mae(cols_train, train, valid, params):
@@ -165,10 +91,19 @@ def get_cat_mae(cols_train, train, valid, params):
               early_stopping_rounds=2
               )
 
-    return(np.mean(abs(y_valid - model.get_test_eval())))
+    mae = np.mean(abs(y_valid - model.get_test_eval()))
+    varimp = model.get_feature_importance()
+    cols_wst = []
+
+    for i in range(5):
+        idx_min = varimp.index(min(varimp))
+        varimp[idx_min] = max(varimp) + 1
+        cols_wst.append(cols_train[idx_min])
+
+    return(mae, cols_wst)
 
 
-def stepwise_feature_selection(get_fs_mae, params, max_rounds=60, num_only=False, forward_only=False, cols_init=['real_prem_plc']):
+def stepwise_feature_selection(get_fs_mae, params, max_rounds=60, num_only=False, forward_step=False, backward_step=True, cols_init=[]):
     '''
     In:
         dict(params),
@@ -211,60 +146,63 @@ def stepwise_feature_selection(get_fs_mae, params, max_rounds=60, num_only=False
     # initialize add delete columns
     # h2o test 1: ['real_prem_plc', 'real_prem_ic_distr', 'real_prem_lia', 'cat_distr', 'int_acc_lia', 'cat_zip', 'cat_sex', 'real_acc_dmg', 'cat_vmy']
     # h2o test 2: real_prem_plc, real_prem_lia, cat_distr, int_acc_lia, cat_sex, real_acc_dmg, cat_zip
-    cols_ex = []
-    cols_del = cols_init
-    cols_add = [col for col in X_train.columns if (col not in cols_del) and (col not in cols_ex)]
+    if(len(cols_init) == 0):
+        cols_init = list(X_train.columns)
+
+    cols_train = cols_init
+    cols_add = [col for col in X_train.columns if col not in cols_train]
 
     if num_only:
-        cols_del = [col for col in cols_del if not col.startswith('cat')]
+        cols_train = [col for col in cols_train if not col.startswith('cat')]
         cols_add = [col for col in cols_add if not col.startswith('cat')]
 
     # stepwise select features
     col_change = 'init'
     rounds = 0
-    mae_min = get_fs_mae(cols_del, All_train, All_valid, params)
+    mae_min, cols_del = get_fs_mae(cols_train, All_train, All_valid, params)
     print('Baseline data gives minimum mae {}'.format(mae_min))
 
     while(col_change and rounds < max_rounds):
         # initialize
         col_change = None
         rounds = rounds + 1
-        mae_lag = mae_min
 
         # backward step
-        if (not forward_only) and (len(cols_del) > 1):
+        if backward_step and (len(cols_del) > 1):
+            cols_del_new = cols_del
             for col_del in cols_del:
                 print('Testing delete column {}'.format(col_del))
-                cols_train = [col for col in cols_del if col != col_del]
-                mae = get_fs_mae(cols_train, All_train, All_valid, params)
-                print('MAE changes to {}'.format(mae))
-                col_change = col_change if mae >= mae_min else col_del
-                mae_min = mae_min if mae >= mae_min else mae
-
+                cols_train_i = [col for col in cols_train if col != col_del]
+                mae_i, cols_del_i = get_fs_mae(cols_train_i, All_train, All_valid, params)
+                print('MAE changes to {}'.format(mae_i))
+                # update col_change, cols_del, and mae_min if mae is lower
+                col_change = col_change if mae_i >= mae_min else col_del
+                cols_del_new = cols_del_new if mae_i >= mae_min else cols_del_i
+                mae_min = mae_min if mae_i >= mae_min else mae_i
+            cols_del = cols_del_new
 
         # forward step
-        if len(cols_add) > 0:
+        if forward_step and (len(cols_add) > 0):
             for col_add in cols_add:
                 print('Testing add column {}'.format(col_add))
-                cols_train = cols_del + [col_add]
-                mae = get_fs_mae(cols_train, All_train, All_valid, params)
-                print('MAE changes to {}'.format(mae))
-                col_change = col_change if mae >= mae_min else col_add
-                mae_min = mae_min if mae >= mae_min else mae
+                cols_train_i = cols_train + [col_add]
+                mae_i, cols_del_i = get_fs_mae(cols_train_i, All_train, All_valid, params)
+                print('MAE changes to {}'.format(mae_i))
+                # update col_change, cols_del, and mae_min if mae is lower
+                col_change = col_change if mae_i >= mae_min else col_add
+                cols_del = cols_del if mae_i >= mae_min else cols_del_i
+                mae_min = mae_min if mae_i >= mae_min else mae_i
 
         if col_change in cols_add:
             print('Round {} adds column {}'.format(rounds, col_change))
-            cols_del = cols_del + [col_change]
+            cols_train = cols_train + [col_change]
             cols_add = [col for col in cols_add if col != col_change]
-        elif col_change in cols_del:
+        elif col_change in cols_train:
             print('Round {} removes column {}'.format(rounds, col_change))
             cols_add = cols_add + [col_change]
-            cols_del = [col for col in cols_del if col != col_change]
+            cols_train = [col for col in cols_train if col != col_change]
 
-        if mae_lag <= mae_min:
-            col_change = None
-
-        print('Existing {} columns are: {}'.format(len(cols_del), ', '.join(cols_del)))
+        print('Existing {} columns are: {}'.format(len(cols_train), ', '.join(cols_train)))
         print('Round {} minimum mae is {}'.format(rounds, mae_min))
 
     X_train = pd.concat([X_train, X_valid])[cols_del]
@@ -882,7 +820,6 @@ def get_bs_real_prem_ic_distr(df_policy, idx_df):
     '''
     In:
         DataFrame(df_policy),
-        DataFrame(df_claim),
         Any(idx_df),
     Out:
         Series(real_prem_ic_distr),
@@ -900,7 +837,6 @@ def get_bs_real_prem_area_distr(df_policy, idx_df):
     '''
     In:
         DataFrame(df_policy),
-        DataFrame(df_claim),
         Any(idx_df),
     Out:
         Series(real_prem_area_distr),
@@ -918,7 +854,6 @@ def get_bs_real_freq_distr(df_policy, idx_df):
     '''
     In:
         DataFrame(df_policy),
-        DataFrame(df_claim),
         Any(idx_df),
     Out:
         Series(real_freq_distr),
@@ -933,6 +868,64 @@ def get_bs_real_freq_distr(df_policy, idx_df):
     return(df['real_freq_distr'][idx_df])
 
 
+def get_bs_cat_vmm1_vmy(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(cat_vmm1_vmy),
+    Description:
+        get frequency of distribution channel occurance
+    '''
+    df = df_policy.groupby(level=0).agg({'Vehicle_Make_and_Model1': lambda x: x.iloc[0], 'Manafactured_Year_and_Month': lambda x: str(x.iloc[0])})
+    df = df.assign(cat_vmm1_vmy = df['Vehicle_Make_and_Model1'] +  df['Manafactured_Year_and_Month'])
+
+    return(df.loc[idx_df, 'cat_vmm1_vmy'])
+
+
+def get_bs_cat_claim_ins(df_policy, df_claim, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        DataFrame(df_claim),
+        Any(idx_df),
+    Out:
+        Series(cat_claim_ins),
+    Description:
+        get whether the insured got into an accident by himself
+    '''
+    df_claim = df_claim[df_claim["Driver's_Relationship_with_Insured"]==1]
+    df_claim = df_claim.groupby(level=0).agg({"Driver's_Relationship_with_Insured": lambda x: 1})
+    df = df_policy.merge(df_claim, how='left', left_index=True, right_index=True)
+    df = df.groupby(level=0).agg({"Driver's_Relationship_with_Insured": lambda x: x.iloc[0]})
+    df = df.loc[idx_df, "Driver's_Relationship_with_Insured"].fillna(0)
+
+    return(df)
+
+
+def get_bs_real_loss_ins(df_policy, df_claim, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        DataFrame(df_claim),
+        Any(idx_df),
+    Out:
+        Series(real_loss_ins),
+    Description:
+        get total loss of claims given an insured
+    '''
+    df_claim = df_claim.groupby(level=0).agg({'Paid_Loss_Amount': np.nansum})
+    df_policy = df_policy.groupby(level=0).agg({"Insured's_ID": lambda x: x.iloc[0]})
+    df = df_policy.merge(df_claim, how='left', left_index=True, right_index=True)
+    df_ins = df.groupby(["Insured's_ID"]).agg({'Paid_Loss_Amount': np.nansum})
+    df = df[["Insured's_ID"]].merge(df_ins, how='left', left_on=["Insured's_ID"], right_index=True)
+    df = df.loc[idx_df, 'Paid_Loss_Amount'].fillna(0)
+
+    return(df)
+
+
+######## mean encoding ########
 def get_bs_real_mc_prob_distr(X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5):
     '''
     In:
@@ -970,6 +963,115 @@ def get_bs_real_mc_prob_distr(X_train, y_train, X_valid=pd.DataFrame(), train_on
         X_valid = X_valid['real_mc_prob_distr'].where(~pd.isnull(X_valid['real_mc_prob_distr']), np.nanmedian(y_train['real_mc_prob_distr']))
 
     return(X_valid)
+
+
+######## get pre feature selection data set ########
+def create_feature_selection_data(df_policy, df_claim):
+    '''
+    In:
+        DataFrame(df_policy),
+        DataFrame(df_claim),
+
+    Out:
+        DataFrame(X_fs),
+        DataFrame(y_fs),
+
+    Description:
+        create train dataset with additional columns
+    '''
+    #X_bs = read_interim_data('X_train_bs.csv')
+    #y_bs = read_interim_data('y_train_bs.csv')
+
+    X_train = read_interim_data('X_train_bs.csv')
+    X_test = read_interim_data('X_test_bs.csv')
+
+    y_train = read_raw_data('training-set.csv')
+    y_test = read_raw_data('testing-set.csv')
+
+    X_fs = pd.concat([X_train, X_test])
+    y_fs = pd.concat([y_train, y_test])
+
+    # basic
+    print('Getting column cat_sex_marr')
+    X_fs = X_fs.assign(cat_sex_marr = get_bs_cat_sex_marr(df_policy, X_fs.index))
+
+    # distribution
+    print('Getting column real_freq_distr')
+    X_fs = X_fs.assign(real_freq_distr = get_bs_real_freq_distr(df_policy, X_fs.index))
+
+    print('Getting column real_prem_area_distr')
+    X_fs = X_fs.assign(real_prem_area_distr = get_bs_real_prem_area_distr(df_policy, X_fs.index))
+
+    print('Getting column real_prem_ic_distr')
+    X_fs = X_fs.assign(real_prem_ic_distr = get_bs_real_prem_ic_distr(df_policy, X_fs.index))
+
+    print('Getting column real_prem_distr')
+    X_fs = X_fs.assign(real_prem_distr = get_bs_real_prem_distr(df_policy, X_fs.index))
+
+    # vehicle
+    print('Getting column cat_vdom')
+    X_fs = X_fs.assign(cat_vdom = get_bs_cat_vdom(df_policy, X_fs.index))
+
+    print('Getting column cat_ved')
+    X_fs = X_fs.assign(cat_ved = get_bs_cat_ved(df_policy, X_fs.index))
+
+    print('Getting column cat_vmotor')
+    X_fs = X_fs.assign(cat_vmotor = get_bs_cat_vmotor(df_policy, X_fs.index))
+
+    print('Getting column cat_vmm1_vmy')
+    X_fs = X_fs.assign(cat_vmm1_vmy = get_bs_cat_vmm1_vmy(df_policy, X_fs.index))
+
+    print('Getting column real_prem_ved')
+    X_fs = X_fs.assign(real_prem_ved = get_bs_real_prem_ved(df_policy, X_fs.index))
+
+    print('Getting column real_prem_vmm1')
+    X_fs = X_fs.assign(real_prem_vmm1 = get_bs_real_prem_vmm1(df_policy, X_fs.index))
+
+    print('Getting column real_prem_vmm2')
+    X_fs = X_fs.assign(real_prem_vmm2 = get_bs_real_prem_vmm2(df_policy, X_fs.index))
+
+    print('Getting column real_prem_vmy')
+    X_fs = X_fs.assign(real_prem_vmy = get_bs_real_prem_vmy(df_policy, X_fs.index))
+
+    print('Getting column real_prem_vqpt')
+    X_fs = X_fs.assign(real_prem_vqpt = get_bs_real_prem_vqpt(df_policy, X_fs.index))
+
+    # claim
+    print('Getting column cat_claim_ins')
+    X_fs = X_fs.assign(cat_claim_ins = get_bs_cat_claim_ins(df_policy, df_claim, X_fs.index))
+
+    print('Getting column real_loss_ins')
+    X_fs = X_fs.assign(real_loss_ins = get_bs_real_loss_ins(df_policy, df_claim, X_fs.index))
+
+    # write results
+    X_train = X_fs.loc[X_train.index]
+    y_train = y_fs.loc[y_train.index]
+    X_test = X_fs.loc[X_test.index]
+    y_test = y_fs.loc[y_test.index]
+
+    np.random.seed(0)
+    msk = np.random.rand(len(X_train)) < 0.8
+    X_train_v = X_train[~msk]
+    y_train_v = y_train[~msk]
+    X_train_t = X_train[msk]
+    y_train_t = y_train[msk]
+
+    # add mean encoding
+    print('Getting column real_mc_prob_distr')
+    X_test = X_test.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train, y_train, X_valid=X_test, train_only=False))
+
+    X_train_v = X_train_v.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train_t, y_train_t, X_valid=X_train_v, train_only=False))
+
+    X_train_t = X_train_t.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train_t, y_train_t, train_only=True, fold=5))
+
+    write_test_data(X_train_t, "X_train_prefs.csv")
+    write_test_data(y_train_t, "y_train_prefs.csv")
+    write_test_data(X_train_v, "X_valid_prefs.csv")
+    write_test_data(y_train_v, "y_valid_prefs.csv")
+    write_test_data(X_test, "X_test_prefs.csv")
+    write_test_data(y_test, "y_test_prefs.csv")
+
+    return(None)
 
 
 ######## read/write func ########
@@ -1040,12 +1142,11 @@ if __name__ == '__main__':
 
     create_feature_selection_data(df_policy, df_claim)
 
-    '''
     cat_params = {
-        'n_estimators':100000, 'learning_rate':100, 'objective':'MAE', 'verbose':False,
+        'n_estimators':100000, 'learning_rate': 50, 'objective':'MAE', 'verbose':False,
         'max_depth':4, 'colsample_bylevel':0.7, 'reg_lambda':None, 'task_type': 'CPU'
     }
-    '''
+
     lgb_model_params = {
         'boosting_type': 'gbdt',
         'num_iterations': 500,
@@ -1066,4 +1167,4 @@ if __name__ == '__main__':
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
 
-    stepwise_feature_selection(get_lgb_mae, lgb_params, max_rounds=60, num_only=False, forward_only=False)
+    stepwise_feature_selection(get_lgb_mae, lgb_params, max_rounds=60, num_only=False, forward_step=False, backward_step=True, cols_init=[])
