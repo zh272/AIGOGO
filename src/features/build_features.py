@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from catboost import CatBoostRegressor
 from sklearn.metrics import mean_absolute_error
+from sklearn.decomposition import NMF
 from helpers import MultiColumnLabelEncoder
 import lightgbm as lgb
 
@@ -925,6 +926,27 @@ def get_bs_real_loss_ins(df_policy, df_claim, idx_df):
     return(df)
 
 
+def get_bs_real_prem_ic_nmf(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        DataFrame(real_prem_ic_nmf),
+    Description:
+        get premium by insurance coverage, with nonnegative matrix factorization
+    '''
+    df = df_policy[['Insurance_Coverage', 'Premium']]
+    df = df.set_index('Insurance_Coverage', append=True)
+    df = df.unstack(level=1)
+    mtx_df = df.fillna(0).as_matrix()
+    nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+    df = pd.DataFrame(nmf_df, index = df.index)
+    df.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
+
+    return(df.loc[idx_df])
+
+
 ######## mean encoding ########
 def get_bs_real_mc_prob_distr(X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5):
     '''
@@ -1042,6 +1064,12 @@ def create_feature_selection_data(df_policy, df_claim):
 
     print('Getting column real_loss_ins')
     X_fs = X_fs.assign(real_loss_ins = get_bs_real_loss_ins(df_policy, df_claim, X_fs.index))
+
+    # insurance coverage
+    print('Getting column real_prem_ic_nmf')
+    real_prem_ic_nmf = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+    colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
+    X_fs[colnames] = real_prem_ic_nmf
 
     # write results
     X_train = X_fs.loc[X_train.index]
@@ -1167,4 +1195,4 @@ if __name__ == '__main__':
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
 
-    stepwise_feature_selection(get_lgb_mae, lgb_params, max_rounds=60, num_only=False, forward_step=False, backward_step=True, cols_init=[])
+    stepwise_feature_selection(get_cat_mae, cat_params, max_rounds=60, num_only=False, forward_step=False, backward_step=True, cols_init=[])
