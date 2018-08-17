@@ -17,7 +17,7 @@ class MLPRegressor(nn.Module):
         for idx in range(1,len(num_neuron)):
             self.regressor.add_module('fc{}'.format(idx), nn.Linear(num_neuron[idx-1], num_neuron[idx]))
             self.regressor.add_module('fc{}_relu'.format(idx), nn.ReLU(inplace=True))
-            # self.regressor.add_module('fc1_dropout', nn.Dropout())
+            self.regressor.add_module('fc{}_dropout'.format(idx), nn.Dropout())
         self.regressor.add_module('fc{}'.format(len(num_neuron)), nn.Linear(num_neuron[-1],1))
 
         # # Initialization

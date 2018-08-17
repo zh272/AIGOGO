@@ -1,5 +1,6 @@
 import os
 import torch
+import torch.utils.data
 import numpy as np
 import torch.optim as optim
 import torch.nn.functional as F
@@ -61,7 +62,8 @@ def get_dataset(X_train, y_train, X_test, target_type=torch.FloatTensor, target_
     if target_shape:
         y_train = y_train.reshape(*target_shape)
     # X_train, X_valid, y_train, y_valid = train_test_split(X_train,y_train,test_size=0.2,random_state=101)
-    scaler = preprocessing.MinMaxScaler()
+    # scaler = preprocessing.MinMaxScaler()
+    scaler = preprocessing.StandardScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
@@ -73,13 +75,16 @@ def get_dataset(X_train, y_train, X_test, target_type=torch.FloatTensor, target_
 def ready(steps, threshold=100, population=None):
     return steps%threshold == 0
 
-def get_optimizer(model, hyper={}, epochs=None):
+def get_optimizer(model, hyper={}, epochs=None, optimizer='sgd'):
     """This is where users choose their optimizer and define the
        hyperparameter space they'd like to search."""
     lr = hyper['lr'] if 'lr' in hyper else np.random.choice(np.logspace(-3, 0, base=10))
     momentum = hyper['momentum'] if 'momentum' in hyper else np.random.choice(np.linspace(0.1, .9999))
     hyper['lr'], hyper['momentum'] = lr, momentum
-    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True, weight_decay=0.0001)
+    if optimizer=='sgd':
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True, weight_decay=0.0002)
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=lr,weight_decay=0.0002)
 
     if hyper and 'lr_schedule' in hyper:
         scheduler = CustomLR(optimizer, hyper['lr_schedule'])

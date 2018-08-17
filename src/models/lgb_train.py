@@ -121,16 +121,18 @@ if __name__ == '__main__':
 
     model_params = {
         'boosting_type': 'gbdt',
-        'num_iterations': 500, 
-        'max_depth':-1,
+        'num_iterations': 2000, 
+        'max_depth':4,
+        'max_bin':255,
         'objective': 'regression',
         'metric': 'mae',
         'reg_alpha':0.5,
         'num_leaves': 31,
-        'learning_rate': 0.05,
+        'learning_rate': 0.02,
         'colsample_bytree': 0.9,
         'subsample': 0.8,
-        'subsample_freq': 5
+        'subsample_freq': 5,
+        'device': 'cpu'
     }
     train_params = {
         'early_stopping_rounds':None,

@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 import torch.nn.functional as F
 
-### to detach from monitor
-# import matplotlib
-# matplotlib.use('Agg')
+## to detach from monitor
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from trainer import Trainer
@@ -19,22 +19,9 @@ warnings.simplefilter("ignore", UserWarning)
 
 def get_submission(
     X_train, y_train, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
-    loss_fn = F.l1_loss, batch_size = 128, train_params={}, plot=True
+    loss_fn = F.l1_loss, batch_size = 128, train_params={}, plot=True, 
+    test_along=False, optimizer='sgd'
 ):
-    hyper = {
-        'lr':base_lr, 
-        'momentum':0.9, 
-        'lr_schedule':{
-            0:base_lr, 
-            max_epoch//2:base_lr/5, 
-            max_epoch//4*3:base_lr/25, 
-            max_epoch: base_lr/125
-        }
-    }
-
-
-
-
     # temp_path = 'feature_distr'
     # if not os.path.isdir(temp_path): os.makedirs(temp_path)
     # for i in range(X_train.values.shape[1]):
@@ -44,22 +31,57 @@ def get_submission(
     #     plt.title(X_train.columns[i])
     #     plt.savefig(os.path.join(temp_path, '{}.png'.format(X_train.columns[i][0:30])))
     #     plt.close()
-    
-    
+
+    hyper = {
+        'lr':base_lr, 
+        'momentum':0.9, 
+        'lr_schedule':{
+            0:base_lr, 
+            max_epoch//2:base_lr/10, 
+            max_epoch//4*3:base_lr/100, 
+            max_epoch: base_lr/100
+        }
+    }
     
     
     train_set, X_test_np = get_dataset(X_train.values, y_train.values, X_test.values)
 
     trainer = Trainer(
         model(**train_params), train_set=train_set, hyper=hyper,
-        loss_fn=loss_fn, batch_size=batch_size, epochs=max_epoch
+        loss_fn=loss_fn, batch_size=batch_size, epochs=max_epoch, 
+        valid_size=0.2, optimizer=optimizer
     )
 
-
+    valid_hist = []
     for epochs in range(max_epoch):
         trainer.train_epoch()
-        if ready(epochs, threshold=1):
+        if test_along:
+            valid_loss = trainer.loss_epoch()
+            valid_hist.append(valid_loss)
+            print('Epoch {:3}: Training MAE={:.2f}, Valid MAE={:.2f}'.format(epochs, trainer.eval(), valid_loss))
+        else:
             print('Epoch {:3}: Training MAE={:.2f}'.format(epochs, trainer.eval()))
+    
+    state_dict = trainer.model.state_dict()
+    if torch.cuda.device_count() > 1:
+        input_weights = state_dict['module.regressor.fc0.weight'].cpu().numpy()
+    else:
+        input_weights = state_dict['regressor.fc0.weight'].cpu().numpy()
+    std_dev = np.std(X_train.values, axis=0)
+    avg_w = np.mean(np.abs(input_weights), axis=0)
+    feature_importances = std_dev*avg_w
+
+    print('====== CatBoost Feature Importances ======')
+    feature_names = X_train.columns.values
+    sorted_idx = np.argsort(feature_importances*-1) # descending order
+    for idx in sorted_idx:
+        print('[{:20s}]'.format(feature_names[idx]), '{:7.4f}'.format(feature_importances[idx]))
+    
+    with open('summary.txt', 'w') as f:
+        f.write('====== CatBoost Feature Importances ======\n')
+        for idx in sorted_idx:
+            f.write('[{:20s}] {:7.4f}\n'.format(feature_names[idx], feature_importances[idx]))
+        f.write('\n')
 
     if plot:
         t_step = np.arange(0, max_epoch, 1)
@@ -67,16 +89,19 @@ def get_submission(
         fig_path = 'figures'
         if not os.path.isdir(fig_path): os.makedirs(fig_path)
         plt.figure()
-        plt.plot(t_step, train_hist, 'r', ls='-', label='training MAE()')
+        plt.plot(t_step, train_hist, 'r', ls='-', label='training MAE')
+        if test_along:
+            plt.plot(t_step, valid_hist, 'b', ls='--', label='validation MAE')
         plt.legend(loc='best')
         plt.xlabel('steps')
-        plt.title('Training MAE')
+        plt.title('Training and Validation MAE')
         plt.grid()
         plt.savefig(os.path.join(fig_path, 'training_plot.png'))
         plt.close()
 
-    valid_loss = trainer.loss_epoch()
-    print('>>> Validation MAE: {:10.4f}'.format(valid_loss))
+    train_loss = trainer.loss_epoch(load='train')
+    valid_loss = trainer.loss_epoch(load='valid')
+    print('>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)'.format(train_loss,valid_loss))
 
     # Generate submission
     test_output = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
@@ -119,59 +144,42 @@ def write_precessed_data(df):
 
     return(None)
 
-def demo(max_epoch=50, base_lr=0.1, batch_size=128, loss_fn=F.l1_loss):
-    X_train = read_interim_data('X_train_id.csv')
-    X_test = read_interim_data('X_test_id.csv')
-    y_train = read_interim_data('y_train.csv')
+def demo(max_epoch=300, base_lr=0.0005, batch_size=128, optimizer='sgd'):
+    X_train = read_interim_data('X_train_prefs.csv')
+    y_train = read_interim_data('y_train_prefs.csv')
+    X_valid = read_interim_data('X_valid_prefs.csv')
+    y_valid = read_interim_data('y_valid_prefs.csv')
+    X_test = read_interim_data('X_test_prefs.csv')
 
-    num_features = [
-        'ipolicy_coverage_avg', 'ipolicy_premium_avg', 'ivehicle_repcost_avg',
-        'ipolicies', 'iclaims', 'iclaim_paid_amount', 'iclaim_salvage_amount', 
-        'cpremium_dmg', 'cpremium_lia', 'cpremium_thf', 
-        'Multiple_Products_with_TmNewa_(Yes_or_No?)', 'cclaims', 'closs', 'csalvate', 
+
+    feature_list = [
+        'int_acc_lia', 'int_claim', 'int_others', 'real_acc_dmg', 'real_acc_lia', 'real_loss', 
+        'real_prem_dmg', 'real_prem_ins', 'real_prem_lia', 'real_prem_plc', 'real_prem_thf', 
+        'real_prem_vc', 'real_vcost', 'real_ved', 'real_freq_distr', 'real_prem_area_distr', 
+        'real_prem_ic_distr', 'real_prem_distr', 'real_prem_ved', 'real_prem_vmm1', 'real_prem_vmm2', 
+        'real_prem_vmy', 'real_loss_ins', 'real_prem_ic_nmf_1', 'real_prem_ic_nmf_2', 
+        'real_prem_ic_nmf_3', 'real_prem_ic_nmf_4', 'real_prem_ic_nmf_5', 'real_prem_ic_nmf_6', 
+        'real_prem_ic_nmf_7', 'real_mc_prob_distr'
     ]
-    encodeCols = []
-    # encodeCols = [
-    #     "Insured's_ID", 'fmarriage', 'fsex', 'iage_lab',
-    #     'iassured_lab',  'Vehicle_identifier',
-    #     'Coding_of_Vehicle_Branding_&_Type', 'Vehicle_Make_and_Model1',
-    #     'Vehicle_Make_and_Model2', 'vlocomotive', 'vyear_lab', 'vregion_lab',
-    #     'vengine_lab', 'cbucket', 'aassured_zip', 'iply_area', 'Distribution_Channel',
-    #     'cclaim_id', 'ccause_type'
-    # ]
 
-    cat_features = []
-    print('===== {:20s} ====='.format('Disgarded Features'))
-    for name in encodeCols:
-        variance = X_train[name].unique()
-        # ignore low distinct features
-        # threshold could be changed
-        if len(variance) > 1 and len(variance) < len(X_train):
-            cat_features.append(name)
-        else:
-            print('[{:50s}]'.format(name),  len(variance))
-
-    feature_list = cat_features + num_features
-
-    X_train['vyear_lab'] = X_train['vyear_lab'].round().astype(int)
-    X_test['vyear_lab'] = X_test['vyear_lab'].round().astype(int)
 
     # Filter features
     X_train = X_train[feature_list]
+    X_valid = X_valid[feature_list]
     X_test = X_test[feature_list]
 
     ### Fill Missing Values
-    # X_train[num_features] = X_train[num_features].apply(lambda x:x.fillna(x.value_counts().index[0]))
     X_train = X_train.apply(lambda x:x.fillna(-1))
     X_test = X_test.apply(lambda x:x.fillna(-1))
 
     # begin training
     train_params = {
-        'num_input':len(feature_list), 'num_neuron':[100,25,5]
+        'num_input':len(feature_list), 'num_neuron':[100,40,10]
     }
     model_output = get_submission(
-        X_train, y_train, X_test, model=MLPRegressor, max_epoch=max_epoch, 
-        base_lr=base_lr, loss_fn = loss_fn, batch_size = batch_size, train_params=train_params
+        pd.concat([X_train, X_valid]), pd.concat([y_train, y_valid]), X_test, 
+        model=MLPRegressor, max_epoch=max_epoch, base_lr=base_lr, loss_fn=F.l1_loss, 
+        batch_size = batch_size, train_params=train_params, test_along=True, optimizer=optimizer
     )
 
     # generate submission

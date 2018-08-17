@@ -9,7 +9,7 @@ from helpers import AverageMeter, get_optimizer, test_epoch
 
 class Trainer:
     def __init__(self, model, train_set, loss_fn, hyper={},
-                batch_size=64, valid_size=0.1, epochs=None):
+                batch_size=64, valid_size=0.1, epochs=None, optimizer='sgd'):
         if torch.cuda.is_available():
             # Wrap model for multi-GPUs, if necessary
             if torch.cuda.device_count() > 1:
@@ -19,7 +19,7 @@ class Trainer:
         else:
             self.model = model
         self.optimizer, self.scheduler, self.hyper = get_optimizer(
-            model=model, hyper=hyper, epochs=epochs
+            model=model, hyper=hyper, epochs=epochs, optimizer=optimizer
         )
         self.evaluator = AverageMeter()
         self.num_params = 0
@@ -88,7 +88,11 @@ class Trainer:
 
         output = self.model(inputs)
         loss = self.loss_fn(output, target)
+        # loss = self.loss_fn(output, target.view_as(output))
+        # loss = self.loss_fn(output.view_as(target), target)
         if np.isnan(loss.item()):
+            # print(output)
+            # print(target)
             print('WARNING at trainer.py: Loss is NaN!')
 
         self.optimizer.zero_grad()
