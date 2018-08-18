@@ -82,9 +82,9 @@ def get_optimizer(model, hyper={}, epochs=None, optimizer='sgd'):
     momentum = hyper['momentum'] if 'momentum' in hyper else np.random.choice(np.linspace(0.1, .9999))
     hyper['lr'], hyper['momentum'] = lr, momentum
     if optimizer=='sgd':
-        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True, weight_decay=0.0002)
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True, weight_decay=0.0001)
     else:
-        optimizer = optim.Adam(model.parameters(), lr=lr,weight_decay=0.0002)
+        optimizer = optim.Adam(model.parameters(), lr=lr,weight_decay=0.0001)
 
     if hyper and 'lr_schedule' in hyper:
         scheduler = CustomLR(optimizer, hyper['lr_schedule'])

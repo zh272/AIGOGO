@@ -37,9 +37,10 @@ def get_submission(
         'momentum':0.9, 
         'lr_schedule':{
             0:base_lr, 
-            max_epoch//2:base_lr/10, 
-            max_epoch//4*3:base_lr/100, 
-            max_epoch: base_lr/100
+            max_epoch//4:base_lr/5, 
+            max_epoch//2:base_lr/25, 
+            max_epoch//4*3:base_lr/125, 
+            max_epoch: base_lr/125
         }
     }
     
@@ -67,9 +68,9 @@ def get_submission(
         input_weights = state_dict['module.regressor.fc0.weight'].cpu().numpy()
     else:
         input_weights = state_dict['regressor.fc0.weight'].cpu().numpy()
-    std_dev = np.std(X_train.values, axis=0)
+    # std_dev = np.std(X_train.values, axis=0) # is 1
     avg_w = np.mean(np.abs(input_weights), axis=0)
-    feature_importances = std_dev*avg_w
+    feature_importances = avg_w
 
     print('====== CatBoost Feature Importances ======')
     feature_names = X_train.columns.values
@@ -144,7 +145,7 @@ def write_precessed_data(df):
 
     return(None)
 
-def demo(max_epoch=300, base_lr=0.0005, batch_size=128, optimizer='sgd'):
+def demo(max_epoch=60, base_lr=0.001, batch_size=128, optimizer='sgd'):
     X_train = read_interim_data('X_train_prefs.csv')
     y_train = read_interim_data('y_train_prefs.csv')
     X_valid = read_interim_data('X_valid_prefs.csv')
@@ -174,7 +175,7 @@ def demo(max_epoch=300, base_lr=0.0005, batch_size=128, optimizer='sgd'):
 
     # begin training
     train_params = {
-        'num_input':len(feature_list), 'num_neuron':[100,40,10]
+        'num_input':len(feature_list), 'num_neuron':[60,20,5]
     }
     model_output = get_submission(
         pd.concat([X_train, X_valid]), pd.concat([y_train, y_valid]), X_test, 
