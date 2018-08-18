@@ -19,7 +19,7 @@ warnings.simplefilter("ignore", UserWarning)
 
 def get_submission(
     X_train, y_train, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
-    loss_fn = F.l1_loss, batch_size = 128, train_params={}, plot=True, 
+    momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
     test_along=False, optimizer='sgd'
 ):
     # temp_path = 'feature_distr'
@@ -34,7 +34,8 @@ def get_submission(
 
     hyper = {
         'lr':base_lr, 
-        'momentum':0.9, 
+        'momentum':momentum,
+        'weight_decay':weight_decay, 
         'lr_schedule':{
             0:base_lr, 
             max_epoch//4:base_lr/5, 
@@ -49,7 +50,7 @@ def get_submission(
 
     trainer = Trainer(
         model(**train_params), train_set=train_set, hyper=hyper,
-        loss_fn=loss_fn, batch_size=batch_size, epochs=max_epoch, 
+        loss_fn=F.l1_loss, batch_size=batch_size, epochs=max_epoch, 
         valid_size=0.2, optimizer=optimizer
     )
 
@@ -72,7 +73,7 @@ def get_submission(
     avg_w = np.mean(np.abs(input_weights), axis=0)
     feature_importances = avg_w
 
-    print('====== CatBoost Feature Importances ======')
+    print('====== MLPRegressor{} Feature Importances ======'.format(train_params['num_neuron']))
     feature_names = X_train.columns.values
     sorted_idx = np.argsort(feature_importances*-1) # descending order
     for idx in sorted_idx:
@@ -145,7 +146,8 @@ def write_precessed_data(df):
 
     return(None)
 
-def demo(max_epoch=60, base_lr=0.001, batch_size=128, optimizer='sgd'):
+def demo(max_epoch=40, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128, optimizer='sgd'):
+    # or weight_decay=0.0001
     X_train = read_interim_data('X_train_prefs.csv')
     y_train = read_interim_data('y_train_prefs.csv')
     X_valid = read_interim_data('X_valid_prefs.csv')
@@ -175,11 +177,11 @@ def demo(max_epoch=60, base_lr=0.001, batch_size=128, optimizer='sgd'):
 
     # begin training
     train_params = {
-        'num_input':len(feature_list), 'num_neuron':[60,20,5]
+        'num_input':len(feature_list), 'num_neuron':[80,20,5]
     }
     model_output = get_submission(
         pd.concat([X_train, X_valid]), pd.concat([y_train, y_valid]), X_test, 
-        model=MLPRegressor, max_epoch=max_epoch, base_lr=base_lr, loss_fn=F.l1_loss, 
+        model=MLPRegressor, max_epoch=max_epoch, base_lr=base_lr, momentum=momentum, weight_decay=weight_decay,
         batch_size = batch_size, train_params=train_params, test_along=True, optimizer=optimizer
     )
 
