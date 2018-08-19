@@ -612,12 +612,16 @@ def write_test_data(df, file_name):
     Description:
         Write sample data to directory /data/interim
     '''
-    
-    interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
+    if os.getcwd()[-1]=='O':
+            interim_data_path = os.path.join(os.getcwd(), 'data', 'interim')
+    else:
+        interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
     write_sample_path = os.path.join(interim_data_path, file_name)
     df.to_csv(write_sample_path)
 
     return(None)
+
+
 
 
 if __name__ == '__main__':
