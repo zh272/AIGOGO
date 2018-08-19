@@ -3,6 +3,7 @@ import os
 import pandas as pd
 from catboost import CatBoostRegressor
 from sklearn.metrics import mean_absolute_error
+from sklearn.decomposition import NMF
 from helpers import MultiColumnLabelEncoder
 import lightgbm as lgb
 
@@ -249,6 +250,97 @@ def get_bs_agg_premium(df_policy, idx_df, col):
     df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
     df = df.assign(real_prem = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df.loc[idx_df, 'real_prem'])
+
+
+def get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
+    '''
+    In:
+        str(col_cat)
+        DataFrame(X_train),
+        DataFrame(y_train),
+        DataFrame(X_valid),
+        bool(train_only),
+        double(fold),
+    Out:
+        Series(real_mc_prob_distr),
+    Description:
+        get mean of next_premium by col_cat
+    '''
+    if train_only:
+        np.random.seed(1)
+        rand = np.random.rand(len(X_train))
+        lvs = [i / float(fold) for i in range(fold+1)]
+
+        X_arr = []
+        for i in range(fold):
+            msk = (rand >= lvs[i]) & (rand < lvs[i+1])
+            X_slice = X_train[msk]
+            X_base = X_train[~msk]
+            y_base = y_train[~msk]
+            X_slice = get_bs_real_mc_mean(col_cat, X_base, y_base, X_valid=X_slice, train_only=False, prior=prior)
+            X_arr.append(X_slice)
+
+        X_valid = pd.concat(X_arr)
+
+    else:
+        # merge col_cat with label
+        y_train = y_train.merge(X_train[[col_cat]], how='left', left_index=True, right_index=True)
+        y_train = y_train.assign(real_mc_mean = y_train['Next_Premium'])
+
+        # get mean of each category and smoothed by global mean
+        smooth_mean = lambda x: (x.sum() + prior * y_train['real_mc_mean'].mean()) / (len(x) + prior)
+        y_train = y_train.groupby([col_cat]).agg({'real_mc_mean': smooth_mean})
+
+        #
+        X_valid = X_valid[[col_cat]].merge(y_train[['real_mc_mean']], how='left', left_on=[col_cat], right_index=True)
+        X_valid = X_valid['real_mc_mean'].where(~pd.isnull(X_valid['real_mc_mean']), np.nanmean(y_train['real_mc_mean']))
+
+    return(X_valid)
+
+
+def get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
+    '''
+    In:
+        str(col_cat)
+        DataFrame(X_train),
+        DataFrame(y_train),
+        DataFrame(X_valid),
+        bool(train_only),
+        double(fold),
+    Out:
+        Series(real_mc_prob_distr),
+    Description:
+        get probability of premium reducing to 0 by col_cat
+    '''
+    if train_only:
+        np.random.seed(1)
+        rand = np.random.rand(len(X_train))
+        lvs = [i / float(fold) for i in range(fold+1)]
+
+        X_arr = []
+        for i in range(fold):
+            msk = (rand >= lvs[i]) & (rand < lvs[i+1])
+            X_slice = X_train[msk]
+            X_base = X_train[~msk]
+            y_base = y_train[~msk]
+            X_slice = get_bs_real_mc_prob(col_cat, X_base, y_base, X_valid=X_slice, train_only=False, prior=prior)
+            X_arr.append(X_slice)
+
+        X_valid = pd.concat(X_arr)
+
+    else:
+        # merge col_cat with label
+        y_train = y_train.merge(X_train[[col_cat]], how='left', left_index=True, right_index=True)
+        y_train = y_train.assign(real_mc_prob = y_train['Next_Premium'] != 0)
+
+        # get mean of each category and smoothed by global mean
+        smooth_mean = lambda x: (x.sum() + prior * y_train['real_mc_prob'].mean()) / (len(x) + prior)
+        y_train = y_train.groupby([col_cat]).agg({'real_mc_prob': smooth_mean})
+
+        X_valid = X_valid[[col_cat]].merge(y_train[['real_mc_prob']], how='left', left_on=[col_cat], right_index=True)
+        X_valid = X_valid['real_mc_prob'].where(~pd.isnull(X_valid['real_mc_prob']), np.nanmean(y_train['real_mc_prob']))
+
+    return(X_valid)
 
 
 ######## feature explosion ########
@@ -925,44 +1017,25 @@ def get_bs_real_loss_ins(df_policy, df_claim, idx_df):
     return(df)
 
 
-######## mean encoding ########
-def get_bs_real_mc_prob_distr(X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5):
+def get_bs_real_prem_ic_nmf(df_policy, idx_df):
     '''
     In:
         DataFrame(df_policy),
-        DataFrame(X_train),
-        DataFrame(y_train),
-        DataFrame(X_valid),
-        bool(train_only),
+        Any(idx_df),
     Out:
-        Series(real_mc_prob_distr),
+        DataFrame(real_prem_ic_nmf),
     Description:
-        get probability of premium reducing to 0 by distribution
+        get premium by insurance coverage, with nonnegative matrix factorization
     '''
-    if train_only:
-        np.random.seed(1)
-        rand = np.random.rand(len(X_train))
-        lvs = [i / float(fold) for i in range(fold+1)]
+    df = df_policy[['Insurance_Coverage', 'Premium']]
+    df = df.set_index('Insurance_Coverage', append=True)
+    df = df.unstack(level=1)
+    mtx_df = df.fillna(0).as_matrix()
+    nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+    df = pd.DataFrame(nmf_df, index = df.index)
+    df.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
 
-        X_arr = []
-        for i in range(fold):
-            msk = (rand >= lvs[i]) & (rand < lvs[i+1])
-            X_slice = X_train[msk]
-            X_base = X_train[~msk]
-            y_base = y_train[~msk]
-            X_slice = get_bs_real_mc_prob_distr(X_base, y_base, X_valid=X_slice, train_only=False)
-            X_arr.append(X_slice)
-
-        X_valid = pd.concat(X_arr)
-
-    else:
-        y_train = y_train.merge(X_train[['cat_distr']], how='left', left_index=True, right_index=True)
-        y_train = y_train.assign(real_mc_prob_distr = y_train['Next_Premium'] != 0)
-        y_train = y_train.groupby(['cat_distr']).agg({'real_mc_prob_distr': np.nanmean})
-        X_valid = X_valid[['cat_distr']].merge(y_train[['real_mc_prob_distr']], how='left', left_on=['cat_distr'], right_index=True)
-        X_valid = X_valid['real_mc_prob_distr'].where(~pd.isnull(X_valid['real_mc_prob_distr']), np.nanmedian(y_train['real_mc_prob_distr']))
-
-    return(X_valid)
+    return(df.loc[idx_df])
 
 
 ######## get pre feature selection data set ########
@@ -984,6 +1057,9 @@ def create_feature_selection_data(df_policy, df_claim):
 
     X_train = read_interim_data('X_train_bs.csv')
     X_test = read_interim_data('X_test_bs.csv')
+
+    X_train = X_train.fillna(0)
+    X_test = X_test.fillna(0)
 
     y_train = read_raw_data('training-set.csv')
     y_test = read_raw_data('testing-set.csv')
@@ -1043,6 +1119,12 @@ def create_feature_selection_data(df_policy, df_claim):
     print('Getting column real_loss_ins')
     X_fs = X_fs.assign(real_loss_ins = get_bs_real_loss_ins(df_policy, df_claim, X_fs.index))
 
+    # insurance coverage
+    print('Getting column real_prem_ic_nmf')
+    real_prem_ic_nmf = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+    colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
+    X_fs[colnames] = real_prem_ic_nmf
+
     # write results
     X_train = X_fs.loc[X_train.index]
     y_train = y_fs.loc[y_train.index]
@@ -1057,12 +1139,23 @@ def create_feature_selection_data(df_policy, df_claim):
     y_train_t = y_train[msk]
 
     # add mean encoding
-    print('Getting column real_mc_prob_distr')
-    X_test = X_test.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train, y_train, X_valid=X_test, train_only=False))
+    cols_cat = [col for col in X_train.columns if col.startswith('cat')]
 
-    X_train_v = X_train_v.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train_t, y_train_t, X_valid=X_train_v, train_only=False))
+    # add mean encoding on next_premium mean
+    for col_cat in cols_cat:
+        col_mean = col_cat.replace('cat_', 'real_mc_mean_')
+        print('Getting column ' + col_mean)
+        X_test[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
+        X_train_v[col_mean] = get_bs_real_mc_mean(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
+        X_train_t[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
-    X_train_t = X_train_t.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train_t, y_train_t, train_only=True, fold=5))
+    # add mean encoding on probability of next_premium being 0
+    for col_cat in cols_cat:
+        col_prob = col_cat.replace('cat_', 'real_mc_prob_')
+        print('Getting column ' + col_prob)
+        X_test[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
+        X_train_v[col_prob] = get_bs_real_mc_prob(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
+        X_train_t[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     write_test_data(X_train_t, "X_train_prefs.csv")
     write_test_data(y_train_t, "y_train_prefs.csv")
@@ -1149,7 +1242,7 @@ if __name__ == '__main__':
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
-        'num_iterations': 500,
+        'num_iterations': 1000,
         'max_depth':-1,
         'objective': 'regression',
         'metric': 'mae',
@@ -1167,4 +1260,4 @@ if __name__ == '__main__':
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
 
-    stepwise_feature_selection(get_lgb_mae, lgb_params, max_rounds=60, num_only=False, forward_step=False, backward_step=True, cols_init=[])
+    stepwise_feature_selection(get_lgb_mae, lgb_params, max_rounds=60, num_only=True, forward_step=False, backward_step=True, cols_init=[])
