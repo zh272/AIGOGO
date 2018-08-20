@@ -246,7 +246,7 @@ def get_bs_agg_premium(df_policy, idx_df, col):
     '''
     df = df_policy.groupby(level=0).agg({'Premium': np.nansum, col: lambda x: x.iloc[0]})
     df = df.groupby([col]).agg({'Premium': np.nanmedian})
-    df = df_policy[[col]].merge(df, how='left', left_on=[col], right_index=True)
+    df = df_policy.loc[:, [col]].merge(df, how='left', left_on=[col], right_index=True)
     df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
     df = df.assign(real_prem = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df.loc[idx_df, 'real_prem'])
@@ -284,7 +284,7 @@ def get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train
 
     else:
         # merge col_cat with label
-        y_train = y_train.merge(X_train[[col_cat]], how='left', left_index=True, right_index=True)
+        y_train = y_train.merge(X_train.loc[:, [col_cat]], how='left', left_index=True, right_index=True)
         y_train = y_train.assign(real_mc_mean = y_train['Next_Premium'])
 
         # get mean of each category and smoothed by global mean
@@ -292,7 +292,7 @@ def get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train
         y_train = y_train.groupby([col_cat]).agg({'real_mc_mean': smooth_mean})
 
         #
-        X_valid = X_valid[[col_cat]].merge(y_train[['real_mc_mean']], how='left', left_on=[col_cat], right_index=True)
+        X_valid = X_valid.loc[:, [col_cat]].merge(y_train.loc[:, ['real_mc_mean']], how='left', left_on=[col_cat], right_index=True)
         X_valid = X_valid['real_mc_mean'].where(~pd.isnull(X_valid['real_mc_mean']), np.nanmean(y_train['real_mc_mean']))
 
     return(X_valid)
@@ -330,14 +330,14 @@ def get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train
 
     else:
         # merge col_cat with label
-        y_train = y_train.merge(X_train[[col_cat]], how='left', left_index=True, right_index=True)
+        y_train = y_train.merge(X_train.loc[:, [col_cat]], how='left', left_index=True, right_index=True)
         y_train = y_train.assign(real_mc_prob = y_train['Next_Premium'] != 0)
 
         # get mean of each category and smoothed by global mean
         smooth_mean = lambda x: (x.sum() + prior * y_train['real_mc_prob'].mean()) / (len(x) + prior)
         y_train = y_train.groupby([col_cat]).agg({'real_mc_prob': smooth_mean})
 
-        X_valid = X_valid[[col_cat]].merge(y_train[['real_mc_prob']], how='left', left_on=[col_cat], right_index=True)
+        X_valid = X_valid.loc[:, [col_cat]].merge(y_train.loc[:, ['real_mc_prob']], how='left', left_on=[col_cat], right_index=True)
         X_valid = X_valid['real_mc_prob'].where(~pd.isnull(X_valid['real_mc_prob']), np.nanmean(y_train['real_mc_prob']))
 
     return(X_valid)
@@ -639,7 +639,7 @@ def get_bs_real_prem_dmg(df_policy, idx_df):
     '''
     df = df_policy[df_policy['Main_Insurance_Coverage_Group']=='車損']
     df = df.groupby(level=0).agg({'Premium': np.nansum})
-    df = df_policy[['Main_Insurance_Coverage_Group']].merge(df, how='left', left_index=True, right_index=True)
+    df = df_policy.loc[:, ['Main_Insurance_Coverage_Group']].merge(df, how='left', left_index=True, right_index=True)
     df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
     df = df.assign(real_prem_dmg = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df['real_prem_dmg'][idx_df])
@@ -670,7 +670,7 @@ def get_bs_real_prem_lia(df_policy, idx_df):
     '''
     df = df_policy[df_policy['Main_Insurance_Coverage_Group']=='車責']
     df = df.groupby(level=0).agg({'Premium': np.nansum})
-    df = df_policy[['Main_Insurance_Coverage_Group']].merge(df, how='left', left_index=True, right_index=True)
+    df = df_policy.loc[:, ['Main_Insurance_Coverage_Group']].merge(df, how='left', left_index=True, right_index=True)
     df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
     df = df.assign(real_prem_lia = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df['real_prem_lia'][idx_df])
@@ -702,7 +702,7 @@ def get_bs_real_prem_thf(df_policy, idx_df):
     '''
     df = df_policy[df_policy['Main_Insurance_Coverage_Group']=='竊盜']
     df = df.groupby(level=0).agg({'Premium': np.nansum})
-    df = df_policy[['Main_Insurance_Coverage_Group']].merge(df, how='left', left_index=True, right_index=True)
+    df = df_policy.loc[:, ['Main_Insurance_Coverage_Group']].merge(df, how='left', left_index=True, right_index=True)
     df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
     df = df.assign(real_prem_thf = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df['real_prem_thf'][idx_df])
@@ -902,7 +902,7 @@ def get_bs_real_prem_distr(df_policy, idx_df):
         get premium by distribution channel
     '''
     df = df_policy.groupby(["Distribution_Channel"]).agg({'Premium': np.nanmedian})
-    df = df_policy[["Distribution_Channel"]].merge(df, how='left', left_on=["Distribution_Channel"], right_index=True)
+    df = df_policy.loc[:, ["Distribution_Channel"]].merge(df, how='left', left_on=["Distribution_Channel"], right_index=True)
     df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
     df = df.assign(real_prem_distr = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df['real_prem_distr'][idx_df])
@@ -919,7 +919,7 @@ def get_bs_real_prem_ic_distr(df_policy, idx_df):
         get premium by distribution channel * insurance coverage
     '''
     df = df_policy.groupby(['Insurance_Coverage', "Distribution_Channel"]).agg({'Premium': np.nanmedian})
-    df = df_policy[['Insurance_Coverage', "Distribution_Channel"]].merge(df, how='left', left_on=['Insurance_Coverage', "Distribution_Channel"], right_index=True)
+    df = df_policy.loc[:, ['Insurance_Coverage', "Distribution_Channel"]].merge(df, how='left', left_on=['Insurance_Coverage', "Distribution_Channel"], right_index=True)
     df = df.groupby(level=0).agg({'Premium': np.nansum})
     df = df.assign(real_prem_ic_distr = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df['real_prem_ic_distr'][idx_df])
@@ -936,7 +936,7 @@ def get_bs_real_prem_area_distr(df_policy, idx_df):
         get premium by distribution channel * insurance coverage
     '''
     df = df_policy.groupby(['iply_area', "Distribution_Channel"]).agg({'Premium': np.nanmedian})
-    df = df_policy[['iply_area', "Distribution_Channel"]].merge(df, how='left', left_on=['iply_area', "Distribution_Channel"], right_index=True)
+    df = df_policy.loc[:, ['iply_area', "Distribution_Channel"]].merge(df, how='left', left_on=['iply_area', "Distribution_Channel"], right_index=True)
     df = df.groupby(level=0).agg({'Premium': np.nansum})
     df = df.assign(real_prem_area_distr = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df['real_prem_area_distr'][idx_df])
@@ -1011,7 +1011,7 @@ def get_bs_real_loss_ins(df_policy, df_claim, idx_df):
     df_policy = df_policy.groupby(level=0).agg({"Insured's_ID": lambda x: x.iloc[0]})
     df = df_policy.merge(df_claim, how='left', left_index=True, right_index=True)
     df_ins = df.groupby(["Insured's_ID"]).agg({'Paid_Loss_Amount': np.nansum})
-    df = df[["Insured's_ID"]].merge(df_ins, how='left', left_on=["Insured's_ID"], right_index=True)
+    df = df.loc[:, ["Insured's_ID"]].merge(df_ins, how='left', left_on=["Insured's_ID"], right_index=True)
     df = df.loc[idx_df, 'Paid_Loss_Amount'].fillna(0)
 
     return(df)
@@ -1027,7 +1027,7 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df):
     Description:
         get premium by insurance coverage, with nonnegative matrix factorization
     '''
-    df = df_policy[['Insurance_Coverage', 'Premium']]
+    df = df_policy.loc[:, ['Insurance_Coverage', 'Premium']]
     df = df.set_index('Insurance_Coverage', append=True)
     df = df.unstack(level=1)
     mtx_df = df.fillna(0).as_matrix()
