@@ -1,6 +1,8 @@
 import os
+import time
 import fire
 import torch
+import random
 import numpy as np
 import pandas as pd
 import torch.nn.functional as F
@@ -12,78 +14,57 @@ import matplotlib.pyplot as plt
 
 from trainer import Trainer
 from model import MLPRegressor
-from helpers import get_dataset, test_epoch, ready
-
-import warnings
-warnings.simplefilter("ignore", UserWarning)
+from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 
 def get_submission(
-    X_train, y_train, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
+    X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
     momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
-    test_along=False, optimizer='sgd'
-):
-    # temp_path = 'feature_distr'
-    # if not os.path.isdir(temp_path): os.makedirs(temp_path)
-    # for i in range(X_train.values.shape[1]):
-    #     idx = np.random.permutation(X_train.values.shape[0])[0:10000]
-    #     plt.figure()
-    #     plt.scatter(np.random.randn(10000,1), X_train.values[idx, i])
-    #     plt.title(X_train.columns[i])
-    #     plt.savefig(os.path.join(temp_path, '{}.png'.format(X_train.columns[i][0:30])))
-    #     plt.close()
-
-    hyper = {
-        'lr':base_lr, 
-        'momentum':momentum,
-        'weight_decay':weight_decay, 
-        'lr_schedule':{
-            0:base_lr, 
-            max_epoch//4:base_lr/5, 
-            max_epoch//2:base_lr/25, 
-            max_epoch//4*3:base_lr/125, 
-            max_epoch: base_lr/125
-        }
-    }
-    
-    
-    train_set, X_test_np = get_dataset(X_train.values, y_train.values, X_test.values)
+    test_along=False, optimizer='sgd', hyper={}, save=False
+):    
+    train_set, valid_set, X_test_np = get_dataset(
+        X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
+    )
 
     trainer = Trainer(
-        model(**train_params), train_set=train_set, hyper=hyper,
-        loss_fn=F.l1_loss, batch_size=batch_size, epochs=max_epoch, 
-        valid_size=0.2, optimizer=optimizer
+        model(**train_params), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
+        valid_set=valid_set, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
     )
 
     valid_hist = []
+    start_time = time.time()
     for epochs in range(max_epoch):
         trainer.train_epoch()
         if test_along:
-            valid_loss = trainer.loss_epoch()
-            valid_hist.append(valid_loss)
-            print('Epoch {:3}: Training MAE={:.2f}, Valid MAE={:.2f}'.format(epochs, trainer.eval(), valid_loss))
+            temp_valid = trainer.loss_epoch()
+            valid_hist.append(temp_valid)
+            print('Epoch {:3}: Training MAE={:.2f}, Valid MAE={:.2f}'.format(epochs, trainer.eval(), temp_valid))
         else:
             print('Epoch {:3}: Training MAE={:.2f}'.format(epochs, trainer.eval()))
+    end_time = time.time()
     
     state_dict = trainer.model.state_dict()
     if torch.cuda.device_count() > 1:
         input_weights = state_dict['module.regressor.fc0.weight'].cpu().numpy()
     else:
         input_weights = state_dict['regressor.fc0.weight'].cpu().numpy()
-    # std_dev = np.std(X_train.values, axis=0) # is 1
+    # assume std deviation of each feature is 1
     avg_w = np.mean(np.abs(input_weights), axis=0)
     feature_importances = avg_w
-
-    print('====== MLPRegressor{} Feature Importances ======'.format(train_params['num_neuron']))
+    
     feature_names = X_train.columns.values
     sorted_idx = np.argsort(feature_importances*-1) # descending order
-    for idx in sorted_idx:
-        print('[{:20s}]'.format(feature_names[idx]), '{:7.4f}'.format(feature_importances[idx]))
     
-    with open('summary.txt', 'w') as f:
-        f.write('====== CatBoost Feature Importances ======\n')
-        for idx in sorted_idx:
-            f.write('[{:20s}] {:7.4f}\n'.format(feature_names[idx], feature_importances[idx]))
-        f.write('\n')
+    train_loss = trainer.loss_epoch(load='train')
+    valid_loss = trainer.loss_epoch(load='valid')
+
+    summary = '====== MLPRegressor Training Summary ======\n'
+    summary += '>>> epochs={}, lr={}, momentum={}, weight_decay={}\n'.format(max_epoch,base_lr,momentum,weight_decay)
+    summary += '>>> schedule={}\n'.format(hyper['lr_schedule'])
+    summary += '>>> hidden={}, optimizer="{}", batch_size={}\n'.format(train_params['num_neuron'],optimizer,batch_size)
+    for idx in sorted_idx:
+        summary += '[{:25s}] {:10.4f}\n'.format(feature_names[idx], feature_importances[idx])
+    summary += '>>> training_time={:.2f}min\n'.format((end_time-start_time)/60)
+    summary += '>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
 
     if plot:
         t_step = np.arange(0, max_epoch, 1)
@@ -101,15 +82,17 @@ def get_submission(
         plt.savefig(os.path.join(fig_path, 'training_plot.png'))
         plt.close()
 
-    train_loss = trainer.loss_epoch(load='train')
-    valid_loss = trainer.loss_epoch(load='valid')
-    print('>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)'.format(train_loss,valid_loss))
 
     # Generate submission
     test_output = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
     submission = pd.DataFrame(data=test_output,index=X_test.index, columns=['Next_Premium'])
 
-    return {'model': trainer, 'submission': submission}
+    if save:
+        save_obj({'MLPRegressor':trainer.model}, 'mlp_model')
+        # To load model, use:
+        # model = load_obj('mlp_model')['MLPRegressor']
+
+    return {'model': trainer, 'submission': submission, 'valid_loss':valid_loss, 'summary':summary}
 
 
 def read_interim_data(file_name, index_col='Policy_Number'):
@@ -128,7 +111,7 @@ def read_interim_data(file_name, index_col='Policy_Number'):
 
     return(interim_data)
 
-def write_precessed_data(df):
+def write_precessed_data(df, suffix=None):
     '''
     In:
         DataFrame(df),
@@ -141,29 +124,27 @@ def write_precessed_data(df):
     precessed_data_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), os.path.pardir, os.path.pardir, 'data', 'processed'
     )
-    write_sample_path = os.path.join(precessed_data_path, 'testing-set.csv')
+    if isinstance(suffix, float) or isinstance(suffix, int):
+        file_name = 'testing-set_{}.csv'.format(int(suffix))
+    else:
+        file_name = 'testing-set.csv'
+    write_sample_path = os.path.join(precessed_data_path, file_name)
     df.to_csv(write_sample_path)
 
     return(None)
 
-def demo(max_epoch=40, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128, optimizer='sgd'):
-    # or weight_decay=0.0001
+# empirical scale: weight_decay=0.0001
+def demo(epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128, optimizer='sgd', seed=None):
+    if seed is not None:
+        # known best seed=10
+        rand_reset(seed)
     X_train = read_interim_data('X_train_prefs.csv')
     y_train = read_interim_data('y_train_prefs.csv')
     X_valid = read_interim_data('X_valid_prefs.csv')
     y_valid = read_interim_data('y_valid_prefs.csv')
     X_test = read_interim_data('X_test_prefs.csv')
 
-
-    feature_list = [
-        'int_acc_lia', 'int_claim', 'int_others', 'real_acc_dmg', 'real_acc_lia', 'real_loss', 
-        'real_prem_dmg', 'real_prem_ins', 'real_prem_lia', 'real_prem_plc', 'real_prem_thf', 
-        'real_prem_vc', 'real_vcost', 'real_ved', 'real_freq_distr', 'real_prem_area_distr', 
-        'real_prem_ic_distr', 'real_prem_distr', 'real_prem_ved', 'real_prem_vmm1', 'real_prem_vmm2', 
-        'real_prem_vmy', 'real_loss_ins', 'real_prem_ic_nmf_1', 'real_prem_ic_nmf_2', 
-        'real_prem_ic_nmf_3', 'real_prem_ic_nmf_4', 'real_prem_ic_nmf_5', 'real_prem_ic_nmf_6', 
-        'real_prem_ic_nmf_7', 'real_mc_prob_distr'
-    ]
+    feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
 
 
     # Filter features
@@ -177,18 +158,53 @@ def demo(max_epoch=40, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=1
 
     # begin training
     train_params = {
-        'num_input':len(feature_list), 'num_neuron':[80,20,5]
+        'num_input':len(feature_list), 'num_neuron':[110,30,6]
     }
+    optim_hyper = {
+        'lr':base_lr, 
+        'momentum':momentum,
+        'weight_decay':weight_decay, 
+        'lr_schedule':{
+            0:base_lr, 
+            epochs//4:base_lr/5, 
+            epochs//2:base_lr/25, 
+            epochs//4*3:base_lr/125, 
+            epochs: base_lr/125
+        }
+    }
+    # optim_hyper = {
+    #     'lr':base_lr, 
+    #     'momentum':momentum,
+    #     'weight_decay':weight_decay, 
+    #     'lr_schedule':{
+    #         0:base_lr, 
+    #         epochs//2:base_lr/10, 
+    #         epochs//4*3:base_lr/100, 
+    #         epochs: base_lr/100
+    #     }
+    # }
     model_output = get_submission(
-        pd.concat([X_train, X_valid]), pd.concat([y_train, y_valid]), X_test, 
-        model=MLPRegressor, max_epoch=max_epoch, base_lr=base_lr, momentum=momentum, weight_decay=weight_decay,
-        batch_size = batch_size, train_params=train_params, test_along=True, optimizer=optimizer
+        X_train, X_valid, y_train, y_valid, X_test, 
+        model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, momentum=momentum, weight_decay=weight_decay,
+        batch_size = batch_size, train_params=train_params, test_along=True, optimizer=optimizer, hyper=optim_hyper
     )
 
-    # generate submission
-    write_precessed_data(model_output['submission'])
+    summary = model_output['summary']
+    summary += '>>> random seed: {}\n'.format(seed)
 
+    print(summary)
+    with open('summary_{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
+        f.write(summary)
+
+    # generate submission
+    write_precessed_data(model_output['submission'], suffix=model_output['valid_loss'])
+
+def rand_reset(seed):
+    random.seed(seed)
+    torch.manual_seed(random.randint(0,1000))
+    torch.cuda.manual_seed_all(random.randint(0,1000))
+    np.random.seed(random.randint(0,1000))
 
 if __name__ == '__main__':
-    # Example usage: "python nn_train.py --max_epoch 100"
+    # Example usage: "python nn_train.py --epochs 100"
     fire.Fire(demo)

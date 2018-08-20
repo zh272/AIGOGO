@@ -8,7 +8,7 @@ from helpers import AverageMeter, get_optimizer, test_epoch
 
 
 class Trainer:
-    def __init__(self, model, train_set, loss_fn, hyper={},
+    def __init__(self, model, train_set, loss_fn, valid_set=None, hyper={},
                 batch_size=64, valid_size=0.1, epochs=None, optimizer='sgd'):
         if torch.cuda.is_available():
             # Wrap model for multi-GPUs, if necessary
@@ -33,26 +33,47 @@ class Trainer:
 
         # Create train/valid split
         self.num_train = len(train_set)
-        self.num_valid = int(round(valid_size*self.num_train))
+        if valid_set is None:
+            self.num_valid = int(round(valid_size*self.num_train))
+        else:
+            self.num_valid = len(valid_set)
         self.train_set = train_set
+        self.valid_set = valid_set
         self.reset_train_valid()
 
     def reset_train_valid(self):
-        indices = torch.randperm(self.num_train)
-        train_indices = indices[:self.num_train - self.num_valid]
-        train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
-        valid_indices = indices[self.num_train - self.num_valid:]
-        valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
+        if self.valid_set is None:
+            indices = torch.randperm(self.num_train)
+            train_indices = indices[:self.num_train - self.num_valid]
+            train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
+            valid_indices = indices[self.num_train - self.num_valid:]
+            valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
 
-        # Data loaders
-        self.train_loader = torch.utils.data.DataLoader(
-            self.train_set, batch_size=self.batch_size, sampler=train_sampler,
-            pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
-        )
-        self.valid_loader = torch.utils.data.DataLoader(
-            self.train_set, batch_size=self.batch_size, sampler=valid_sampler,
-            pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
-        )
+            # Data loaders
+            self.train_loader = torch.utils.data.DataLoader(
+                self.train_set, batch_size=self.batch_size, sampler=train_sampler,
+                pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
+            )
+            self.valid_loader = torch.utils.data.DataLoader(
+                self.train_set, batch_size=self.batch_size, sampler=valid_sampler,
+                pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
+            )
+
+        else:
+            train_indices = torch.randperm(self.num_train)
+            valid_indices = torch.randperm(self.num_valid)
+            train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
+            valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
+
+            # Data loaders
+            self.train_loader = torch.utils.data.DataLoader(
+                self.train_set, batch_size=self.batch_size, sampler=train_sampler,
+                pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
+            )
+            self.valid_loader = torch.utils.data.DataLoader(
+                self.valid_set, batch_size=self.batch_size, sampler=valid_sampler,
+                pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
+            )
 
         self.train_loader_iter = iter(self.train_loader)
         self.valid_loader_iter = iter(self.valid_loader)
