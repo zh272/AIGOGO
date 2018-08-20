@@ -134,7 +134,7 @@ def write_precessed_data(df, suffix=None):
     return(None)
 
 # empirical scale: weight_decay=0.0001
-def demo(epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128, optimizer='sgd', seed=None):
+def demo(epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128, optimizer='sgd', seed=None, save=False):
     if seed is not None:
         # known best seed=10
         rand_reset(seed)
@@ -185,8 +185,10 @@ def demo(epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128,
     # }
     model_output = get_submission(
         X_train, X_valid, y_train, y_valid, X_test, 
-        model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, momentum=momentum, weight_decay=weight_decay,
-        batch_size = batch_size, train_params=train_params, test_along=True, optimizer=optimizer, hyper=optim_hyper
+        model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, 
+        momentum=momentum, weight_decay=weight_decay,  batch_size = batch_size, 
+        train_params=train_params, test_along=True, optimizer=optimizer, 
+        hyper=optim_hyper, save=save
     )
 
     summary = model_output['summary']
