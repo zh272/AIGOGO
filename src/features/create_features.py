@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import os
 from sklearn.decomposition import NMF
+from sklearn.metrics import mean_absolute_error
+import lightgbm as lgb
 
 ######## feature template expansion ########
 def get_bs_cat(df_policy, idx_df, col):
@@ -61,10 +63,10 @@ def get_bs_real_prem_ic(df_policy, idx_df, col):
     return(real_prem_ic.loc[idx_df, 'Premium'])
 
 
-def get_bs_real_freq(df_policy, idx_df, col):
+def get_bs_real_freq(X_all, idx_df, col):
     '''
     In:
-        DataFrame(df_policy),
+        DataFrame(X_all),
         Any(idx_df)
         str(col),
     Out:
@@ -72,12 +74,10 @@ def get_bs_real_freq(df_policy, idx_df, col):
     Description:
         get number of occurance of each value of categorical features
     '''
-    # premium by policy
-    df_policy = df_policy.groupby(level=0).agg({'Premium': np.sum, col: lambda x: x.iloc[0]})
     # frequency of category
-    df_map = df_policy.groupby([col]).agg({'Premium': lambda x: len(x)})
+    df_map = X_all.groupby([col]).agg({'real_prem_plc': lambda x: len(x)})
     # map premium by category to policy
-    real_freq_col = df_policy[col].map(df_map['Premium'])
+    real_freq_col = X_all[col].map(df_map['real_prem_plc'])
 
     return(real_freq_col.loc[idx_df])
 
@@ -257,6 +257,27 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df):
     return(real_prem_ic_nmf.loc[idx_df])
 
 
+def get_bs_real_prem_terminate(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        DataFrame(real_prem_terminate),
+    Description:
+        get premium on early terminated contracts
+    '''
+    # filter early termination
+    real_ia_total = df_policy['Insured_Amount1'] + df_policy['Insured_Amount2'] + df_policy['Insured_Amount3']
+    df_policy = df_policy[real_ia_total == 0]
+    # sum up premium with early termination
+    df_policy = df_policy.groupby(level=0).agg({'Premium': np.sum})
+    # fillna and select index
+    real_prem_terminate = df_policy.loc[idx_df, 'Premium'].fillna(0)
+
+    return(real_prem_terminate)
+
+
 ######## get pre feature selection data set ########
 def create_feature_selection_data(df_policy, df_claim):
     '''
@@ -294,6 +315,9 @@ def create_feature_selection_data(df_policy, df_claim):
     print('Getting column real_prem_ic_vmy')
     X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_ic(df_policy, X_fs.index, 'Main_Insurance_Coverage_Group'))
 
+    print('Getting column real_prem_per_vcost')
+    X_fs = X_fs.assign(real_prem_per_vcost = X_fs['real_prem_plc'] / X_fs['real_vcost'])
+
     # claim
     print('Getting column cat_claim_ins')
     X_fs = X_fs.assign(cat_claim_ins = get_bs_cat_claim_ins(df_policy, df_claim, X_fs.index))
@@ -303,18 +327,20 @@ def create_feature_selection_data(df_policy, df_claim):
 
     # insurance coverage
     print('Getting column real_prem_ic_nmf')
-    real_prem_ic_nmf = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
     colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
-    X_fs.loc[:, colnames] = real_prem_ic_nmf
+    X_fs[colnames] = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+
+    print('Getting column real_prem_terminate')
+    X_fs = X_fs.assign(real_prem_terminate = get_bs_real_prem_terminate(df_policy, X_fs.index))
 
     # feature template expansion
-    cols_cat = [col for col in X_train.columns if col.startswith('cat')]
+    cols_cat = [col for col in X_fs.columns if col.startswith('cat')]
 
     # frequency of category values
     for col_cat in cols_cat:
         col_freq = col_cat.replace('cat_', 'real_freq_')
         print('Getting column ' + col_freq)
-        X_fs.loc[:, col_freq] = get_bs_real_freq(df_policy, X_fs.index, col_cat)
+        X_fs[col_freq] = get_bs_real_freq(X_fs, X_fs.index, col_cat)
 
     # train valid test split
     X_train = X_fs.loc[X_train.index]
@@ -334,17 +360,17 @@ def create_feature_selection_data(df_policy, df_claim):
     for col_cat in cols_cat:
         col_mean = col_cat.replace('cat_', 'real_mc_mean_')
         print('Getting column ' + col_mean)
-        X_test.loc[:, col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
-        X_train_v.loc[:, col_mean] = get_bs_real_mc_mean(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
-        X_train_t.loc[:, col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+        X_test[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
+        X_train_v[col_mean] = get_bs_real_mc_mean(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
+        X_train_t[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     # add mean encoding on probability of next_premium being 0
     for col_cat in cols_cat:
         col_prob = col_cat.replace('cat_', 'real_mc_prob_')
         print('Getting column ' + col_prob)
-        X_test.loc[:, col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
-        X_train_v.loc[:, col_prob] = get_bs_real_mc_prob(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
-        X_train_t.loc[:, col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+        X_test[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
+        X_train_v[col_prob] = get_bs_real_mc_prob(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
+        X_train_t[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     write_test_data(X_train_t, "X_train_prefs.csv")
     write_test_data(y_train_t, "y_train_prefs.csv")
@@ -352,6 +378,45 @@ def create_feature_selection_data(df_policy, df_claim):
     write_test_data(y_train_v, "y_valid_prefs.csv")
     write_test_data(X_test, "X_test_prefs.csv")
     write_test_data(y_test, "y_test_prefs.csv")
+
+    return(None)
+
+
+def get_bs_quick_mae(params):
+    '''
+    In:
+
+    Out:
+        float(mae)
+
+    Description:
+        calculate quick mae on validation set
+    '''
+    X_train = read_interim_data('X_train_prefs.csv')
+    y_train = read_interim_data('y_train_prefs.csv')
+    X_valid = read_interim_data('X_valid_prefs.csv')
+    y_valid = read_interim_data('y_valid_prefs.csv')
+
+    # preprocessing
+    X_train.fillna(-999, inplace=True)
+    X_valid.fillna(-999, inplace=True)
+
+    cols_train = [col for col in X_train.columns if not col.startswith('cat')]
+
+    All_train = y_train.merge(X_train, how='left', left_index=True, right_index=True)
+    All_valid = y_valid.merge(X_valid, how='left', left_index=True, right_index=True)
+
+    lgb_train = lgb.Dataset(All_train[cols_train].values, All_train['Next_Premium'].values.flatten(), free_raw_data=False)
+    lgb_valid = lgb.Dataset(All_valid[cols_train].values, All_valid['Next_Premium'].values.flatten(), reference=lgb_train, free_raw_data=False)
+
+    model = lgb.train(
+        params['model'], lgb_train, valid_sets=lgb_valid, **params['train']
+    )
+
+    valid_pred = model.predict(All_valid[cols_train])
+    valid_mae = mean_absolute_error(All_valid['Next_Premium'], valid_pred)
+
+    print('pre-selection mae is {}'.format(valid_mae))
 
     return(None)
 
@@ -417,9 +482,31 @@ if __name__ == '__main__':
     independent_policy: policy_0702.csv
     '''
 
-    df_train = read_raw_data('training-set.csv')
-    df_test = read_raw_data('testing-set.csv')
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 
     create_feature_selection_data(df_policy, df_claim)
+
+    lgb_model_params = {
+        'boosting_type': 'gbdt',
+        'num_iterations': 1000,
+        'max_depth':-1,
+        'objective': 'regression_l1',
+        'metric': 'mae',
+        'lamba_l1':0.3,
+        'num_leaves': 31,
+        'learning_rate': 0.05,
+        'colsample_bytree': 0.9,
+        'subsample': 0.8,
+        'subsample_freq': 5,
+        'min_data_in_leaf': 20,
+        'min_gain_to_split': 0,
+        'seed': 0,
+    }
+    lgb_train_params = {
+        'early_stopping_rounds': 3,
+        'learning_rates': None, # lambda iter: 0.1*(0.99**iter),
+        'verbose_eval': False,
+    }
+    lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
+    get_bs_quick_mae(lgb_params)
