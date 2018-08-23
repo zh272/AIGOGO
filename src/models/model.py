@@ -7,13 +7,15 @@ from collections import OrderedDict
 
 
 class MLPRegressor(nn.Module):
-    def __init__(self, num_input, num_neuron):
+    def __init__(self, num_input, num_neuron, dropout=False):
         super().__init__()
         
         self.regressor = nn.Sequential(OrderedDict([
             ('fc0', nn.Linear(num_input, num_neuron[0])),
             ('fc0_relu', nn.ReLU(inplace=True))
         ]))
+        if dropout:
+            self.regressor.add_module('fc0_dropout', nn.Dropout())
         for idx in range(1,len(num_neuron)):
             self.regressor.add_module('fc{}'.format(idx), nn.Linear(num_neuron[idx-1], num_neuron[idx]))
             self.regressor.add_module('fc{}_relu'.format(idx), nn.ReLU(inplace=True))

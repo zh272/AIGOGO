@@ -89,3 +89,4 @@ zhiyong/xgboost/
 zhiyong/data/
 /catboost_info/
 /saved_states/
+/src/models/build_features.py

@@ -19,7 +19,7 @@ from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 def get_submission(
     X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
     momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
-    test_along=False, optimizer='sgd', hyper={}, save=False
+    test_along=False, optimizer='sgd', hyper={}
 ):    
     train_set, valid_set, X_test_np = get_dataset(
         X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
@@ -29,6 +29,10 @@ def get_submission(
         model(**train_params), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
         valid_set=valid_set, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
     )
+
+    # save_obj({'trainer':trainer}, 'trainer')
+
+    # temp = load_obj('trainer')['trainer']
 
     valid_hist = []
     start_time = time.time()
@@ -62,8 +66,8 @@ def get_submission(
     summary += '>>> schedule={}\n'.format(hyper['lr_schedule'])
     summary += '>>> hidden={}, optimizer="{}", batch_size={}\n'.format(train_params['num_neuron'],optimizer,batch_size)
     for idx in sorted_idx:
-        summary += '[{:25s}] {:10.4f}\n'.format(feature_names[idx], feature_importances[idx])
-    summary += '>>> training_time={:.2f}min\n'.format((end_time-start_time)/60)
+        summary += '[{:<25s}] | {:<10.4f}\n'.format(feature_names[idx], feature_importances[idx])
+    summary += '>>> training_time={:10.2f}min\n'.format((end_time-start_time)/60)
     summary += '>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
 
     if plot:
@@ -86,11 +90,6 @@ def get_submission(
     # Generate submission
     test_output = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
     submission = pd.DataFrame(data=test_output,index=X_test.index, columns=['Next_Premium'])
-
-    if save:
-        save_obj({'MLPRegressor':trainer.model}, 'mlp_model')
-        # To load model, use:
-        # model = load_obj('mlp_model')['MLPRegressor']
 
     return {'model': trainer, 'submission': submission, 'valid_loss':valid_loss, 'summary':summary}
 
@@ -134,7 +133,10 @@ def write_precessed_data(df, suffix=None):
     return(None)
 
 # empirical scale: weight_decay=0.0001
-def demo(epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128, optimizer='sgd', seed=None, save=False):
+def demo(
+    epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, 
+    batch_size=128, optimizer='sgd', dropout=False, seed=None
+):
     if seed is not None:
         # known best seed=10
         rand_reset(seed)
@@ -144,7 +146,37 @@ def demo(epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128,
     y_valid = read_interim_data('y_valid_prefs.csv')
     X_test = read_interim_data('X_test_prefs.csv')
 
-    feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
+    # feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
+    feature_list = ['real_prem_plc',
+        'real_prem_dmg',
+        'real_prem_lia',
+        'real_prem_thf',
+        'real_prem_ic_nmf_1',
+        'real_prem_ic_nmf_2',
+        'real_prem_ic_nmf_3',
+        'real_prem_ic_nmf_4',
+        'real_prem_ic_nmf_5',
+        'real_prem_ic_nmf_6',
+        'real_prem_ic_nmf_7',
+        'real_freq_distr',
+        'real_prem_ic_distr',
+        'real_mc_mean_distr',
+        'real_mc_prob_distr',
+        'int_acc_lia',
+        'real_acc_dmg',
+        'real_acc_lia',
+        'real_mc_prob_cancel',
+        'real_mc_mean_age',
+        'real_mc_prob_age',
+        'real_mc_mean_marriage',
+        'real_mc_prob_marriage',
+        'real_mc_mean_vmy',
+        'real_mc_prob_vmy',
+        'real_vcost',
+        'real_mc_prob_area',
+        'real_mc_mean_claim_ins',
+        'real_mc_prob_claim_ins'
+    ]
 
 
     # Filter features
@@ -158,7 +190,7 @@ def demo(epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128,
 
     # begin training
     train_params = {
-        'num_input':len(feature_list), 'num_neuron':[110,30,6]
+        'num_input':len(feature_list), 'num_neuron':[100,20,5], 'dropout':dropout
     }
     optim_hyper = {
         'lr':base_lr, 
@@ -167,9 +199,9 @@ def demo(epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128,
         'lr_schedule':{
             0:base_lr, 
             epochs//4:base_lr/5, 
-            epochs//2:base_lr/25, 
-            epochs//4*3:base_lr/125, 
-            epochs: base_lr/125
+            epochs//2:base_lr/50, 
+            epochs//4*3:base_lr/250, 
+            epochs: base_lr/250
         }
     }
     # optim_hyper = {
@@ -185,10 +217,8 @@ def demo(epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, batch_size=128,
     # }
     model_output = get_submission(
         X_train, X_valid, y_train, y_valid, X_test, 
-        model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, 
-        momentum=momentum, weight_decay=weight_decay,  batch_size = batch_size, 
-        train_params=train_params, test_along=True, optimizer=optimizer, 
-        hyper=optim_hyper, save=save
+        model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, momentum=momentum, weight_decay=weight_decay,
+        batch_size = batch_size, train_params=train_params, test_along=True, optimizer=optimizer, hyper=optim_hyper
     )
 
     summary = model_output['summary']

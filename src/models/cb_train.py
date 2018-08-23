@@ -1,5 +1,6 @@
 
 import os
+import fire
 import numpy as np
 from tabulate import tabulate
 import pandas as pd
@@ -97,8 +98,10 @@ def write_precessed_data(df):
 
     return(None)
 
-if __name__ == '__main__':
-
+def demo(
+    epochs=20000, lr=50, objective='MAE', 
+    max_depth=4, colsample_bylevel=0.7, reg_lambda=None
+):
     # X_train = read_interim_data('X_train_prefs.csv')
     # X_test = read_interim_data('X_test_prefs.csv')
     # y_train = read_interim_data('y_train_prefs.csv')
@@ -109,26 +112,50 @@ if __name__ == '__main__':
     X_test = read_interim_data('X_test_prefs.csv')
 
 
-    feature_list = ['cat_age', 'cat_area', 'cat_assured', 'cat_cancel', 'cat_distr', 'cat_marriage', 'cat_sex', 
-    'cat_vc', 'cat_vmm1', 'cat_vmm2', 'cat_vmy', 'cat_vqpt', 'cat_vregion', 'cat_zip', 
-    'int_acc_lia', 'int_claim', 'int_others', 'real_acc_dmg', 'real_acc_lia', 'real_loss', 
-    'real_prem_dmg', 'real_prem_ins', 'real_prem_lia', 'real_prem_plc', 'real_prem_thf', 
-    'real_prem_vc', 'real_vcost', 'real_ved', 'cat_sex_marr', 'real_freq_distr', 
-    'real_prem_area_distr', 'real_prem_ic_distr', 'real_prem_distr', 'cat_vdom', 'cat_ved', 
-    'cat_vmotor', 'cat_vmm1_vmy', 'real_prem_ved', 'real_prem_vmm1', 'real_prem_vmm2', 
-    'real_prem_vmy', 'cat_claim_ins', 'real_loss_ins', 'real_prem_ic_nmf_1', 'real_prem_ic_nmf_2', 
-    'real_prem_ic_nmf_3', 'real_prem_ic_nmf_4', 'real_prem_ic_nmf_5', 'real_prem_ic_nmf_6', 
-    'real_prem_ic_nmf_7', 'real_mc_prob_distr']
+    feature_list = ['real_prem_plc',
+        'real_prem_dmg',
+        'real_prem_lia',
+        'real_prem_thf',
+        'real_prem_ic_nmf_1',
+        'real_prem_ic_nmf_2',
+        'real_prem_ic_nmf_3',
+        'real_prem_ic_nmf_4',
+        'real_prem_ic_nmf_5',
+        'real_prem_ic_nmf_6',
+        'real_prem_ic_nmf_7',
+        'real_freq_distr',
+        'real_prem_ic_distr',
+        'real_mc_mean_distr',
+        'real_mc_prob_distr',
+        'int_acc_lia',
+        'real_acc_dmg',
+        'real_acc_lia',
+        'real_mc_prob_cancel',
+        'real_mc_mean_age',
+        'real_mc_prob_age',
+        'real_mc_mean_marriage',
+        'real_mc_prob_marriage',
+        'real_mc_mean_vmy',
+        'real_mc_prob_vmy',
+        'real_vcost',
+        'real_mc_prob_area',
+        'real_mc_mean_claim_ins',
+        'real_mc_prob_claim_ins'
+    ]
 
     X_train = X_train[feature_list]
     X_valid = X_valid[feature_list]
     X_test = X_test[feature_list]
 
     params = {
-        'n_estimators':50000, 'learning_rate':20, 'objective':'MAE', 
-        'max_depth':4, 'colsample_bylevel':0.7, 'reg_lambda':None, 'task_type': 'CPU'
+        'n_estimators':epochs, 'learning_rate':lr, 'objective':objective, 
+        'max_depth':max_depth, 'colsample_bylevel':colsample_bylevel, 'reg_lambda':reg_lambda, 
+        'task_type': 'CPU'
     }
 
     model_output = get_submission(X_train, y_train, X_valid, y_valid, X_test, params)
     write_precessed_data(model_output['submission'])
 
+
+if __name__ == '__main__':
+    fire.Fire(demo)
