@@ -146,37 +146,38 @@ def demo(
     y_valid = read_interim_data('y_valid_prefs.csv')
     X_test = read_interim_data('X_test_prefs.csv')
 
-    # feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
-    feature_list = ['real_prem_plc',
-        'real_prem_dmg',
-        'real_prem_lia',
-        'real_prem_thf',
-        'real_prem_ic_nmf_1',
-        'real_prem_ic_nmf_2',
-        'real_prem_ic_nmf_3',
-        'real_prem_ic_nmf_4',
-        'real_prem_ic_nmf_5',
-        'real_prem_ic_nmf_6',
-        'real_prem_ic_nmf_7',
-        'real_freq_distr',
-        'real_prem_ic_distr',
-        'real_mc_mean_distr',
-        'real_mc_prob_distr',
-        'int_acc_lia',
-        'real_acc_dmg',
-        'real_acc_lia',
-        'real_mc_prob_cancel',
-        'real_mc_mean_age',
-        'real_mc_prob_age',
-        'real_mc_mean_marriage',
-        'real_mc_prob_marriage',
-        'real_mc_mean_vmy',
-        'real_mc_prob_vmy',
-        'real_vcost',
-        'real_mc_prob_area',
-        'real_mc_mean_claim_ins',
-        'real_mc_prob_claim_ins'
-    ]
+    feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
+    print('Number of features: {}'.format(len(feature_list)))
+    # feature_list = ['real_prem_plc',
+    #     'real_prem_dmg',
+    #     'real_prem_lia',
+    #     'real_prem_thf',
+    #     'real_prem_ic_nmf_1',
+    #     'real_prem_ic_nmf_2',
+    #     'real_prem_ic_nmf_3',
+    #     'real_prem_ic_nmf_4',
+    #     'real_prem_ic_nmf_5',
+    #     'real_prem_ic_nmf_6',
+    #     'real_prem_ic_nmf_7',
+    #     'real_freq_distr',
+    #     'real_prem_ic_distr',
+    #     'real_mc_mean_distr',
+    #     'real_mc_prob_distr',
+    #     'int_acc_lia',
+    #     'real_acc_dmg',
+    #     'real_acc_lia',
+    #     'real_mc_prob_cancel',
+    #     'real_mc_mean_age',
+    #     'real_mc_prob_age',
+    #     'real_mc_mean_marriage',
+    #     'real_mc_prob_marriage',
+    #     'real_mc_mean_vmy',
+    #     'real_mc_prob_vmy',
+    #     'real_vcost',
+    #     'real_mc_prob_area',
+    #     'real_mc_mean_claim_ins',
+    #     'real_mc_prob_claim_ins'
+    # ]
 
 
     # Filter features
@@ -190,7 +191,7 @@ def demo(
 
     # begin training
     train_params = {
-        'num_input':len(feature_list), 'num_neuron':[100,20,5], 'dropout':dropout
+        'num_input':len(feature_list), 'num_neuron':[100,25,8], 'dropout':dropout
     }
     optim_hyper = {
         'lr':base_lr, 

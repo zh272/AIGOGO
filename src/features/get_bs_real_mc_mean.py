@@ -7,12 +7,12 @@ def get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train
         for _ in range(fold):
             X_perm_arr = []
             perm_idx = np.random.permutation(len(X_train))
-            X_train_perm = X_train[perm_idx]
-            y_train_perm = y_train[perm_idx]
+            X_train_perm = X_train.loc[X_train.index[perm_idx]]
+            y_train_perm = y_train.loc[y_train.index[perm_idx]]
 
             for j in range(len(X_train_perm)):
                 X_perm_arr.append(get_bs_real_mc_mean(
-                    col_cat, X_train_perm[:j], y_train_perm[:j], X_valid=X_train_perm[j], train_only=False, prior=prior
+                    col_cat, X_train_perm[:j], y_train_perm[:j], X_valid=X_train_perm[j:j+1], train_only=False, prior=prior
                 ))
             X_arr.append(pd.concat(X_perm_arr).loc[X_train.index])
         # take average
