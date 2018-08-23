@@ -278,6 +278,23 @@ def get_bs_real_prem_terminate(df_policy, idx_df):
     return(real_prem_terminate)
 
 
+def get_bs_cat_ins_self(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df)
+        str(col),
+    Out:
+        Series(cat_ins_self),
+    Description:
+        get whether insured's birth equals to buyer's birth
+    '''
+    df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0], 'dbirth': lambda x: x.iloc[0]})
+    cat_ins_self = df_policy['ibirth'] == df_policy['ibirth']
+
+    return(cat_ins_self.loc[idx_df])
+
+
 ######## get pre feature selection data set ########
 def create_feature_selection_data(df_policy, df_claim):
     '''
@@ -306,6 +323,10 @@ def create_feature_selection_data(df_policy, df_claim):
 
     X_fs = pd.concat([X_train, X_test])
     y_fs = pd.concat([y_train, y_test])
+
+    # basic
+    print('Getting column cat_ins_self')
+    X_fs = X_fs.assign(cat_ins_self = get_bs_cat_ins_self(df_policy, X_fs.index))
 
     # distribution
     print('Getting column real_prem_ic_distr')
