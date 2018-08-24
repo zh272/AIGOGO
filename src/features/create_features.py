@@ -145,6 +145,50 @@ def get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train
     return(real_mc_mean)
 
 
+def get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
+    '''
+    In:
+        str(col_cat)
+        DataFrame(X_train),
+        DataFrame(y_train),
+        DataFrame(X_valid),
+        bool(train_only),
+        double(fold),
+    Out:
+        Series(real_mc_prob_distr),
+    Description:
+        get mean of next_premium by col_cat
+    '''
+    if train_only:
+        np.random.seed(1)
+        rand = np.random.rand(len(X_train))
+        lvs = [i / float(fold) for i in range(fold+1)]
+
+        X_arr = []
+        for i in range(fold):
+            msk = (rand >= lvs[i]) & (rand < lvs[i+1])
+            X_slice = X_train[msk]
+            X_base = X_train[~msk]
+            y_base = y_train[~msk]
+            X_slice = get_bs_real_mc_mean_diff(col_cat, X_base, y_base, X_valid=X_slice, train_only=False, prior=prior)
+            X_arr.append(X_slice)
+        real_mc_mean_diff = pd.concat(X_arr).loc[X_train.index]
+
+    else:
+        # merge col_cat with label
+        y_train = y_train.merge(X_train[[col_cat, 'real_prem_plc']], how='left', left_index=True, right_index=True)
+        y_train = y_train.assign(real_mc_mean_diff = y_train['Next_Premium'] - y_train['real_prem_plc'])
+
+        # get mean of each category and smoothed by global mean
+        smooth_mean = lambda x: (x.sum() + prior * y_train['real_mc_mean_diff'].mean()) / (len(x) + prior)
+        y_train = y_train.groupby([col_cat]).agg({'real_mc_mean_diff': smooth_mean})
+        real_mc_mean_diff = X_valid[col_cat].map(y_train['real_mc_mean_diff'])
+        # fill na with global mean
+        real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff'])) + X_valid['real_prem_plc']
+
+    return(real_mc_mean_diff)
+
+
 def get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
     '''
     In:
@@ -295,6 +339,45 @@ def get_bs_cat_ins_self(df_policy, idx_df):
     return(cat_ins_self.loc[idx_df])
 
 
+def get_bs_cat_claim_theft(df_claim, idx_df):
+    '''
+    In:
+        DataFrame(df_claim),
+        Any(idx_df)
+        str(col),
+    Out:
+        Series(cat_claim_theft),
+    Description:
+        get whether the vehicle was stolen
+    '''
+    ic_theft = ['05N', '09@', '09I', '10A', '68E', '68N']
+    df_claim = df_claim.assign(cat_claim_theft = df_claim['Coverage'].map(lambda x: 1 if x in ic_theft else 0))
+    df_claim = df_claim.groupby(level=0).agg({'cat_claim_theft': np.max})
+    cat_claim_theft = df_claim.loc[idx_df, 'cat_claim_theft'].fillna(0)
+
+    return(cat_claim_theft)
+
+
+def get_bs_cat_vequip(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df)
+        str(col),
+    Out:
+        Series(cat_vequip),
+    Description:
+        get whether the vehicle has additional equipment
+    '''
+    # get whether the vehicle has additional equipment
+    cols_vequip = ['fequipment' + str(i) for i in list(range(1, 10)) if i not in [7, 8]]
+    cat_vequip = df_policy[cols_vequip].sum(axis=1).map(lambda x: 0 if x == 0 else 1)
+    cat_vequip.columns = ['cat_vequip']
+    # group by policy number
+    cat_vequip = cat_vequip.groupby(level=0).agg({'cat_vequip': lambda x: x.iloc[0]})
+    return(cat_vequip.loc[idx_df])
+
+
 ######## get pre feature selection data set ########
 def create_feature_selection_data(df_policy, df_claim):
     '''
@@ -339,12 +422,18 @@ def create_feature_selection_data(df_policy, df_claim):
     print('Getting column real_prem_per_vcost')
     X_fs = X_fs.assign(real_prem_per_vcost = X_fs['real_prem_plc'] / X_fs['real_vcost'])
 
+    print('Getting column cat_vequip')
+    X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
+
     # claim
     print('Getting column cat_claim_ins')
     X_fs = X_fs.assign(cat_claim_ins = get_bs_cat_claim_ins(df_policy, df_claim, X_fs.index))
 
     print('Getting column real_loss_ins')
     X_fs = X_fs.assign(real_loss_ins = get_bs_real_loss_ins(df_policy, df_claim, X_fs.index))
+
+    print('Getting column cat_claim_theft')
+    X_fs = X_fs.assign(cat_claim_theft = get_bs_cat_claim_theft(df_claim, X_fs.index))
 
     # insurance coverage
     print('Getting column real_prem_ic_nmf')
@@ -384,6 +473,14 @@ def create_feature_selection_data(df_policy, df_claim):
         X_test[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
         X_train_v[col_mean] = get_bs_real_mc_mean(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
         X_train_t[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+
+#    # add mean encoding on mean of diff btw next_premium and premium
+#    for col_cat in cols_cat:
+#        col_mean = col_cat.replace('cat_', 'real_mc_mean_diff_')
+#        print('Getting column ' + col_mean)
+#        X_test[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
+#        X_train_v[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
+#        X_train_t[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     # add mean encoding on probability of next_premium being 0
     for col_cat in cols_cat:
@@ -452,7 +549,7 @@ def read_raw_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/raw
     '''
     # set the path of raw data
-    raw_data_path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'data', 'raw')
+    raw_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'raw')
 
     file_path = os.path.join(raw_data_path, file_name)
     raw_data = pd.read_csv(file_path, index_col=index_col)
@@ -469,7 +566,7 @@ def read_interim_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/interim
     '''
     # set the path of raw data
-    interim_data_path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'data', 'interim')
+    interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
 
     file_path = os.path.join(interim_data_path, file_name)
     interim_data = pd.read_csv(file_path, index_col=index_col)
@@ -488,7 +585,7 @@ def write_test_data(df, file_name):
     Description:
         Write sample data to directory /data/interim
     '''
-    interim_data_path = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, 'data', 'interim')
+    interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
     write_sample_path = os.path.join(interim_data_path, file_name)
     df.to_csv(write_sample_path)
 
