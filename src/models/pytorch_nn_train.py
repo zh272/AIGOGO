@@ -18,7 +18,7 @@ from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 
 def get_submission(
     X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
-    momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
+    momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, get_train=False,
     test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt'
 ):    
     train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
@@ -102,12 +102,15 @@ def get_submission(
     # Generate submission
     test_output = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
     submission = pd.DataFrame(data=test_output,index=X_test.index, columns=['Next_Premium'])
-
-    train_output = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
-    submission_train = pd.DataFrame(data=train_output,index=X_train.index, columns=['Next_Premium'])
-    
-    valid_output = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
-    submission_valid = pd.DataFrame(data=valid_output,index=X_valid.index, columns=['Next_Premium'])
+    if get_train:
+        train_output = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
+        submission_train = pd.DataFrame(data=train_output,index=X_train.index, columns=['Next_Premium'])
+        
+        valid_output = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
+        submission_valid = pd.DataFrame(data=valid_output,index=X_valid.index, columns=['Next_Premium'])
+    else:
+        submission_train = None
+        submission_valid = None
 
     return {
         'model': trainer, 'submission': submission, 
@@ -145,9 +148,7 @@ def write_precessed_data(df, suffix=None):
     precessed_data_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), os.path.pardir, os.path.pardir, 'data', 'processed'
     )
-    if isinstance(suffix, float):
-        file_name = 'testing-set_{}.csv'.format(int(suffix))
-    elif suffix is None:
+    if suffix is None:
         file_name = 'testing-set.csv'
     else:
         file_name = 'testing-set_{}.csv'.format(suffix)
@@ -160,7 +161,7 @@ def write_precessed_data(df, suffix=None):
 def demo(
     epochs=100, base_lr=0.0005, momentum=0.9, weight_decay=0, 
     batch_size=128, optimizer='sgd', dropout=False, seed=None, 
-    save=False, load=False
+    get_train=False, save=False, load=False
 ):
     if seed is not None:
         # known best seed=10
@@ -247,7 +248,7 @@ def demo(
         momentum=momentum, weight_decay=weight_decay,
         batch_size = batch_size, train_params=train_params, 
         test_along=True, optimizer=optimizer, hyper=optim_hyper,
-        save=save, load=load
+        get_train=get_trian, save=save, load=load
     )
 
     summary = model_output['summary']
@@ -258,9 +259,10 @@ def demo(
         f.write(summary)
 
     # generate submission
-    write_precessed_data(model_output['submission'], suffix=model_output['valid_loss'])
-    write_precessed_data(model_output['submission_train'], suffix='train')
-    write_precessed_data(model_output['submission_valid'], suffix='valid')
+    write_precessed_data(model_output['submission'], suffix='mlptest{}'.format(int(model_output['valid_loss'])))
+    if model_output['submission_train'] is not None:
+        write_precessed_data(model_output['submission_train'], suffix='mlptrain')
+        write_precessed_data(model_output['submission_valid'], suffix='mlpvalid')
 
 def rand_reset(seed):
     random.seed(seed)
