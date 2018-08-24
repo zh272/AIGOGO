@@ -63,6 +63,24 @@ def get_bs_real_prem_ic(df_policy, idx_df, col):
     return(real_prem_ic.loc[idx_df, 'Premium'])
 
 
+def get_bs_real_ic_indiv(df_policy, idx_df, ic, col):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(real_ic_indiv),
+    Description:
+        get information by insurance coverage
+    '''
+    # get insurance coverage rows
+    df_ic = df_policy[df_policy['Insurance_Coverage']==ic]
+    # get insured amount
+    real_ia_ic_indiv = df_ic.loc[idx_df, col].fillna(0)
+
+    return(real_ia_ic_indiv)
+
+
 def get_bs_real_freq(X_all, idx_df, col):
     '''
     In:
@@ -177,14 +195,14 @@ def get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), 
     else:
         # merge col_cat with label
         y_train = y_train.merge(X_train[[col_cat, 'real_prem_plc']], how='left', left_index=True, right_index=True)
-        y_train = y_train.assign(real_mc_mean_diff = y_train['Next_Premium'] - y_train['real_prem_plc'])
+        y_train = y_train.assign(real_mc_mean_diff = y_train['Next_Premium'] / y_train['real_prem_plc'])
 
         # get mean of each category and smoothed by global mean
         smooth_mean = lambda x: (x.sum() + prior * y_train['real_mc_mean_diff'].mean()) / (len(x) + prior)
         y_train = y_train.groupby([col_cat]).agg({'real_mc_mean_diff': smooth_mean})
         real_mc_mean_diff = X_valid[col_cat].map(y_train['real_mc_mean_diff'])
         # fill na with global mean
-        real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff'])) + X_valid['real_prem_plc']
+        real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff'])) * X_valid['real_prem_plc']
 
     return(real_mc_mean_diff)
 
@@ -378,6 +396,24 @@ def get_bs_cat_vequip(df_policy, idx_df):
     return(cat_vequip.loc[idx_df])
 
 
+def get_bs_real_claim_fault(df_claim, idx_df):
+    '''
+    In:
+        DataFrame(df_claim),
+        Any(idx_df)
+        str(col),
+    Out:
+        Series(real_claim_fault),
+    Description:
+        get the average fault in accidents
+    '''
+    df_claim = df_claim.groupby(['Policy_Number', 'Claim_Number']).agg({'At_Fault?': lambda x: x.iloc[0]})
+    df_claim = df_claim.groupby(level=0).agg({'At_Fault?': np.nanmax})
+    cat_claim_theft = df_claim.loc[idx_df, 'At_Fault?'].fillna(0)
+
+    return(cat_claim_theft)
+
+
 ######## get pre feature selection data set ########
 def create_feature_selection_data(df_policy, df_claim):
     '''
@@ -392,9 +428,6 @@ def create_feature_selection_data(df_policy, df_claim):
     Description:
         create train dataset with additional columns
     '''
-    #X_bs = read_interim_data('X_train_bs.csv')
-    #y_bs = read_interim_data('y_train_bs.csv')
-
     X_train = read_interim_data('X_train_bs.csv')
     X_test = read_interim_data('X_test_bs.csv')
 
@@ -415,6 +448,37 @@ def create_feature_selection_data(df_policy, df_claim):
     print('Getting column real_prem_ic_distr')
     X_fs = X_fs.assign(real_prem_ic_distr = get_bs_real_prem_ic(df_policy, X_fs.index, 'Distribution_Channel'))
 
+    # insurance coverage
+    print('Getting column real_prem_16G_indiv')
+    X_fs = X_fs.assign(real_prem_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Premium'))
+
+    print('Getting column real_ia1_16G_indiv')
+    X_fs = X_fs.assign(real_ia1_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount1'))
+
+    print('Getting column real_ia3_16G_indiv')
+    X_fs = X_fs.assign(real_ia3_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount3'))
+
+    print('Getting column real_prem_16P_indiv')
+    X_fs = X_fs.assign(real_prem_16P_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16P', 'Premium'))
+
+    print('Getting column real_ia3_16P_indiv')
+    X_fs = X_fs.assign(real_ia1_16P_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16P', 'Insured_Amount3'))
+
+    print('Getting column real_prem_29B_indiv')
+    X_fs = X_fs.assign(real_prem_29B_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29B', 'Premium'))
+
+    print('Getting column real_ia2_29B_indiv')
+    X_fs = X_fs.assign(real_ia1_29B_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29B', 'Insured_Amount2'))
+
+    print('Getting column real_ia3_29B_indiv')
+    X_fs = X_fs.assign(real_ia3_29B_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29B', 'Insured_Amount3'))
+
+    print('Getting column real_prem_29K_indiv')
+    X_fs = X_fs.assign(real_prem_29K_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29K', 'Premium'))
+
+    print('Getting column real_ia3_29K_indiv')
+    X_fs = X_fs.assign(real_ia1_29K_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29K', 'Insured_Amount3'))
+
     # vehicle
     print('Getting column real_prem_ic_vmy')
     X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_ic(df_policy, X_fs.index, 'Main_Insurance_Coverage_Group'))
@@ -434,6 +498,9 @@ def create_feature_selection_data(df_policy, df_claim):
 
     print('Getting column cat_claim_theft')
     X_fs = X_fs.assign(cat_claim_theft = get_bs_cat_claim_theft(df_claim, X_fs.index))
+
+    print('Getting column real_claim_fault')
+    X_fs = X_fs.assign(real_claim_fault = get_bs_real_claim_fault(df_claim, X_fs.index))
 
     # insurance coverage
     print('Getting column real_prem_ic_nmf')
