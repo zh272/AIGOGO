@@ -184,7 +184,7 @@ def get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), 
         y_train = y_train.groupby([col_cat]).agg({'real_mc_mean_diff': smooth_mean})
         real_mc_mean_diff = X_valid[col_cat].map(y_train['real_mc_mean_diff'])
         # fill na with global mean
-        real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff']))
+        real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff'])) + X_valid['real_prem_plc']
 
     return(real_mc_mean_diff)
 
@@ -342,13 +342,13 @@ def get_bs_cat_ins_self(df_policy, idx_df):
 def get_bs_cat_claim_theft(df_claim, idx_df):
     '''
     In:
-        DataFrame(df_policy),
+        DataFrame(df_claim),
         Any(idx_df)
         str(col),
     Out:
         Series(cat_claim_theft),
     Description:
-        get whether insured's birth equals to buyer's birth
+        get whether the vehicle was stolen
     '''
     ic_theft = ['05N', '09@', '09I', '10A', '68E', '68N']
     df_claim = df_claim.assign(cat_claim_theft = df_claim['Coverage'].map(lambda x: 1 if x in ic_theft else 0))
@@ -356,6 +356,26 @@ def get_bs_cat_claim_theft(df_claim, idx_df):
     cat_claim_theft = df_claim.loc[idx_df, 'cat_claim_theft'].fillna(0)
 
     return(cat_claim_theft)
+
+
+def get_bs_cat_vequip(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df)
+        str(col),
+    Out:
+        Series(cat_vequip),
+    Description:
+        get whether the vehicle has additional equipment
+    '''
+    # get whether the vehicle has additional equipment
+    cols_vequip = ['fequipment' + str(i) for i in list(range(1, 10)) if i not in [7, 8]]
+    cat_vequip = df_policy[cols_vequip].sum(axis=1).map(lambda x: 0 if x == 0 else 1)
+    cat_vequip.columns = ['cat_vequip']
+    # group by policy number
+    cat_vequip = cat_vequip.groupby(level=0).agg({'cat_vequip': lambda x: x.iloc[0]})
+    return(cat_vequip.loc[idx_df])
 
 
 ######## get pre feature selection data set ########
@@ -401,6 +421,9 @@ def create_feature_selection_data(df_policy, df_claim):
 
     print('Getting column real_prem_per_vcost')
     X_fs = X_fs.assign(real_prem_per_vcost = X_fs['real_prem_plc'] / X_fs['real_vcost'])
+
+    print('Getting column cat_vequip')
+    X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
 
     # claim
     print('Getting column cat_claim_ins')
