@@ -19,32 +19,64 @@ from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 def get_submission(
     X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
     momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
-    test_along=False, optimizer='sgd', hyper={}
+    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt'
 ):    
-    train_set, valid_set, X_test_np = get_dataset(
+    train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
         X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
     )
-
-    trainer = Trainer(
-        model(**train_params), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
-        valid_set=valid_set, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
-    )
-
-    # save_obj({'trainer':trainer}, 'trainer')
-
-    # temp = load_obj('trainer')['trainer']
-
-    valid_hist = []
+    
+    PATH = './saved_model'
+    if not os.path.isdir(PATH): os.makedirs(PATH)
+    
     start_time = time.time()
-    for epochs in range(max_epoch):
-        trainer.train_epoch()
-        if test_along:
-            temp_valid = trainer.loss_epoch()
-            valid_hist.append(temp_valid)
-            print('Epoch {:3}: Training MAE={:.2f}, Valid MAE={:.2f}'.format(epochs, trainer.eval(), temp_valid))
-        else:
-            print('Epoch {:3}: Training MAE={:.2f}'.format(epochs, trainer.eval()))
-    end_time = time.time()
+    end_time = start_time
+    if load:
+        trainer = Trainer(
+            torch.load(os.path.join(PATH, mdl_name)), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
+            valid_set=valid_set, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
+        )
+    else:
+        trainer = Trainer(
+            model(**train_params), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
+            valid_set=valid_set, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
+        )
+
+        valid_hist = []
+        for epochs in range(max_epoch):
+            trainer.train_epoch()
+            if test_along:
+                temp_valid = trainer.loss_epoch()
+                valid_hist.append(temp_valid)
+                print('Epoch {:3}: Training MAE={:.2f}, Valid MAE={:.2f}'.format(epochs, trainer.eval(), temp_valid))
+            else:
+                print('Epoch {:3}: Training MAE={:.2f}'.format(epochs, trainer.eval()))
+        end_time = time.time()
+        
+        
+        
+        if plot:
+            t_step = np.arange(0, max_epoch, 1)
+            train_hist = trainer.evaluator.hist
+            fig_path = 'figures'
+            if not os.path.isdir(fig_path): os.makedirs(fig_path)
+            plt.figure()
+            plt.plot(t_step, train_hist, 'r', ls='-', label='training MAE')
+            if test_along:
+                plt.plot(t_step, valid_hist, 'b', ls='--', label='validation MAE')
+            plt.legend(loc='best')
+            plt.xlabel('steps')
+            plt.title('Training and Validation MAE')
+            plt.grid()
+            plt.savefig(os.path.join(fig_path, 'training_plot.png'))
+            plt.close()
+
+        if save:
+            torch.save(trainer.model, os.path.join(PATH, mdl_name))
+
+            
+    train_loss = trainer.loss_epoch(load='train')
+    valid_loss = trainer.loss_epoch(load='valid')
+
     
     state_dict = trainer.model.state_dict()
     if torch.cuda.device_count() > 1:
@@ -58,9 +90,6 @@ def get_submission(
     feature_names = X_train.columns.values
     sorted_idx = np.argsort(feature_importances*-1) # descending order
     
-    train_loss = trainer.loss_epoch(load='train')
-    valid_loss = trainer.loss_epoch(load='valid')
-
     summary = '====== MLPRegressor Training Summary ======\n'
     summary += '>>> epochs={}, lr={}, momentum={}, weight_decay={}\n'.format(max_epoch,base_lr,momentum,weight_decay)
     summary += '>>> schedule={}\n'.format(hyper['lr_schedule'])
@@ -70,28 +99,21 @@ def get_submission(
     summary += '>>> training_time={:10.2f}min\n'.format((end_time-start_time)/60)
     summary += '>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
 
-    if plot:
-        t_step = np.arange(0, max_epoch, 1)
-        train_hist = trainer.evaluator.hist
-        fig_path = 'figures'
-        if not os.path.isdir(fig_path): os.makedirs(fig_path)
-        plt.figure()
-        plt.plot(t_step, train_hist, 'r', ls='-', label='training MAE')
-        if test_along:
-            plt.plot(t_step, valid_hist, 'b', ls='--', label='validation MAE')
-        plt.legend(loc='best')
-        plt.xlabel('steps')
-        plt.title('Training and Validation MAE')
-        plt.grid()
-        plt.savefig(os.path.join(fig_path, 'training_plot.png'))
-        plt.close()
-
-
     # Generate submission
     test_output = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
     submission = pd.DataFrame(data=test_output,index=X_test.index, columns=['Next_Premium'])
 
-    return {'model': trainer, 'submission': submission, 'valid_loss':valid_loss, 'summary':summary}
+    train_output = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
+    submission_train = pd.DataFrame(data=train_output,index=X_train.index, columns=['Next_Premium'])
+    
+    valid_output = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
+    submission_valid = pd.DataFrame(data=valid_output,index=X_valid.index, columns=['Next_Premium'])
+
+    return {
+        'model': trainer, 'submission': submission, 
+        'submission_train':submission_train, 'submission_valid':submission_valid,
+        'valid_loss':valid_loss, 'summary':summary
+    }
 
 
 def read_interim_data(file_name, index_col='Policy_Number'):
@@ -123,10 +145,12 @@ def write_precessed_data(df, suffix=None):
     precessed_data_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), os.path.pardir, os.path.pardir, 'data', 'processed'
     )
-    if isinstance(suffix, float) or isinstance(suffix, int):
+    if isinstance(suffix, float):
         file_name = 'testing-set_{}.csv'.format(int(suffix))
-    else:
+    elif suffix is None:
         file_name = 'testing-set.csv'
+    else:
+        file_name = 'testing-set_{}.csv'.format(suffix)
     write_sample_path = os.path.join(precessed_data_path, file_name)
     df.to_csv(write_sample_path)
 
@@ -134,8 +158,9 @@ def write_precessed_data(df, suffix=None):
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=80, base_lr=0.001, momentum=0.8, weight_decay=0, 
-    batch_size=128, optimizer='sgd', dropout=False, seed=None
+    epochs=100, base_lr=0.0005, momentum=0.9, weight_decay=0, 
+    batch_size=128, optimizer='sgd', dropout=False, seed=None, 
+    save=False, load=False
 ):
     if seed is not None:
         # known best seed=10
@@ -218,8 +243,11 @@ def demo(
     # }
     model_output = get_submission(
         X_train, X_valid, y_train, y_valid, X_test, 
-        model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, momentum=momentum, weight_decay=weight_decay,
-        batch_size = batch_size, train_params=train_params, test_along=True, optimizer=optimizer, hyper=optim_hyper
+        model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, 
+        momentum=momentum, weight_decay=weight_decay,
+        batch_size = batch_size, train_params=train_params, 
+        test_along=True, optimizer=optimizer, hyper=optim_hyper,
+        save=save, load=load
     )
 
     summary = model_output['summary']
@@ -231,6 +259,8 @@ def demo(
 
     # generate submission
     write_precessed_data(model_output['submission'], suffix=model_output['valid_loss'])
+    write_precessed_data(model_output['submission_train'], suffix='train')
+    write_precessed_data(model_output['submission_valid'], suffix='valid')
 
 def rand_reset(seed):
     random.seed(seed)
