@@ -255,7 +255,7 @@ def demo(
     summary += '>>> random seed: {}\n'.format(seed)
 
     print(summary)
-    with open('summary_{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
+    with open('summary_mlp{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
         f.write(summary)
 
     # generate submission

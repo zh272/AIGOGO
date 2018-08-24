@@ -16,7 +16,7 @@ from helpers import test_epoch, ready, save_obj, load_obj
 
 def get_submission(
     X_train, X_valid, y_train, y_valid, X_test, train_params={},
-    get_train=False, save=False, load=False, mdl_name='xgb.pt'
+    get_train=False, save=False, load=False, mdl_name='xgb'
 ):  
     
     PATH = './saved_model'
@@ -151,7 +151,7 @@ def demo(
     summary += '>>> random seed: {}\n'.format(seed)
 
     print(summary)
-    with open('summary_{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
+    with open('summary_xgb{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
         f.write(summary)
 
     # generate submission
