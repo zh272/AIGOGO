@@ -1095,7 +1095,7 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     print('Getting column real_acc_lia')
     df_bs = df_bs.assign(real_acc_lia = get_bs_real_acc_lia(df_policy, df_bs.index))
 
-    print('Getting column real_loss')
+    print('Getting column real_loss_plc')
     df_bs = df_bs.assign(real_loss_plc = get_bs_real_loss_plc(df_policy, df_claim, df_bs.index))
 
     print('Getting column real_prem_dmg')
