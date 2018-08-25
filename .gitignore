@@ -87,7 +87,7 @@ target/
 # Zhiyong
 zhiyong/xgboost/
 zhiyong/data/
-/catboost_info/
-/saved_states/
-/src/models/build_features.py
-/src/models/get_bs_real_mc_mean.py
+# src/models/catboost_info/
+src/models/create_features.py
+src/models/figures/
+src/models/summary*
