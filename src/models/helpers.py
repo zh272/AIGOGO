@@ -190,18 +190,16 @@ def test_epoch(model, loader, print_freq=1, is_test=True, loss_fn=F.cross_entrop
     # Return summary statistics
     return losses.avg, error.avg
 
-def save_obj(obj, file_name):
-    if not os.path.isdir('./saved_states'): 
-        os.makedirs('./saved_states')
-    with open('./saved_states/'+ file_name + '.pkl', 'w+b') as f:
+def save_obj(obj, file_name, file_dir='./saved_models'):
+    if not os.path.isdir(file_dir): 
+        os.makedirs(file_dir)
+    with open(file_dir+ file_name + '.pkl', 'w+b') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
-def load_obj(file_name):
-    # if not os.path.isdir('./saved_states'): 
-    #     os.makedirs('./saved_states')
+def load_obj(file_name, file_dir='./saved_models'):
     try:
-        with open('./saved_states/' + file_name + '.pkl', 'r+b') as f:
+        with open(file_dir + file_name + '.pkl', 'r+b') as f:
             try:
                 obj = pickle.load(f)
             except EOFError:
