@@ -87,7 +87,7 @@ target/
 # Zhiyong
 zhiyong/xgboost/
 zhiyong/data/
-# src/models/catboost_info/
+src/models/catboost_info/
 src/models/create_features.py
 src/models/figures/
 src/models/summary*
