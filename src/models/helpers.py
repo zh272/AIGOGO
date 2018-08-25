@@ -93,28 +93,28 @@ def get_optimizer(model, hyper={}, epochs=None, optimizer='sgd'):
     if optimizer=='sgd':
         optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True, weight_decay=weight_decay)
 
-        # if hyper and 'lr_schedule' in hyper:
-        #     scheduler = CustomLR(optimizer, hyper['lr_schedule'])
-        # elif epochs:
-        #     scheduler = optim.lr_scheduler.MultiStepLR(
-        #         optimizer,  milestones=[int(0.5 * epochs), int(0.75 * epochs)], gamma=0.1
-        #     )
-        #     hyper['lr_schedule'] = {0:lr, 0.5*epochs:lr*0.1, 0.75*epochs: lr*0.01}
-        # else:
-        #     scheduler = None
+        if hyper and 'lr_schedule' in hyper:
+            scheduler = CustomLR(optimizer, hyper['lr_schedule'])
+        elif epochs:
+            scheduler = optim.lr_scheduler.MultiStepLR(
+                optimizer,  milestones=[int(0.5 * epochs), int(0.75 * epochs)], gamma=0.1
+            )
+            hyper['lr_schedule'] = {0:lr, 0.5*epochs:lr*0.1, 0.75*epochs: lr*0.01}
+        else:
+            scheduler = None
     else:
         optimizer = optim.Adam(model.parameters(), lr=lr,weight_decay=weight_decay)
-        # scheduler = None
-
-    if hyper and 'lr_schedule' in hyper:
-        scheduler = CustomLR(optimizer, hyper['lr_schedule'])
-    elif epochs:
-        scheduler = optim.lr_scheduler.MultiStepLR(
-            optimizer,  milestones=[int(0.5 * epochs), int(0.75 * epochs)], gamma=0.1
-        )
-        hyper['lr_schedule'] = {0:lr, 0.5*epochs:lr*0.1, 0.75*epochs: lr*0.01}
-    else:
         scheduler = None
+
+    # if hyper and 'lr_schedule' in hyper:
+    #     scheduler = CustomLR(optimizer, hyper['lr_schedule'])
+    # elif epochs:
+    #     scheduler = optim.lr_scheduler.MultiStepLR(
+    #         optimizer,  milestones=[int(0.5 * epochs), int(0.75 * epochs)], gamma=0.1
+    #     )
+    #     hyper['lr_schedule'] = {0:lr, 0.5*epochs:lr*0.1, 0.75*epochs: lr*0.01}
+    # else:
+    #     scheduler = None
 
     
         
@@ -128,7 +128,7 @@ class CustomLR(optim.lr_scheduler._LRScheduler):
     def get_lr(self):
         return [
             self.lrs[
-                bisect_left(self.milestones, self.last_epoch)
+                bisect_right(self.milestones, self.last_epoch)
             ] for _ in self.base_lrs
         ]
 

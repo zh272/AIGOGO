@@ -18,7 +18,7 @@ from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 
 def get_submission(
     X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
-    momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, get_train=False,
+    momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
     test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt'
 ):    
     train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
@@ -44,12 +44,15 @@ def get_submission(
         valid_hist = []
         for epochs in range(max_epoch):
             trainer.train_epoch()
+
+            temp_lr = trainer.optimizer.param_groups[0]['lr']
+            
             if test_along:
                 temp_valid = trainer.loss_epoch()
                 valid_hist.append(temp_valid)
-                print('Epoch {:3}: Training MAE={:.2f}, Valid MAE={:.2f}'.format(epochs, trainer.eval(), temp_valid))
+                print('Epoch {:3}: Training MAE={:8.2f}, Valid MAE={:8.2f}, lr={}'.format(epochs, trainer.eval(), temp_valid, temp_lr))
             else:
-                print('Epoch {:3}: Training MAE={:.2f}'.format(epochs, trainer.eval()))
+                print('Epoch {:3}: Training MAE={:8.2f}, lr={}'.format(epochs, trainer.eval(), temp_lr))
         end_time = time.time()
         
         
@@ -95,22 +98,19 @@ def get_submission(
     summary += '>>> schedule={}\n'.format(hyper['lr_schedule'])
     summary += '>>> hidden={}, optimizer="{}", batch_size={}\n'.format(train_params['num_neuron'],optimizer,batch_size)
     for idx in sorted_idx:
-        summary += '[{:<25s}] | {:<10.4f}\n'.format(feature_names[idx], feature_importances[idx])
+        summary += '[{:<25s}] {:<10.4f}\n'.format(feature_names[idx], feature_importances[idx])
     summary += '>>> training_time={:10.2f}min\n'.format((end_time-start_time)/60)
     summary += '>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
 
     # Generate submission
     test_output = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
     submission = pd.DataFrame(data=test_output,index=X_test.index, columns=['Next_Premium'])
-    if get_train:
-        train_output = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
-        submission_train = pd.DataFrame(data=train_output,index=X_train.index, columns=['Next_Premium'])
-        
-        valid_output = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
-        submission_valid = pd.DataFrame(data=valid_output,index=X_valid.index, columns=['Next_Premium'])
-    else:
-        submission_train = None
-        submission_valid = None
+    
+    train_output = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
+    submission_train = pd.DataFrame(data=train_output,index=X_train.index, columns=['Next_Premium'])
+    
+    valid_output = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
+    submission_valid = pd.DataFrame(data=valid_output,index=X_valid.index, columns=['Next_Premium'])
 
     return {
         'model': trainer, 'submission': submission, 
@@ -155,16 +155,14 @@ def write_precessed_data(df, suffix=None):
     write_sample_path = os.path.join(precessed_data_path, file_name)
     df.to_csv(write_sample_path)
 
-    return(None)
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=100, base_lr=0.0005, momentum=0.9, weight_decay=0, 
+    epochs=100, base_lr=0.00001, momentum=0.9, weight_decay=0, 
     batch_size=128, optimizer='sgd', dropout=False, seed=None, 
-    get_train=False, save=False, load=False
+    get_train=False, get_test=True, save=False, load=False
 ):
     if seed is not None:
-        # known best seed=10
         rand_reset(seed)
     X_train = read_interim_data('X_train_prefs.csv')
     y_train = read_interim_data('y_train_prefs.csv')
@@ -173,38 +171,8 @@ def demo(
     X_test = read_interim_data('X_test_prefs.csv')
 
     feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
-    print('Number of features: {}'.format(len(feature_list)))
-    # feature_list = ['real_prem_plc',
-    #     'real_prem_dmg',
-    #     'real_prem_lia',
-    #     'real_prem_thf',
-    #     'real_prem_ic_nmf_1',
-    #     'real_prem_ic_nmf_2',
-    #     'real_prem_ic_nmf_3',
-    #     'real_prem_ic_nmf_4',
-    #     'real_prem_ic_nmf_5',
-    #     'real_prem_ic_nmf_6',
-    #     'real_prem_ic_nmf_7',
-    #     'real_freq_distr',
-    #     'real_prem_ic_distr',
-    #     'real_mc_mean_distr',
-    #     'real_mc_prob_distr',
-    #     'int_acc_lia',
-    #     'real_acc_dmg',
-    #     'real_acc_lia',
-    #     'real_mc_prob_cancel',
-    #     'real_mc_mean_age',
-    #     'real_mc_prob_age',
-    #     'real_mc_mean_marriage',
-    #     'real_mc_prob_marriage',
-    #     'real_mc_mean_vmy',
-    #     'real_mc_prob_vmy',
-    #     'real_vcost',
-    #     'real_mc_prob_area',
-    #     'real_mc_mean_claim_ins',
-    #     'real_mc_prob_claim_ins'
-    # ]
-
+    num_features = len(feature_list)
+    print('Number of features: {}'.format(num_features))
 
     # Filter features
     X_train = X_train[feature_list]
@@ -216,20 +184,13 @@ def demo(
     X_test = X_test.apply(lambda x:x.fillna(-1))
 
     # begin training
+    num_neuron = [160,40,10]
+    # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
+    # num_neuron = [160,30,8]
+
     train_params = {
-        'num_input':len(feature_list), 'num_neuron':[100,25,8], 'dropout':dropout
-    }
-    optim_hyper = {
-        'lr':base_lr, 
-        'momentum':momentum,
-        'weight_decay':weight_decay, 
-        'lr_schedule':{
-            0:base_lr, 
-            epochs//4:base_lr/5, 
-            epochs//2:base_lr/50, 
-            epochs//4*3:base_lr/250, 
-            epochs: base_lr/250
-        }
+        'num_input':len(feature_list), 'dropout':dropout, 
+        'num_neuron':num_neuron
     }
     # optim_hyper = {
     #     'lr':base_lr, 
@@ -237,18 +198,31 @@ def demo(
     #     'weight_decay':weight_decay, 
     #     'lr_schedule':{
     #         0:base_lr, 
-    #         epochs//2:base_lr/10, 
-    #         epochs//4*3:base_lr/100, 
-    #         epochs: base_lr/100
+    #         epochs//4:base_lr, 
+    #         epochs//2:base_lr/5, 
+    #         epochs//4*3:base_lr/50, 
+    #         epochs: base_lr/250
     #     }
     # }
+    optim_hyper = {
+        'lr':base_lr, 
+        'momentum':momentum,
+        'weight_decay':weight_decay, 
+        'lr_schedule':{
+            epochs//4:base_lr, 
+            epochs//2:base_lr/5, 
+            epochs//4*3:base_lr/50,
+            epochs: base_lr/500
+        }
+    }
+    
     model_output = get_submission(
         X_train, X_valid, y_train, y_valid, X_test, 
         model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, 
         momentum=momentum, weight_decay=weight_decay,
         batch_size = batch_size, train_params=train_params, 
         test_along=True, optimizer=optimizer, hyper=optim_hyper,
-        get_train=get_trian, save=save, load=load
+        save=save, load=load
     )
 
     summary = model_output['summary']
@@ -259,8 +233,9 @@ def demo(
         f.write(summary)
 
     # generate submission
-    write_precessed_data(model_output['submission'], suffix='mlptest{}'.format(int(model_output['valid_loss'])))
-    if model_output['submission_train'] is not None:
+    if get_test:
+        write_precessed_data(model_output['submission'], suffix='mlptest{}'.format(int(model_output['valid_loss'])))
+    if get_train:
         write_precessed_data(model_output['submission_train'], suffix='mlptrain')
         write_precessed_data(model_output['submission_valid'], suffix='mlpvalid')
 

@@ -16,7 +16,7 @@ from helpers import test_epoch, ready, save_obj, load_obj
 
 def get_submission(
     X_train, X_valid, y_train, y_valid, X_test, train_params={},
-    get_train=False, save=False, load=False, mdl_name='xgb'
+    save=False, load=False, mdl_name='xgb'
 ):  
     
     PATH = './saved_model'
@@ -110,7 +110,7 @@ def write_precessed_data(df, suffix=None):
 def demo(
     epochs=300, base_lr=0.05, max_depth=4, subsample=0.8, objective='reg:linear',
     colsample_bytree=0.8, colsample_bylevel=0.8, gamma=0.0, reg_alpha=3.0, reg_lambda=0.0,
-    max_delta_step=0, get_train=False, save=False, load=False, seed=None
+    max_delta_step=0, get_train=False, get_test=True, save=False, load=False, seed=None
 ):
     if seed is not None:
         # known best seed=10
@@ -143,8 +143,7 @@ def demo(
     
     model_output = get_submission(
         X_train, X_valid, y_train, y_valid, X_test, 
-        train_params=train_params, get_train=get_train,
-        save=save, load=load
+        train_params=train_params, save=save, load=load
     )
 
     summary = model_output['summary']
@@ -155,8 +154,9 @@ def demo(
         f.write(summary)
 
     # generate submission
-    write_precessed_data(model_output['submission'], suffix='xgbtest{}'.format(int(model_output['valid_loss'])))
-    if model_output['submission_train'] is not None:
+    if get_test:
+        write_precessed_data(model_output['submission'], suffix='xgbtest{}'.format(int(model_output['valid_loss'])))
+    if get_train:
         write_precessed_data(model_output['submission_train'], suffix='xgbtrain')
         write_precessed_data(model_output['submission_valid'], suffix='xgbvalid')
 
