@@ -85,8 +85,7 @@ target/
 .DS_Store
 
 # Zhiyong
-# zhiyong/xgboost/
-# zhiyong/data/
+src/models/playground/
 src/models/catboost_info/
 src/models/create_features.py
 src/models/figures/
