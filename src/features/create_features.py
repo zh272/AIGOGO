@@ -462,7 +462,7 @@ def get_bs_cat_age(df_policy, idx_df):
     Out:
         Series(cat_age),
     Description:
-        get inssured
+        get inssured age
     '''
     df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0]})
 
@@ -472,6 +472,23 @@ def get_bs_cat_age(df_policy, idx_df):
     cat_age = pd.cut(cat_age, cut_edge, labels = list(range(1, len(cut_edge))))
 
     return(cat_age)
+
+
+def get_bs_cat_ic_combo(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(cat_ic_combo),
+    Description:
+        get inssured coverage combination
+    '''
+    df_policy = df_policy.sort_values(by=['Premium'], ascending=False)
+    df_policy = df_policy.groupby(level=0).agg({'Insurance_Coverage': lambda x: '|'.join(x[:3].sort_values())})
+    cat_ic_combo = df_policy.loc[idx_df, 'Insurance_Coverage']
+
+    return(cat_ic_combo)
 
 
 ######## get pre feature selection data set ########
@@ -504,8 +521,8 @@ def create_feature_selection_data(df_policy, df_claim):
     y_fs = pd.concat([y_train, y_valid, y_test])
 
     # basic
-#    print('Getting column cat_age')
-#    X_fs = X_fs.assign(cat_age = get_bs_cat_age(df_policy, X_fs.index))
+#    print('Getting column cat_zip')
+#    X_fs = X_fs.assign(cat_zip = get_bs_cat(df_policy, X_fs.index, 'aassured_zip'))
 #    print('Getting column cat_ins_self')
 #    X_fs = X_fs.assign(cat_ins_self = get_bs_cat_ins_self(df_policy, X_fs.index))
 #
@@ -513,12 +530,12 @@ def create_feature_selection_data(df_policy, df_claim):
 #    print('Getting column real_prem_ic_distr')
 #    X_fs = X_fs.assign(real_prem_ic_distr = get_bs_real_prem_ic(df_policy, X_fs.index, 'Distribution_Channel'))
 #
-#    # insurance coverage
-#    print('Getting column real_prem_16G_indiv')
-#    X_fs = X_fs.assign(real_prem_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Premium'))
-#
-#    print('Getting column real_ia1_16G_indiv')
-#    X_fs = X_fs.assign(real_ia1_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount1'))
+    # insurance coverage
+    print('Getting column real_prem_16G_indiv')
+    X_fs = X_fs.assign(real_prem_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Premium'))
+
+    print('Getting column real_ia1_16G_indiv')
+    X_fs = X_fs.assign(real_ia1_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount1'))
 #
 #    print('Getting column real_ia3_16G_indiv')
 #    X_fs = X_fs.assign(real_ia3_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount3'))
@@ -528,7 +545,7 @@ def create_feature_selection_data(df_policy, df_claim):
 #
 #    print('Getting column real_ia3_16P_indiv')
 #    X_fs = X_fs.assign(real_ia1_16P_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16P', 'Insured_Amount3'))
-#
+
 #    print('Getting column real_prem_29B_indiv')
 #    X_fs = X_fs.assign(real_prem_29B_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29B', 'Premium'))
 #
@@ -544,6 +561,12 @@ def create_feature_selection_data(df_policy, df_claim):
 #    print('Getting column real_ia3_29K_indiv')
 #    X_fs = X_fs.assign(real_ia1_29K_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29K', 'Insured_Amount3'))
 #
+#    print('Getting column real_prem_41N_indiv')
+#    X_fs = X_fs.assign(real_prem_41N_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '41N', 'Premium'))
+#
+#    print('Getting column real_ia1_41N_indiv')
+#    X_fs = X_fs.assign(real_ia3_41N_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '41N', 'Insured_Amount3'))
+#
 #    # vehicle
 #    print('Getting column real_prem_ic_vmy')
 #    X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_exst(df_policy, X_fs.index, 'Manafactured_Year_and_Month', get_bs_real_prem_ic))
@@ -551,18 +574,18 @@ def create_feature_selection_data(df_policy, df_claim):
 #    print('Getting column real_prem_per_vcost')
 #    X_fs = X_fs.assign(real_prem_per_vcost = X_fs['real_prem_plc'] / X_fs['real_vcost'])
 #
-#    print('Getting column cat_vequip')
-#    X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
-#
+    print('Getting column cat_vequip')
+    X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
+
 #    # claim
 #    print('Getting column cat_claim_ins')
 #    X_fs = X_fs.assign(cat_claim_ins = get_bs_cat_claim_ins(df_policy, df_claim, X_fs.index))
 #
-#    print('Getting column real_loss_ins')
-#    X_fs = X_fs.assign(real_loss_ins = get_bs_real_loss_ins(df_policy, df_claim, X_fs.index))
+    print('Getting column real_loss_ins')
+    X_fs = X_fs.assign(real_loss_ins = get_bs_real_loss_ins(df_policy, df_claim, X_fs.index))
 #
-#    print('Getting column cat_claim_theft')
-#    X_fs = X_fs.assign(cat_claim_theft = get_bs_cat_claim_theft(df_claim, X_fs.index))
+    print('Getting column cat_claim_theft')
+    X_fs = X_fs.assign(cat_claim_theft = get_bs_cat_claim_theft(df_claim, X_fs.index))
 #
 #    print('Getting column real_claim_fault')
 #    X_fs = X_fs.assign(real_claim_fault = get_bs_real_claim_fault(df_claim, X_fs.index))
@@ -587,6 +610,9 @@ def create_feature_selection_data(df_policy, df_claim):
     print('Getting column real_prem_ic')
     X_fs = X_fs.assign(real_prem_ic = get_bs_real_prem_exst(df_policy, X_fs.index, 'Main_Insurance_Coverage_Group', get_bs_real_prem_ic))
 
+    print('Getting column cat_ic_combo')
+    X_fs = X_fs.assign(cat_ic_combo = get_bs_cat_ic_combo(df_policy, X_fs.index))
+
     # feature template expansion
     cols_cat = [col for col in X_fs.columns if col.startswith('cat') and col not in X_train.columns]
 
@@ -599,10 +625,12 @@ def create_feature_selection_data(df_policy, df_claim):
     # train valid test split
     X_train = X_fs.loc[X_train.index]
     X_valid = X_fs.loc[X_valid.index]
+    X_train_all = pd.concat([X_train, X_valid])
     X_test = X_fs.loc[X_test.index]
 
     y_train = y_fs.loc[y_train.index]
     y_valid = y_fs.loc[y_valid.index]
+    y_train_all = pd.concat([y_train, y_valid])
     y_test = y_fs.loc[y_test.index]
 
 
@@ -614,6 +642,7 @@ def create_feature_selection_data(df_policy, df_claim):
         X_test[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
         X_valid[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
         X_train[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+        X_train_all[col_mean] = get_bs_real_mc_mean(col_cat, X_train_all, y_train_all, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
 #    # add mean encoding on mean of diff btw next_premium and premium
 #    for col_cat in cols_cat:
@@ -630,11 +659,14 @@ def create_feature_selection_data(df_policy, df_claim):
         X_test[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
         X_valid[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
         X_train[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+        X_train_all[col_prob] = get_bs_real_mc_prob(col_cat, X_train_all, y_train_all, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     write_test_data(X_train, "X_train_prefs.csv")
     write_test_data(y_train, "y_train_prefs.csv")
     write_test_data(X_valid, "X_valid_prefs.csv")
     write_test_data(y_valid, "y_valid_prefs.csv")
+    write_test_data(X_train_all, "X_train_all_prefs.csv")
+    write_test_data(y_train_all, "y_train_all_prefs.csv")
     write_test_data(X_test, "X_test_prefs.csv")
     write_test_data(y_test, "y_test_prefs.csv")
 
@@ -693,6 +725,44 @@ def get_bs_quick_mae(params):
     lgb_output = {'varimp': varimp, 'mae': valid_mae}
 
     return(lgb_output)
+
+
+def get_bs_quick_submission(params):
+    '''
+    In:
+
+    Out:
+        float(mae)
+
+    Description:
+        calculate quick mae on validation set
+    '''
+    X_train = read_interim_data('X_train_all_prefs.csv')
+    y_train = read_interim_data('y_train_all_prefs.csv')
+    X_valid = read_interim_data('X_test_prefs.csv')
+    y_valid = read_interim_data('y_test_prefs.csv')
+
+    # preprocessing
+    X_train.fillna(-999, inplace=True)
+    X_valid.fillna(-999, inplace=True)
+
+    cols_train = [col for col in X_train.columns if not col.startswith('cat')]
+
+    All_train = y_train.merge(X_train, how='left', left_index=True, right_index=True)
+    All_valid = y_valid.merge(X_valid, how='left', left_index=True, right_index=True)
+
+    lgb_train = lgb.Dataset(All_train[cols_train].values, All_train['Next_Premium'].values.flatten(), free_raw_data=False)
+
+    model = lgb.train(
+        params['model'], lgb_train, **params['train']
+    )
+
+    valid_pred = model.predict(All_valid[cols_train])
+    valid_pred = pd.DataFrame(valid_pred, index = All_valid.index)
+    valid_pred.columns = ['Next_Premium']
+    write_test_data(valid_pred, 'testing-set.csv')
+
+    return(None)
 
 
 ######## read/write func ########
@@ -767,10 +837,10 @@ if __name__ == '__main__':
         'max_depth':-1,
         'objective': 'regression_l1',
         'metric': 'mae',
-        'lamba_l1':0.3,
-        'num_leaves': 31,
+        'lamba_l1':0.25,
+        'num_leaves': 40,
         'learning_rate': 0.05,
-        'colsample_bytree': 0.9,
+        'colsample_bytree': 0.8,
         'subsample': 0.8,
         'subsample_freq': 5,
         'min_data_in_leaf': 20,
@@ -780,7 +850,8 @@ if __name__ == '__main__':
     lgb_train_params = {
         'early_stopping_rounds': 3,
         'learning_rates': None, # lambda iter: 0.1*(0.99**iter),
-        'verbose_eval': False,
+        'verbose_eval': True,
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
     lgb_output = get_bs_quick_mae(lgb_params)
+    lgb_output = get_bs_quick_submission(lgb_params)

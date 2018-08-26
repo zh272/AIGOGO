@@ -291,8 +291,8 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
 
     np.random.seed(0)
     msk = np.random.rand(len(df_train)) < 0.8
-    df_valid = df_train[msk]
-    df_train = df_train[~msk]
+    df_valid = df_train[~msk]
+    df_train = df_train[msk]
 
     X_train = df_bs.loc[df_train.index, cols_X]
     X_valid = df_bs.loc[df_valid.index, cols_X]
