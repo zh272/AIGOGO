@@ -454,6 +454,26 @@ def get_bs_real_claim_fault(df_claim, idx_df):
     return(cat_claim_theft)
 
 
+def get_bs_cat_age(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(cat_age),
+    Description:
+        get inssured
+    '''
+    df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0]})
+
+    get_cat_age = lambda x: 0 if pd.isnull(x) else 2016 - int(x[3:])
+    cat_age = df_policy['ibirth'].map(get_cat_age)
+    cut_edge = [-1, 0, 20, 26, 31, 36, 39, 71, 75, 300]
+    cat_age = pd.cut(cat_age, cut_edge, labels = list(range(1, len(cut_edge))))
+
+    return(cat_age)
+
+
 ######## get pre feature selection data set ########
 def create_feature_selection_data(df_policy, df_claim):
     '''
@@ -469,18 +489,23 @@ def create_feature_selection_data(df_policy, df_claim):
         create train dataset with additional columns
     '''
     X_train = read_interim_data('X_train_bs.csv')
+    X_valid = read_interim_data('X_valid_bs.csv')
     X_test = read_interim_data('X_test_bs.csv')
 
     X_train = X_train.fillna(0)
+    X_valid = X_valid.fillna(0)
     X_test = X_test.fillna(0)
 
-    y_train = read_raw_data('training-set.csv')
-    y_test = read_raw_data('testing-set.csv')
+    y_train = read_interim_data('y_train_bs.csv')
+    y_valid = read_interim_data('y_valid_bs.csv')
+    y_test = read_interim_data('y_test_bs.csv')
 
-    X_fs = pd.concat([X_train, X_test])
-    y_fs = pd.concat([y_train, y_test])
+    X_fs = pd.concat([X_train, X_valid, X_test])
+    y_fs = pd.concat([y_train, y_valid, y_test])
 
-#    # basic
+    # basic
+#    print('Getting column cat_age')
+#    X_fs = X_fs.assign(cat_age = get_bs_cat_age(df_policy, X_fs.index))
 #    print('Getting column cat_ins_self')
 #    X_fs = X_fs.assign(cat_ins_self = get_bs_cat_ins_self(df_policy, X_fs.index))
 #
@@ -563,7 +588,7 @@ def create_feature_selection_data(df_policy, df_claim):
     X_fs = X_fs.assign(real_prem_ic = get_bs_real_prem_exst(df_policy, X_fs.index, 'Main_Insurance_Coverage_Group', get_bs_real_prem_ic))
 
     # feature template expansion
-    cols_cat = [col for col in X_fs.columns if col.startswith('cat')]
+    cols_cat = [col for col in X_fs.columns if col.startswith('cat') and col not in X_train.columns]
 
     # frequency of category values
     for col_cat in cols_cat:
@@ -573,16 +598,13 @@ def create_feature_selection_data(df_policy, df_claim):
 
     # train valid test split
     X_train = X_fs.loc[X_train.index]
-    y_train = y_fs.loc[y_train.index]
+    X_valid = X_fs.loc[X_valid.index]
     X_test = X_fs.loc[X_test.index]
+
+    y_train = y_fs.loc[y_train.index]
+    y_valid = y_fs.loc[y_valid.index]
     y_test = y_fs.loc[y_test.index]
 
-    np.random.seed(0)
-    msk = np.random.rand(len(X_train)) < 0.8
-    X_train_v = X_train[~msk]
-    y_train_v = y_train[~msk]
-    X_train_t = X_train[msk]
-    y_train_t = y_train[msk]
 
     # add mean encoding
     # add mean encoding on next_premium mean
@@ -590,29 +612,29 @@ def create_feature_selection_data(df_policy, df_claim):
         col_mean = col_cat.replace('cat_', 'real_mc_mean_')
         print('Getting column ' + col_mean)
         X_test[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
-        X_train_v[col_mean] = get_bs_real_mc_mean(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
-        X_train_t[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+        X_valid[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
+        X_train[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
 #    # add mean encoding on mean of diff btw next_premium and premium
 #    for col_cat in cols_cat:
 #        col_mean = col_cat.replace('cat_', 'real_mc_mean_diff_')
 #        print('Getting column ' + col_mean)
 #        X_test[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
-#        X_train_v[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
-#        X_train_t[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+#        X_valid[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
+#        X_train[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     # add mean encoding on probability of next_premium being 0
     for col_cat in cols_cat:
         col_prob = col_cat.replace('cat_', 'real_mc_prob_')
         print('Getting column ' + col_prob)
         X_test[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
-        X_train_v[col_prob] = get_bs_real_mc_prob(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
-        X_train_t[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+        X_valid[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
+        X_train[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
-    write_test_data(X_train_t, "X_train_prefs.csv")
-    write_test_data(y_train_t, "y_train_prefs.csv")
-    write_test_data(X_train_v, "X_valid_prefs.csv")
-    write_test_data(y_train_v, "y_valid_prefs.csv")
+    write_test_data(X_train, "X_train_prefs.csv")
+    write_test_data(y_train, "y_train_prefs.csv")
+    write_test_data(X_valid, "X_valid_prefs.csv")
+    write_test_data(y_valid, "y_valid_prefs.csv")
     write_test_data(X_test, "X_test_prefs.csv")
     write_test_data(y_test, "y_test_prefs.csv")
 

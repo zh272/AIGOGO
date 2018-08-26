@@ -32,7 +32,7 @@ def get_analysis_table(fitted, feature):
         give analysis of fitting error on column
     '''
     fitted = fitted.merge(feature.to_frame(name='col'), how='left', left_index=True, right_index=True)
-    analysis = fitted.groupby(['col']).agg({'error': [np.mean, np.std, np.size]})
+    analysis = fitted.groupby(['col']).agg({'error': [np.mean, np.std, np.size, np.median], 'abserr': [np.mean, np.median]})
 
     return(analysis)
 
@@ -121,6 +121,7 @@ def get_residual_analysis(label, fitted, df_policy, df_claim):
     fitted = label.merge(fitted, how='left', left_index=True, right_index=True)
     fitted.columns = ['label', 'fitted']
     fitted = fitted.assign(error = fitted['label'] - fitted['fitted'])
+    fitted = fitted.assign(abserr = fitted['error'].abs())
 
     print('Analyzing cat_age')
     anal_age = get_anal_age(fitted, df_policy)
