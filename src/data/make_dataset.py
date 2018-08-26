@@ -20,6 +20,31 @@ def get_bs_cat(df_policy, idx_df, col):
 
 
 ######## manual feature ########
+def get_bs_cat_age(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(cat_vmy),
+    Description:
+        get inssured
+    '''
+    df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0]})
+    def get_cat_age(x):
+        cat_age = 0
+        if not pd.isnull(x):
+            cat_age = 2016 - int(x[3:])
+        if cat_age <= 22 and cat_age > 0:
+            cat_age = -1
+        if cat_age >= 82:
+            cat_age = -2
+        return(cat_age)
+    cat_age = df_policy['ibirth'].map(get_cat_age)
+
+    return(cat_age)
+
+
 def get_bs_cat_vmy(df_policy, idx_df):
     '''
     In:
@@ -31,7 +56,7 @@ def get_bs_cat_vmy(df_policy, idx_df):
         get vehicle code label
     '''
     df_policy = df_policy.groupby(level=0).agg({'Manafactured_Year_and_Month': lambda x: x.iloc[0]})
-    get_label = lambda x: 2015 - x if x > 2010 else round((2015 - x) / 5 + 4)
+    get_label = lambda x: 2015 - x if x > 2010 else round((2016 - x) / 5 + 4)
     cat_vmy = df_policy['Manafactured_Year_and_Month'].map(get_label)
     return(cat_vmy.loc[idx_df].fillna(0))
 
@@ -73,6 +98,9 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     df_bs = pd.concat([X_train, X_test])
     '''
     df_bs = pd.concat([df_train, df_test])
+
+#    print('Getting column cat_age')
+#    df_bs = df_bs.assign(cat_age = get_bs_cat_age(df_policy, df_bs.index))
 
     print('Getting column cat_cancel')
     df_bs = df_bs.assign(cat_cancel = get_bs_cat(df_policy, df_bs.index, 'Cancellation'))

@@ -651,6 +651,15 @@ def get_bs_quick_mae(params):
     )
 
     valid_pred = model.predict(All_valid[cols_train])
+    valid_pred = pd.DataFrame(valid_pred, index = All_valid.index)
+    valid_pred.columns = ['Next_Premium']
+    write_test_data(valid_pred, 'fit_valid_prefs.csv')
+
+    train_pred = model.predict(All_train[cols_train])
+    train_pred = pd.DataFrame(train_pred, index = All_train.index)
+    train_pred.columns = ['Next_Premium']
+    write_test_data(train_pred, 'fit_train_prefs.csv')
+
     valid_mae = mean_absolute_error(All_valid['Next_Premium'], valid_pred)
     print('pre-selection mae is {}'.format(valid_mae))
 
@@ -659,7 +668,9 @@ def get_bs_quick_mae(params):
     for key, value in sorted(varimp.items(), key=lambda x: -x[1]):
         print("%s: %s" % (key, value))
 
-    return(None)
+    lgb_output = {'varimp': varimp, 'mae': valid_mae}
+
+    return(lgb_output)
 
 
 ######## read/write func ########
@@ -750,4 +761,4 @@ if __name__ == '__main__':
         'verbose_eval': False,
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
-    get_bs_quick_mae(lgb_params)
+    lgb_output = get_bs_quick_mae(lgb_params)
