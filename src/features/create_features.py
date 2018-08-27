@@ -393,6 +393,53 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df):
     return(real_prem_ic_nmf.loc[idx_df])
 
 
+def get_bs_real_ia_ic_nmf(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        DataFrame(real_ia_ic_nmf),
+    Description:
+        get issured amount by insurance coverage, with nonnegative matrix factorization
+    '''
+    # get scaled dominate insured amount by coverage
+    values_ic = list(df_policy['Insurance_Coverage'].unique())
+    list_ia = []
+    for ic in values_ic:
+        df_ic = df_policy[df_policy['Insurance_Coverage'] == ic]
+        ia1 = list(df_ic['Insured_Amount1'].unique())
+        ia2 = list(df_ic['Insured_Amount2'].unique())
+        ia1_pos = [i for i in ia1 if i > 0]
+        ia2_pos = [i for i in ia2 if i > 0]
+        # use insured amount in the order of 1, 2, 3
+        if (len(ia1_pos) > len(df_ic) / 2):
+            ia = 'Insured_Amount1'
+        elif (len(ia2_pos) > len(df_ic) / 2):
+            ia = 'Insured_Amount2'
+        else:
+            ia = 'Insured_Amount3'
+        # scale the insured amount in log term
+        prem_mean = df_ic['Premium'].mean()
+        ia_mean = (df_ic[ia] + 1).map(np.log).mean()
+        ia_ic = (df_ic[ia] + 1).map(np.log) / ia_mean * prem_mean
+        try:
+            list_ia.append(ia_ic.loc[idx_df].fillna(0))
+        except:
+            list_ia.append(pd.Series(0, index=idx_df))
+    ia_ic = pd.concat(list_ia, axis = 1)
+
+    # transform dataframe to matrix
+    mtx_df = ia_ic.fillna(0).as_matrix()
+    # non-negative matrix factorization
+    nmf_df = NMF(n_components=5, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+    # get insured amount
+    real_ia_ic_nmf = pd.DataFrame(nmf_df, index = ia_ic.index)
+    real_ia_ic_nmf.columns = ['real_ia_ic_nmf_' + str(i) for i in range(1, 6)]
+
+    return(real_ia_ic_nmf.loc[idx_df])
+
+
 def get_bs_real_prem_terminate(df_policy, idx_df):
     '''
     In:
@@ -600,6 +647,10 @@ def create_feature_selection_data(df_policy, df_claim):
     print('Getting column real_prem_ic_nmf')
     colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
     X_fs[colnames] = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+
+#    print('Getting column real_ia_ic_nmf')
+#    colnames = ['real_ia_ic_nmf_' + str(i) for i in range(1, 6)]
+#    X_fs[colnames] = get_bs_real_ia_ic_nmf(df_policy, X_fs.index)
 
     print('Getting column real_prem_terminate')
     X_fs = X_fs.assign(real_prem_terminate = get_bs_real_prem_terminate(df_policy, X_fs.index))
@@ -844,14 +895,14 @@ if __name__ == '__main__':
         'max_depth':-1,
         'objective': 'regression_l1',
         'metric': 'mae',
-        'lamba_l1':0.25,
+        'lamba_l1':0.1,
         'num_leaves': 40,
         'learning_rate': 0.01,
         'colsample_bytree': 0.8,
         'subsample': 0.8,
         'subsample_freq': 5,
-        'min_data_in_leaf': 20,
-        'min_gain_to_split': 0,
+        'min_data_in_leaf': 15,
+        'min_gain_to_split': 0.01,
         'seed': 0,
     }
     lgb_train_params = {
