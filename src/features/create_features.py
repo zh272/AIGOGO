@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from sklearn.decomposition import NMF
 from sklearn.metrics import mean_absolute_error
+from sklearn.cluster import KMeans
 import lightgbm as lgb
 
 ######## feature template expansion ########
@@ -156,6 +157,35 @@ def get_bs_cat_inter(df_policy, idx_df, col1, col2):
     return(cat_col1_col2.loc[idx_df])
 
 
+def get_bs_cat_ic_cluster(df_policy, idx_df, col, ncluster):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df)
+        str(col),
+    Out:
+        Series(cat_ic_cluster),
+    Description:
+        get interaction of two categorical features
+    '''
+    # get cluster column
+    df_col = df_policy.groupby(level=0).agg({col: lambda x: x.iloc[0]})
+    # get premium by insurance coverage
+    df_policy = df_policy.set_index(['Insurance_Coverage'], append=True)
+    df_policy = df_policy['Premium'].unstack(level=1)
+    df_policy.columns = [col[1] for col in df_policy.columns]
+    # get premium by cluster column
+    df_policy = df_policy.merge(df_col, how='left', left_index=True, right_index=True)
+    df_col = df_policy.groupby([col]).mean().fillna(0)
+    # get clusters
+    mod_cluster = KMeans(n_clusters=ncluster)
+    df_cluster = pd.Series(mod_cluster.fit_predict(df_col), index=df_col.index)
+    cat_ic_cluster = df_policy[col].map(df_cluster)
+    cat_ic_cluster = cat_ic_cluster.loc[idx_df].fillna(-1)
+
+    return(cat_ic_cluster)
+
+
 def get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
     '''
     In:
@@ -301,7 +331,11 @@ def get_bs_cat_claim_ins(df_policy, df_claim, idx_df):
         get whether the insured got into an accident by himself
     '''
     # get whether the insured person is involved in the accident
-    cat_claim_ins = df_claim.groupby(level=0).agg({"Driver's_Relationship_with_Insured": lambda x: x.iloc[0] == 1})
+    df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0]})
+    df_claim = df_claim.groupby(level=0).agg({'DOB_of_Driver': lambda x: x.iloc[0], "Driver's_Relationship_with_Insured": lambda x: x.iloc[0]})
+    df_claim = df_claim.merge(df_policy, how='left', left_index=True, right_index=True)
+    cat_claim_ins = (df_claim['DOB_of_Driver'] == 1) & (df_claim['ibirth'] == df_claim["Driver's_Relationship_with_Insured"])
+
     cat_claim_ins = cat_claim_ins.loc[idx_df].fillna(False)
 
     return(cat_claim_ins)
@@ -357,6 +391,53 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df):
     real_prem_ic_nmf.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
 
     return(real_prem_ic_nmf.loc[idx_df])
+
+
+def get_bs_real_ia_ic_nmf(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        DataFrame(real_ia_ic_nmf),
+    Description:
+        get issured amount by insurance coverage, with nonnegative matrix factorization
+    '''
+    # get scaled dominate insured amount by coverage
+    values_ic = list(df_policy['Insurance_Coverage'].unique())
+    list_ia = []
+    for ic in values_ic:
+        df_ic = df_policy[df_policy['Insurance_Coverage'] == ic]
+        ia1 = list(df_ic['Insured_Amount1'].unique())
+        ia2 = list(df_ic['Insured_Amount2'].unique())
+        ia1_pos = [i for i in ia1 if i > 0]
+        ia2_pos = [i for i in ia2 if i > 0]
+        # use insured amount in the order of 1, 2, 3
+        if (len(ia1_pos) > len(df_ic) / 2):
+            ia = 'Insured_Amount1'
+        elif (len(ia2_pos) > len(df_ic) / 2):
+            ia = 'Insured_Amount2'
+        else:
+            ia = 'Insured_Amount3'
+        # scale the insured amount in log term
+        prem_mean = df_ic['Premium'].mean()
+        ia_mean = (df_ic[ia] + 1).map(np.log).mean()
+        ia_ic = (df_ic[ia] + 1).map(np.log) / ia_mean * prem_mean
+        try:
+            list_ia.append(ia_ic.loc[idx_df].fillna(0))
+        except:
+            list_ia.append(pd.Series(0, index=idx_df))
+    ia_ic = pd.concat(list_ia, axis = 1)
+
+    # transform dataframe to matrix
+    mtx_df = ia_ic.fillna(0).as_matrix()
+    # non-negative matrix factorization
+    nmf_df = NMF(n_components=5, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+    # get insured amount
+    real_ia_ic_nmf = pd.DataFrame(nmf_df, index = ia_ic.index)
+    real_ia_ic_nmf.columns = ['real_ia_ic_nmf_' + str(i) for i in range(1, 6)]
+
+    return(real_ia_ic_nmf.loc[idx_df])
 
 
 def get_bs_real_prem_terminate(df_policy, idx_df):
@@ -536,37 +617,6 @@ def create_feature_selection_data(df_policy, df_claim):
 
     print('Getting column real_ia1_16G_indiv')
     X_fs = X_fs.assign(real_ia1_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount1'))
-#
-#    print('Getting column real_ia3_16G_indiv')
-#    X_fs = X_fs.assign(real_ia3_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount3'))
-#
-#    print('Getting column real_prem_16P_indiv')
-#    X_fs = X_fs.assign(real_prem_16P_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16P', 'Premium'))
-#
-#    print('Getting column real_ia3_16P_indiv')
-#    X_fs = X_fs.assign(real_ia1_16P_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16P', 'Insured_Amount3'))
-
-#    print('Getting column real_prem_29B_indiv')
-#    X_fs = X_fs.assign(real_prem_29B_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29B', 'Premium'))
-#
-#    print('Getting column real_ia2_29B_indiv')
-#    X_fs = X_fs.assign(real_ia1_29B_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29B', 'Insured_Amount2'))
-#
-#    print('Getting column real_ia3_29B_indiv')
-#    X_fs = X_fs.assign(real_ia3_29B_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29B', 'Insured_Amount3'))
-#
-#    print('Getting column real_prem_29K_indiv')
-#    X_fs = X_fs.assign(real_prem_29K_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29K', 'Premium'))
-#
-#    print('Getting column real_ia3_29K_indiv')
-#    X_fs = X_fs.assign(real_ia1_29K_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '29K', 'Insured_Amount3'))
-#
-#    print('Getting column real_prem_41N_indiv')
-#    X_fs = X_fs.assign(real_prem_41N_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '41N', 'Premium'))
-#
-#    print('Getting column real_ia1_41N_indiv')
-#    X_fs = X_fs.assign(real_ia3_41N_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '41N', 'Insured_Amount3'))
-#
 #    # vehicle
 #    print('Getting column real_prem_ic_vmy')
 #    X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_exst(df_policy, X_fs.index, 'Manafactured_Year_and_Month', get_bs_real_prem_ic))
@@ -577,13 +627,16 @@ def create_feature_selection_data(df_policy, df_claim):
     print('Getting column cat_vequip')
     X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
 
-#    # claim
-#    print('Getting column cat_claim_ins')
-#    X_fs = X_fs.assign(cat_claim_ins = get_bs_cat_claim_ins(df_policy, df_claim, X_fs.index))
-#
+#    print('Getting column cat_ic_cluster_vmm2')
+#    X_fs = X_fs.assign(cat_ic_cluster_vmm2 = get_bs_cat_ic_cluster(df_policy, X_fs.index, 'Vehicle_Make_and_Model2', 60))
+
+    # claim
+    print('Getting column cat_claim_ins')
+    X_fs = X_fs.assign(cat_claim_ins = get_bs_cat_claim_ins(df_policy, df_claim, X_fs.index))
+
     print('Getting column real_loss_ins')
     X_fs = X_fs.assign(real_loss_ins = get_bs_real_loss_ins(df_policy, df_claim, X_fs.index))
-#
+
     print('Getting column cat_claim_theft')
     X_fs = X_fs.assign(cat_claim_theft = get_bs_cat_claim_theft(df_claim, X_fs.index))
 #
@@ -594,6 +647,10 @@ def create_feature_selection_data(df_policy, df_claim):
     print('Getting column real_prem_ic_nmf')
     colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
     X_fs[colnames] = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+
+#    print('Getting column real_ia_ic_nmf')
+#    colnames = ['real_ia_ic_nmf_' + str(i) for i in range(1, 6)]
+#    X_fs[colnames] = get_bs_real_ia_ic_nmf(df_policy, X_fs.index)
 
     print('Getting column real_prem_terminate')
     X_fs = X_fs.assign(real_prem_terminate = get_bs_real_prem_terminate(df_policy, X_fs.index))
@@ -692,7 +749,8 @@ def get_bs_quick_mae(params):
     X_train.fillna(-999, inplace=True)
     X_valid.fillna(-999, inplace=True)
 
-    cols_train = [col for col in X_train.columns if not col.startswith('cat')]
+    cols_ex = []
+    cols_train = [col for col in X_train.columns if not col.startswith('cat') and col not in cols_ex]
 
     All_train = y_train.merge(X_train, how='left', left_index=True, right_index=True)
     All_valid = y_valid.merge(X_valid, how='left', left_index=True, right_index=True)
@@ -833,25 +891,25 @@ if __name__ == '__main__':
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
-        'num_iterations': 1000,
+        'num_iterations': 5000,
         'max_depth':-1,
         'objective': 'regression_l1',
         'metric': 'mae',
-        'lamba_l1':0.25,
+        'lamba_l1':0.1,
         'num_leaves': 40,
-        'learning_rate': 0.05,
+        'learning_rate': 0.01,
         'colsample_bytree': 0.8,
         'subsample': 0.8,
         'subsample_freq': 5,
-        'min_data_in_leaf': 20,
-        'min_gain_to_split': 0,
+        'min_data_in_leaf': 15,
+        'min_gain_to_split': 0.01,
         'seed': 0,
     }
     lgb_train_params = {
-        'early_stopping_rounds': 3,
+        'early_stopping_rounds': 10,
         'learning_rates': None, # lambda iter: 0.1*(0.99**iter),
         'verbose_eval': True,
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
     lgb_output = get_bs_quick_mae(lgb_params)
-    lgb_output = get_bs_quick_submission(lgb_params)
+#    lgb_output = get_bs_quick_submission(lgb_params)
