@@ -13,13 +13,13 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from trainer import Trainer
-from model import MLPRegressor
+from model import ConvNet1D
 from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 
 def get_submission(
-    X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
+    X_train, X_valid, y_train, y_valid, X_test, model=ConvNet1D, max_epoch=200, base_lr=0.1, 
     momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
-    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt'
+    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='cnn.pt'
 ):    
     train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
         X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
@@ -158,7 +158,7 @@ def write_precessed_data(df, suffix=None):
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=100, base_lr=0.0005, momentum=0.9, weight_decay=0, 
+    epochs=100, base_lr=0.0001, momentum=0.9, weight_decay=0, 
     batch_size=128, optimizer='sgd', dropout=False, seed=None, 
     get_train=False, get_test=False, save=False, load=False
 ):
@@ -185,24 +185,12 @@ def demo(
     X_test = X_test.apply(lambda x:x.fillna(-1))
 
     # begin training
-    num_neuron = [160,60,20,5]
-    # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
-    # num_neuron = [160,30,8]
-
+    # n_input = X_train.shape[1]
     train_params = {
-        'num_input':len(feature_list), 'dropout':dropout, 
-        'num_neuron':num_neuron
+        'num_cv_filter': [1,40,80], 
+        'num_fc_neuron': [20,5,1], 
+        'dropout': dropout
     }
-    # optim_hyper = {
-    #     'lr':base_lr, 
-    #     'momentum':momentum,
-    #     'weight_decay':weight_decay, 
-    #     'lr_schedule':{
-    #         epochs//2:base_lr, 
-    #         epochs//4*3:base_lr/10, 
-    #         epochs: base_lr/100
-    #     }
-    # }
 
     optim_hyper = {
         'lr':base_lr, 
@@ -218,7 +206,7 @@ def demo(
     
     model_output = get_submission(
         X_train, X_valid, y_train, y_valid, X_test, 
-        model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, 
+        model=ConvNet1D, max_epoch=epochs, base_lr=base_lr, 
         momentum=momentum, weight_decay=weight_decay,
         batch_size = batch_size, train_params=train_params, 
         test_along=True, optimizer=optimizer, hyper=optim_hyper,

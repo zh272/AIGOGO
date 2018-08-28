@@ -85,7 +85,8 @@ target/
 .DS_Store
 
 # Zhiyong
-src/models/playground/
+src/models/saved_model
+src/models/play*
 src/models/catboost_info/
 src/models/create_features.py
 src/models/figures/
