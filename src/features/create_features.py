@@ -262,14 +262,14 @@ def get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), 
     else:
         # merge col_cat with label
         y_train = y_train.merge(X_train[[col_cat, 'real_prem_plc']], how='left', left_index=True, right_index=True)
-        y_train = y_train.assign(real_mc_mean_diff = y_train['Next_Premium'] / y_train['real_prem_plc'])
+        y_train = y_train.assign(real_mc_mean_diff = y_train['Next_Premium'] - y_train['real_prem_plc'])
 
         # get mean of each category and smoothed by global mean
         smooth_mean = lambda x: (x.sum() + prior * y_train['real_mc_mean_diff'].mean()) / (len(x) + prior)
         y_train = y_train.groupby([col_cat]).agg({'real_mc_mean_diff': smooth_mean})
         real_mc_mean_diff = X_valid[col_cat].map(y_train['real_mc_mean_diff'])
         # fill na with global mean
-        real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff'])) * X_valid['real_prem_plc']
+        real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff'])) + X_valid['real_prem_plc']
 
     return(real_mc_mean_diff)
 
@@ -334,7 +334,7 @@ def get_bs_cat_claim_ins(df_policy, df_claim, idx_df):
     df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0]})
     df_claim = df_claim.groupby(level=0).agg({'DOB_of_Driver': lambda x: x.iloc[0], "Driver's_Relationship_with_Insured": lambda x: x.iloc[0]})
     df_claim = df_claim.merge(df_policy, how='left', left_index=True, right_index=True)
-    cat_claim_ins = (df_claim['DOB_of_Driver'] == 1) & (df_claim['ibirth'] == df_claim["Driver's_Relationship_with_Insured"])
+    cat_claim_ins = (df_claim["Driver's_Relationship_with_Insured"] == 1) & (df_claim['ibirth'] == df_claim['DOB_of_Driver'])
 
     cat_claim_ins = cat_claim_ins.loc[idx_df].fillna(False)
 
@@ -361,7 +361,7 @@ def get_bs_real_loss_ins(df_policy, df_claim, idx_df):
     df_map = df_map.groupby(["Insured's_ID"]).agg({'Paid_Loss_Amount': np.sum})
     # get paid loss by insured's id
     real_loss_ins = df_policy["Insured's_ID"].map(df_map['Paid_Loss_Amount'])
-    real_loss_ins = real_loss_ins.loc[idx_df].fillna(0)
+    real_loss_ins = real_loss_ins.loc[idx_df].fillna(-1)
 
     return(real_loss_ins)
 
@@ -390,7 +390,7 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df):
     real_prem_ic_nmf = pd.DataFrame(nmf_df, index = df_policy.index).fillna(0)
     real_prem_ic_nmf.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
 
-    return(real_prem_ic_nmf.loc[idx_df])
+    return(real_prem_ic_nmf.loc[idx_df].fillna(0))
 
 
 def get_bs_real_ia_ic_nmf(df_policy, idx_df):
@@ -437,7 +437,7 @@ def get_bs_real_ia_ic_nmf(df_policy, idx_df):
     real_ia_ic_nmf = pd.DataFrame(nmf_df, index = ia_ic.index)
     real_ia_ic_nmf.columns = ['real_ia_ic_nmf_' + str(i) for i in range(1, 6)]
 
-    return(real_ia_ic_nmf.loc[idx_df])
+    return(real_ia_ic_nmf.loc[idx_df].fillna(0))
 
 
 def get_bs_real_prem_terminate(df_policy, idx_df):
@@ -473,7 +473,7 @@ def get_bs_cat_ins_self(df_policy, idx_df):
         get whether insured's birth equals to buyer's birth
     '''
     df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0], 'dbirth': lambda x: x.iloc[0]})
-    cat_ins_self = df_policy['ibirth'] == df_policy['ibirth']
+    cat_ins_self = df_policy['ibirth'] == df_policy['dbirth']
 
     return(cat_ins_self.loc[idx_df])
 
@@ -492,7 +492,7 @@ def get_bs_cat_claim_theft(df_claim, idx_df):
     ic_theft = ['05N', '09@', '09I', '10A', '68E', '68N']
     df_claim = df_claim.assign(cat_claim_theft = df_claim['Coverage'].map(lambda x: 1 if x in ic_theft else 0))
     df_claim = df_claim.groupby(level=0).agg({'cat_claim_theft': np.max})
-    cat_claim_theft = df_claim.loc[idx_df, 'cat_claim_theft'].fillna(0)
+    cat_claim_theft = df_claim.loc[idx_df, 'cat_claim_theft'].fillna(-1)
 
     return(cat_claim_theft)
 
@@ -530,7 +530,7 @@ def get_bs_real_claim_fault(df_claim, idx_df):
     '''
     df_claim = df_claim.groupby(['Policy_Number', 'Claim_Number']).agg({'At_Fault?': lambda x: x.iloc[0]})
     df_claim = df_claim.groupby(level=0).agg({'At_Fault?': np.nanmax})
-    cat_claim_theft = df_claim.loc[idx_df, 'At_Fault?'].fillna(0)
+    cat_claim_theft = df_claim.loc[idx_df, 'At_Fault?'].fillna(-1)
 
     return(cat_claim_theft)
 
@@ -698,6 +698,7 @@ def create_feature_selection_data(df_policy, df_claim):
 
     # feature template expansion
     cols_cat = [col for col in X_fs.columns if col.startswith('cat') and col not in X_train.columns]
+    cols_cat_all = [col for col in X_fs.columns if col.startswith('cat')]
 
     # frequency of category values
     for col_cat in cols_cat:
@@ -727,13 +728,13 @@ def create_feature_selection_data(df_policy, df_claim):
         X_train[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
         X_train_all[col_mean] = get_bs_real_mc_mean(col_cat, X_train_all, y_train_all, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
-#    # add mean encoding on mean of diff btw next_premium and premium
-#    for col_cat in cols_cat:
-#        col_mean = col_cat.replace('cat_', 'real_mc_mean_diff_')
-#        print('Getting column ' + col_mean)
-#        X_test[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
-#        X_valid[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
-#        X_train[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+    # add mean encoding on mean of diff btw next_premium and premium
+    for col_cat in cols_cat_all:
+        col_mean = col_cat.replace('cat_', 'real_mc_mean_diff_')
+        print('Getting column ' + col_mean)
+        X_test[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
+        X_valid[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
+        X_train[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     # add mean encoding on probability of next_premium being 0
     for col_cat in cols_cat:
