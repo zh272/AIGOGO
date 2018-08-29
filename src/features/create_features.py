@@ -98,7 +98,7 @@ def get_bs_real_prem_ic(df_policy, idx_df, col):
     real_prem_ic = df_policy[cols_inter].merge(df_map, how='left', left_on=cols_inter, right_index=True)
     real_prem_ic = real_prem_ic.groupby(level=0).agg({'Premium': np.sum})
 
-    return(real_prem_ic.loc[idx_df, 'Premium'])
+    return(real_prem_ic.loc[idx_df, 'Premium'].fillna(0))
 
 
 def get_bs_real_ic_indiv(df_policy, idx_df, ic, col):
@@ -387,7 +387,7 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df):
     # non-negative matrix factorization
     nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
     #
-    real_prem_ic_nmf = pd.DataFrame(nmf_df, index = df_policy.index)
+    real_prem_ic_nmf = pd.DataFrame(nmf_df, index = df_policy.index).fillna(0)
     real_prem_ic_nmf.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
 
     return(real_prem_ic_nmf.loc[idx_df])
@@ -563,13 +563,36 @@ def get_bs_cat_ic_combo(df_policy, idx_df):
     Out:
         Series(cat_ic_combo),
     Description:
-        get inssured coverage combination
+        get insured coverage combination
     '''
     df_policy = df_policy.sort_values(by=['Premium'], ascending=False)
     df_policy = df_policy.groupby(level=0).agg({'Insurance_Coverage': lambda x: '|'.join(x[:3].sort_values())})
     cat_ic_combo = df_policy.loc[idx_df, 'Insurance_Coverage']
 
     return(cat_ic_combo)
+
+
+def get_bs_real_prem_var_ic(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(real_prem_var_ic),
+    Description:
+        get premium variance by insured coverage
+    '''
+    # get map of premium to category interaction between ic and col
+    df_map = df_policy.groupby(['Insurance_Coverage']).agg({'Premium': np.var})
+    df_map.columns = ['var_ic']
+    # map category interaction premium variance to policy number
+    real_prem_var_ic = df_policy[['Insurance_Coverage', 'Premium']].merge(df_map, how='left', left_on=['Insurance_Coverage'], right_index=True)
+    # get weighted average of variance on weight premium
+    real_prem_var_ic['var_ic'] = real_prem_var_ic['var_ic'] * real_prem_var_ic['Premium']
+    real_prem_var_ic = real_prem_var_ic.groupby(level=0).agg({'Premium': np.sum, 'var_ic': np.sum})
+    real_prem_var_ic = real_prem_var_ic['var_ic'] / real_prem_var_ic['Premium']
+
+    return(real_prem_var_ic.loc[idx_df])
 
 
 ######## get pre feature selection data set ########
@@ -666,6 +689,9 @@ def create_feature_selection_data(df_policy, df_claim):
 
     print('Getting column real_prem_ic')
     X_fs = X_fs.assign(real_prem_ic = get_bs_real_prem_exst(df_policy, X_fs.index, 'Main_Insurance_Coverage_Group', get_bs_real_prem_ic))
+
+    print('Getting column real_prem_var_ic')
+    X_fs = X_fs.assign(real_prem_var_ic = get_bs_real_prem_var_ic(df_policy, X_fs.index))
 
     print('Getting column cat_ic_combo')
     X_fs = X_fs.assign(cat_ic_combo = get_bs_cat_ic_combo(df_policy, X_fs.index))
@@ -906,7 +932,7 @@ if __name__ == '__main__':
         'seed': 0,
     }
     lgb_train_params = {
-        'early_stopping_rounds': 10,
+        'early_stopping_rounds': 3,
         'learning_rates': None, # lambda iter: 0.1*(0.99**iter),
         'verbose_eval': True,
     }
