@@ -154,7 +154,7 @@ class AverageMeter(object):
 
 
 
-def test_epoch(model, loader, print_freq=1, is_test=True, loss_fn=F.cross_entropy):
+def test_epoch(model, loader, print_freq=1, is_test=True, loss_fn=F.cross_entropy, eval_type='loss'):
     losses = AverageMeter()
     error = AverageMeter()
 
@@ -176,16 +176,16 @@ def test_epoch(model, loader, print_freq=1, is_test=True, loss_fn=F.cross_entrop
         output = model(input_var)
 
         # compute loss
-        # loss = loss_fn(output.view_as(target_var), target_var)
-        loss = loss_fn(output, target_var)
-
         batch_size = target.size(0)
 
-        # compute prediction error
-        # _, pred = output.data.cpu().topk(1, dim=1)
-        # error.update(torch.ne(pred.squeeze().long(), target.cpu().long()).float().sum() / batch_size, batch_size)
+        if eval_type=='loss':
+            loss = loss_fn(output, target_var)
+            losses.update(loss.item(), batch_size)
+        else:
+            # compute prediction error
+            _, pred = output.data.cpu().topk(1, dim=1)
+            error.update(torch.ne(pred.squeeze().long(), target.cpu().long()).float().sum() / batch_size, batch_size)
         
-        losses.update(loss.item(), batch_size)
 
     # Return summary statistics
     return losses.avg, error.avg
@@ -193,13 +193,14 @@ def test_epoch(model, loader, print_freq=1, is_test=True, loss_fn=F.cross_entrop
 def save_obj(obj, file_name, file_dir='./saved_models'):
     if not os.path.isdir(file_dir): 
         os.makedirs(file_dir)
-    with open(file_dir+ file_name + '.pkl', 'w+b') as f:
+    
+    with open(os.path.join(file_dir,'{}.pkl'.format(file_name)), 'w+b') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
 def load_obj(file_name, file_dir='./saved_models'):
     try:
-        with open(file_dir + file_name + '.pkl', 'r+b') as f:
+        with open(os.path.join(file_dir,'{}.pkl'.format(file_name)), 'r+b') as f:
             try:
                 obj = pickle.load(f)
             except EOFError:

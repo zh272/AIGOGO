@@ -4,55 +4,56 @@ import fire
 import random
 import numpy as np
 import pandas as pd
-import xgboost as xgb
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import confusion_matrix, auc, roc_curve
+from xgboost import XGBClassifier
 
 ## to detach from monitor
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from helpers import test_epoch, ready, save_obj, load_obj
+from helpers import save_obj, load_obj
 
 def get_submission(
-    X_train, X_valid, y_train, y_valid, X_test, train_params={},
-    save=False, load=False, mdl_name='xgb'
-):  
-    
-    PATH = './saved_model'
-    if not os.path.isdir(PATH): os.makedirs(PATH)
+    X_train, X_valid, y_train, y_valid, X_test, 
+    train_params={}, eval_metric='auc', 
+    save=False, load=False, mdl_name='xgb_class'
+):
     
     start_time = time.time()
     end_time = start_time
     if load:
-        regressor = load_obj(mdl_name)
+        classifier = load_obj(mdl_name)
     else:
-        regressor = xgb.XGBRegressor(**train_params)
-        regressor.fit(X_train.values, y_train.values, eval_metric='mae')
+        classifier = XGBClassifier(**train_params)
+        classifier.fit(X_train.values, y_train.values.ravel(), eval_metric=eval_metric)
         end_time = time.time()
-
+        
         if save:
-            save_obj(regressor, mdl_name)
+            save_obj(classifier, mdl_name)
+            print('model saved')
 
-    train_pred = regressor.predict(X_train.values)
-    valid_pred = regressor.predict(X_valid.values)
-    test_pred = regressor.predict(X_test.values)
-
-
+    train_pred = classifier.predict(X_train.values)
+    valid_pred = classifier.predict(X_valid.values)
+    test_pred = classifier.predict(X_test.values)
             
-    train_loss = mean_absolute_error(y_train.values, train_pred)
-    valid_loss = mean_absolute_error(y_valid.values, valid_pred)
+    fpr, tpr, _ = roc_curve(y_train.values, train_pred, pos_label=1)
+    train_loss = auc(fpr, tpr)
 
-    feature_importances = regressor.feature_importances_
+    fpr, tpr, _ = roc_curve(y_valid.values, valid_pred, pos_label=1)
+    valid_loss = auc(fpr, tpr)
+
+    
+    feature_importances = classifier.feature_importances_
     
     feature_names = X_train.columns.values
     sorted_idx = np.argsort(feature_importances*-1) # descending order
     
-    summary = '====== XGBoost Training Summary ======\n'
+    summary = '====== XGBClassifier Training Summary ======\n'
     for idx in sorted_idx:
         summary += '[{:<25s}] | {:<10.4f}\n'.format(feature_names[idx], feature_importances[idx])
     summary += '>>> training_time={:10.2f}min\n'.format((end_time-start_time)/60)
-    summary += '>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
+    summary += '>>> Final AUC: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
 
     # Generate submission
     submission = pd.DataFrame(data=test_pred,index=X_test.index, columns=['Next_Premium'])
@@ -62,7 +63,7 @@ def get_submission(
     submission_valid = pd.DataFrame(data=valid_pred,index=X_valid.index, columns=['Next_Premium'])
 
     return {
-        'model': regressor, 'submission': submission, 
+        'model': classifier, 'submission': submission, 
         'submission_train':submission_train, 'submission_valid':submission_valid,
         'valid_loss':valid_loss, 'summary':summary
     }
@@ -104,16 +105,16 @@ def write_precessed_data(df, suffix=None):
     write_sample_path = os.path.join(precessed_data_path, file_name)
     df.to_csv(write_sample_path)
 
-    return(None)
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=300, base_lr=0.05, max_depth=4, subsample=0.8, objective='reg:linear',
-    colsample_bytree=0.8, colsample_bylevel=0.8, gamma=0.0, reg_alpha=3.0, reg_lambda=0.0,
-    max_delta_step=0, get_train=False, get_test=True, save=False, load=False, seed=None
+    epochs=300, base_lr=0.1, max_depth=5, subsample=0.8, 
+    objective='binary:logistic', eval_metric='auc', tree_method='gpu_exact',
+    colsample_bytree=0.8, colsample_bylevel=0.8, gamma=0.0, 
+    reg_alpha=3.0, reg_lambda=0.0, max_delta_step=0, 
+    get_train=False, get_test=False, save=False, load=False, seed=None
 ):
     if seed is not None:
-        # known best seed=10
         rand_reset(seed)
     X_train = read_interim_data('X_train_prefs.csv')
     y_train = read_interim_data('y_train_prefs.csv')
@@ -121,8 +122,20 @@ def demo(
     y_valid = read_interim_data('y_valid_prefs.csv')
     X_test = read_interim_data('X_test_prefs.csv')
 
+    y_train.loc[y_train['Next_Premium'] != 0, 'Next_Premium'] = 1
+    y_valid.loc[y_valid['Next_Premium'] != 0, 'Next_Premium'] = 1
+
+
     feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
-    print('Number of features: {}'.format(len(feature_list)))
+    num_features = len(feature_list)
+    
+    print('Number of features: {}'.format(num_features))
+
+    num_1 = y_train['Next_Premium'].sum()
+    num_0 = len(y_train) - num_1
+    print('Class 0: # {}'.format(num_0))
+    print('Class 1: # {}'.format(num_1))
+
 
     # Filter features
     X_train = X_train[feature_list]
@@ -131,37 +144,52 @@ def demo(
 
     ### Fill Missing Values
     X_train = X_train.apply(lambda x:x.fillna(-1))
+    X_valid = X_valid.apply(lambda x:x.fillna(-1))
     X_test = X_test.apply(lambda x:x.fillna(-1))
 
     # begin training
+    # scale = num_0/num_1
+    # scale = num_1/num_0
+    scale = 1
     train_params = {
-        'n_estimators':epochs, 'learning_rate':base_lr, 'objective':objective,
-        'max_delta_step':max_delta_step, 'max_depth':max_depth, 'subsample':subsample, 
+        'n_estimators': epochs, 'learning_rate': base_lr, 
+        'objective':objective, 'max_delta_step':max_delta_step, 
+        'max_depth':max_depth, 'subsample':subsample, 
         'colsample_bytree':colsample_bytree, 'colsample_bylevel':colsample_bylevel, 
-        'gamma':gamma, 'reg_alpha':reg_alpha, 'reg_lambda':reg_lambda
+        'gamma':gamma, 'reg_alpha':reg_alpha, 'reg_lambda':reg_lambda, 
+        'scale_pos_weight':scale, 'tree_method':tree_method
     }
     
     model_output = get_submission(
-        X_train, X_valid, y_train, y_valid, X_test, 
-        train_params=train_params, save=save, load=load
+        X_train, X_valid, y_train, y_valid, X_test,
+        eval_metric=eval_metric, train_params=train_params, 
+        save=save, load=load
     )
 
     summary = model_output['summary']
     summary += '>>> random seed: {}\n'.format(seed)
+    
+    # y_train_pred = model_output['submission_train'].data
+    y_valid_pred = model_output['submission_valid'].values
+    
+    summary += '{}\n'.format(confusion_matrix(y_valid, y_valid_pred))
 
     print(summary)
-    with open('summary_xgb{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
-        f.write(summary)
 
     # generate submission
     if get_test:
-        write_precessed_data(model_output['submission'], suffix='xgbtest{}'.format(int(model_output['valid_loss'])))
+        write_precessed_data(model_output['submission'], suffix='mlptest{}'.format(int(model_output['valid_loss'])))
+        with open('summary_mlp{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
+            f.write(summary)
+
     if get_train:
-        write_precessed_data(model_output['submission_train'], suffix='xgbtrain')
-        write_precessed_data(model_output['submission_valid'], suffix='xgbvalid')
+        write_precessed_data(model_output['submission_train'], suffix='mlptrain')
+        write_precessed_data(model_output['submission_valid'], suffix='mlpvalid')
 
 def rand_reset(seed):
     random.seed(seed)
+    torch.manual_seed(random.randint(0,1000))
+    torch.cuda.manual_seed_all(random.randint(0,1000))
     np.random.seed(random.randint(0,1000))
 
 if __name__ == '__main__':

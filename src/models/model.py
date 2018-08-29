@@ -35,6 +35,37 @@ class MLPRegressor(nn.Module):
         x = x.view(x.size(0), -1)
         return self.regressor(x)
 
+
+class MLPClassifier(nn.Module):
+    def __init__(self, num_input, num_neuron, num_class, dropout=False):
+        super().__init__()
+        
+        self.classifier = nn.Sequential(OrderedDict([
+            ('fc0', nn.Linear(num_input, num_neuron[0])),
+            ('fc0_relu', nn.ReLU(inplace=True))
+        ]))
+        if dropout:
+            self.classifier.add_module('fc0_dropout', nn.Dropout())
+        for idx in range(1,len(num_neuron)):
+            self.classifier.add_module('fc{}'.format(idx), nn.Linear(num_neuron[idx-1], num_neuron[idx]))
+            self.classifier.add_module('fc{}_relu'.format(idx), nn.ReLU(inplace=True))
+            # self.classifier.add_module('fc{}_dropout'.format(idx), nn.Dropout())
+        self.classifier.add_module('fc{}'.format(len(num_neuron)), nn.Linear(num_neuron[-1],num_class))
+
+        # Initialization
+        # for name, param in self.named_parameters():
+        #     if 'weight' in name:
+        #         n = param.numel()
+        #         param.data.normal_().mul_(math.sqrt(2. / n))
+        #     elif 'bias' in name:
+        #         param.data.fill_(0)
+        
+    
+    def forward(self, x):
+        x = x.view(x.size(0), -1)
+        return self.classifier(x)
+
+
 class ConvNet1D(nn.Module):
     def __init__(self, num_cv_filter=[1,20,40], num_fc_neuron = [20,10], dropout=True):
         super().__init__()

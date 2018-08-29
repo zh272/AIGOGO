@@ -5,7 +5,6 @@ import torch
 import random
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error
 import torch.nn.functional as F
 
 ## to detach from monitor
@@ -19,8 +18,8 @@ from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 
 def get_submission(
     X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
-    momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, zero_predict=False,
-    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt',
+    momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
+    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt'
 ):    
     train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
         X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
@@ -36,7 +35,6 @@ def get_submission(
             torch.load(os.path.join(PATH, mdl_name)), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
             valid_set=valid_set, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
         )
-
     else:
         trainer = Trainer(
             model(**train_params), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
@@ -78,41 +76,11 @@ def get_submission(
         if save:
             torch.save(trainer.model, os.path.join(PATH, mdl_name))
 
-    # train_loss = trainer.loss_epoch(load='train')
-    # valid_loss = trainer.loss_epoch(load='valid')
+            
+    train_loss = trainer.loss_epoch(load='train')
+    valid_loss = trainer.loss_epoch(load='valid')
+
     
-    train_pred = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
-    valid_pred = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
-    test_pred = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
-
-    train_loss = mean_absolute_error(y_train.values, train_pred)
-    valid_loss = mean_absolute_error(y_valid.values, valid_pred)
-    
-
-    if zero_predict:
-        
-        # zero_predictor = load_obj('xgb_class')
-        # valid_pred_zeros = zero_predictor.predict(X_valid.values)
-
-        zero_predictor = torch.load(os.path.join(PATH, 'mlp_class.pt'))
-        zero_predictor.eval() # evaluation mode
-        inp = torch.FloatTensor(X_valid.values)
-        with torch.no_grad():
-            if torch.cuda.is_available():
-                inp = torch.autograd.Variable(inp.cuda())
-            else:
-                inp = torch.autograd.Variable(inp)
-        valid_pred_zeros = zero_predictor(inp).cpu().data.numpy().argsort(axis=1)[:,-1]
-
-        # train_pred_zeros = zero_predictor.predict(X_train.values)
-        # train_output[train_pred_zeros == 0] = 0
-        print('>>> original valid loss: {}'.format(valid_loss))
-        valid_pred[valid_pred_zeros==0,:] = 0
-
-        new_valid_loss = mean_absolute_error(y_valid.values, valid_pred)
-        print('>>> New valid loss: {}'.format(new_valid_loss))
-    
-
     state_dict = trainer.model.state_dict()
     if torch.cuda.device_count() > 1:
         input_weights = state_dict['module.regressor.fc0.weight'].cpu().numpy()
@@ -135,12 +103,14 @@ def get_submission(
     summary += '>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
 
     # Generate submission
-    submission = pd.DataFrame(data=test_pred,index=X_test.index, columns=['Next_Premium'])
+    test_output = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
+    submission = pd.DataFrame(data=test_output,index=X_test.index, columns=['Next_Premium'])
     
-    submission_train = pd.DataFrame(data=train_pred,index=X_train.index, columns=['Next_Premium'])
+    train_output = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
+    submission_train = pd.DataFrame(data=train_output,index=X_train.index, columns=['Next_Premium'])
     
-    submission_valid = pd.DataFrame(data=valid_pred,index=X_valid.index, columns=['Next_Premium'])
-
+    valid_output = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
+    submission_valid = pd.DataFrame(data=valid_output,index=X_valid.index, columns=['Next_Premium'])
 
     return {
         'model': trainer, 'submission': submission, 
@@ -188,19 +158,29 @@ def write_precessed_data(df, suffix=None):
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=100, base_lr=0.0005, momentum=0.9, weight_decay=0, 
-    batch_size=128, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
-    get_train=False, get_test=False, save=False, load=False
+    epochs=60, base_lr=0.0005, momentum=0.9, weight_decay=0, 
+    batch_size=128, optimizer='sgd', dropout=False, seed=None, 
+    get_train=False, get_test=False, save=False, load=False, reduction=10
 ):
-    rand_reset(seed)
-    X_train = read_interim_data('X_train_prefs.csv')
+    if seed is not None:
+        rand_reset(seed)
+    X = read_interim_data('premium_60.csv')
+    X_test = read_interim_data('X_test_bs.csv')
+
     y_train = read_interim_data('y_train_prefs.csv')
-    X_valid = read_interim_data('X_valid_prefs.csv')
     y_valid = read_interim_data('y_valid_prefs.csv')
-    X_test = read_interim_data('X_test_prefs.csv')
+
+    X_train = X.loc[y_train.index]
+    X_valid = X.loc[y_valid.index]
+    X_test = X.loc[X_test.index]
+
+    print('X_train size: {}'.format(len(X_train)))
+    print('y_train size: {}'.format(len(y_train)))
+    print('X_valid size: {}'.format(len(X_valid)))
+    print('y_valid size: {}'.format(len(y_valid)))
+    print('test size: {}'.format(len(X_test)))
 
     feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
-    # feature_list = [feature for feature in feature_list if 'vequip' not in feature]
     num_features = len(feature_list)
     print('Number of features: {}'.format(num_features))
 
@@ -208,15 +188,15 @@ def demo(
     X_train = X_train[feature_list]
     X_valid = X_valid[feature_list]
     X_test = X_test[feature_list]
+    # print(X_valid[0:100])
 
     ### Fill Missing Values
-    X_train = X_train.apply(lambda x:x.fillna(-1))
-    X_valid = X_valid.apply(lambda x:x.fillna(-1))
-    X_test = X_test.apply(lambda x:x.fillna(-1))
+    X_train = X_train.apply(lambda x:x.fillna(0))
+    X_valid = X_valid.apply(lambda x:x.fillna(0))
+    X_test = X_test.apply(lambda x:x.fillna(0))
 
     # begin training
-    num_neuron = [110,55,10]
-    print('Network Architecture: {}'.format(num_neuron))
+    num_neuron = [110,50,reduction]
     # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
     # num_neuron = [160,30,8]
 
@@ -229,24 +209,12 @@ def demo(
         'momentum':momentum,
         'weight_decay':weight_decay, 
         'lr_schedule':{
-            25:base_lr, 
-            50:base_lr/5, 
-            75: base_lr/50,
-            100:base_lr/500
+            epochs//4:base_lr,
+            epochs//2:base_lr/10, 
+            epochs//4*3:base_lr/100, 
+            epochs: base_lr/1000
         }
     }
-
-    # optim_hyper = {
-    #     'lr':base_lr, 
-    #     'momentum':momentum,
-    #     'weight_decay':weight_decay, 
-    #     'lr_schedule':{
-    #         epochs//4:base_lr,
-    #         epochs//2:base_lr/5, 
-    #         epochs//4*3:base_lr/50, 
-    #         epochs: base_lr/200
-    #     }
-    # }
     
     model_output = get_submission(
         X_train, X_valid, y_train, y_valid, X_test, 
@@ -254,7 +222,7 @@ def demo(
         momentum=momentum, weight_decay=weight_decay,
         batch_size = batch_size, train_params=train_params, 
         test_along=True, optimizer=optimizer, hyper=optim_hyper,
-        save=save, load=load, mdl_name='mlp.pt'
+        save=save, load=load, mdl_name='prem60_{}.pt'.format(reduction)
     )
 
     summary = model_output['summary']
@@ -267,7 +235,6 @@ def demo(
         write_precessed_data(model_output['submission'], suffix='mlptest{}'.format(int(model_output['valid_loss'])))
         with open('summary_mlp{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
             f.write(summary)
-
     if get_train:
         write_precessed_data(model_output['submission_train'], suffix='mlptrain')
         write_precessed_data(model_output['submission_valid'], suffix='mlpvalid')

@@ -21,7 +21,8 @@ class Trainer:
         self.optimizer, self.scheduler, self.hyper = get_optimizer(
             model=model, hyper=hyper, epochs=epochs, optimizer=optimizer
         )
-        self.evaluator = AverageMeter()
+        self.evaluator_loss = AverageMeter()
+        self.evaluator_err = AverageMeter()
         self.num_params = 0
         self.layer_idx = [0]
         for p in self.model.parameters():
@@ -134,7 +135,7 @@ class Trainer:
         # pred = output.data.max(1, keepdim=True)[1]
         return output
 
-    def eval(self, load='valid', batch_id=None):
+    def eval(self, load='valid', batch_id=None, eval_type='loss'):
         """Evaluate model on the provided validation or test set."""
         self.model.eval() # evaluation mode
         if batch_id is None:
@@ -162,14 +163,18 @@ class Trainer:
         
         output = self.predict(inp)
 
-        # pred = output.data.max(1, keepdim=True)[1]
-        # correct = pred.eq(target.data.view_as(pred)).cpu().sum()
-        # accuracy = 100. * correct.item() / len(target)
-        loss = self.loss_fn(output, target).item()
+        
+        if eval_type=='loss':
+            result = self.loss_fn(output, target).item()
+            self.evaluator_loss.update(result, len(target))
+        else:
+            pred = output.data.max(1, keepdim=True)[1]
+            incorrect = pred.ne(target.data.view_as(pred)).cpu().sum()
+            result = incorrect.item() / len(target)
 
-        self.evaluator.update(loss, len(target))
+            self.evaluator_err.update(result, len(target))
         # return self.evaluator.avg
-        return loss
+        return result
     
     def loss(self, load='valid', batch_id=None):
         self.model.eval()
@@ -200,10 +205,13 @@ class Trainer:
         loss = self.loss_fn(output, target)
         return loss.item()
 
-    def loss_epoch(self, load='valid'):
+    def loss_epoch(self, load='valid', eval_type='loss'):
         loader = self.valid_loader if load=='valid' else self.train_loader
-        loss_avg, _ = test_epoch(self.model, loader, loss_fn=self.loss_fn)
-        return loss_avg
+        loss_avg, error_avg = test_epoch(self.model, loader, loss_fn=self.loss_fn, eval_type=eval_type)
+        if eval_type=='loss':
+            return loss_avg
+        else:
+            return error_avg
 
     def reset_evaluator(self):
         self.evaluator.reset()
