@@ -96,15 +96,37 @@ def get_optimizer(model, hyper={}, epochs=None, optimizer='sgd'):
         if hyper and 'lr_schedule' in hyper:
             scheduler = CustomLR(optimizer, hyper['lr_schedule'])
         elif epochs:
-            scheduler = optim.lr_scheduler.MultiStepLR(
-                optimizer,  milestones=[int(0.5 * epochs), int(0.75 * epochs)], gamma=0.1
-            )
-            hyper['lr_schedule'] = {0:lr, 0.5*epochs:lr*0.1, 0.75*epochs: lr*0.01}
+            if 'scheduler' in hyper:
+                if hyper['scheduler'] == 'lambdalr':
+                    scheduler = optim.lr_scheduler.LambdaLR(
+                        optimizer, lr_lambda=lambda epoch: 1/(1+epoch)
+                    )
+                # elif hyper['scheduler'] == 'plateau':
+                #     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                #         optimizer, mode='min', verbose=True, patience=10, threshold=0.0001, min_lr=0.0000001
+                #     )
+            else:
+                scheduler = optim.lr_scheduler.MultiStepLR(
+                    optimizer,  milestones=[int(0.5 * epochs), int(0.75 * epochs)], gamma=0.1
+                )
+                hyper['lr_schedule'] = {0:lr, 0.5*epochs:lr*0.1, 0.75*epochs: lr*0.01}
+            
+            
         else:
             scheduler = None
+    elif optimizer=='adagrad':
+        optimizer = optim.Adagrad(model.parameters(), lr=lr,weight_decay=weight_decay)
+        scheduler = None
+    elif optimizer=='adadelta':
+        optimizer = optim.Adadelta(model.parameters(), lr=lr,weight_decay=weight_decay)
+        scheduler = None
+    elif optimizer=='rmsprop':
+        optimizer = optim.RMSprop(model.parameters(), lr=lr,momentum=momentum, weight_decay=weight_decay)
+        scheduler = None
     else:
         optimizer = optim.Adam(model.parameters(), lr=lr,weight_decay=weight_decay)
         scheduler = None
+
 
     # if hyper and 'lr_schedule' in hyper:
     #     scheduler = CustomLR(optimizer, hyper['lr_schedule'])

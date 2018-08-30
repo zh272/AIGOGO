@@ -89,8 +89,16 @@ def get_submission(
     valid_loss = mean_absolute_error(y_valid.values, valid_pred)
     
 
+
+    # print('>>> original valid loss: {}'.format(valid_loss))
+    # valid_pred[valid_pred<=50] = 0
+    # valid_pred[np.absolute(valid_pred-100)<50] = 100
+    # new_valid_loss = mean_absolute_error(y_valid.values, valid_pred)
+    # print('>>> New valid loss: {}'.format(new_valid_loss))
+
+
+
     if zero_predict:
-        
         # zero_predictor = load_obj('xgb_class')
         # valid_pred_zeros = zero_predictor.predict(X_valid.values)
 
@@ -127,7 +135,7 @@ def get_submission(
     
     summary = '====== MLPRegressor Training Summary ======\n'
     summary += '>>> epochs={}, lr={}, momentum={}, weight_decay={}\n'.format(max_epoch,base_lr,momentum,weight_decay)
-    summary += '>>> schedule={}\n'.format(hyper['lr_schedule'])
+    summary += '>>> schedule={}\n'.format(hyper['lr_schedule']) if 'lr_schedule' in hyper else 'None'
     summary += '>>> hidden={}, optimizer="{}", batch_size={}\n'.format(train_params['num_neuron'],optimizer,batch_size)
     for idx in sorted_idx:
         summary += '[{:<25s}] {:<10.4f}\n'.format(feature_names[idx], feature_importances[idx])
@@ -189,7 +197,7 @@ def write_precessed_data(df, suffix=None):
 # empirical scale: weight_decay=0.0001
 def demo(
     epochs=100, base_lr=0.0005, momentum=0.9, weight_decay=0, 
-    batch_size=128, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
+    batch_size=32, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
     get_train=False, get_test=False, save=False, load=False
 ):
     rand_reset(seed)
@@ -200,7 +208,7 @@ def demo(
     X_test = read_interim_data('X_test_prefs.csv')
 
     feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
-    # feature_list = [feature for feature in feature_list if 'vequip' not in feature]
+    feature_list = [feature for feature in feature_list if 'vequip' not in feature]
     num_features = len(feature_list)
     print('Number of features: {}'.format(num_features))
 
@@ -228,12 +236,13 @@ def demo(
         'lr':base_lr, 
         'momentum':momentum,
         'weight_decay':weight_decay, 
-        'lr_schedule':{
-            25:base_lr, 
-            50:base_lr/5, 
-            75: base_lr/50,
-            100:base_lr/500
-        }
+        'scheduler': 'plateau',
+        # 'lr_schedule':{
+        #     25:base_lr, 
+        #     50:base_lr/5, 
+        #     75: base_lr/50,
+        #     100:base_lr/500
+        # }
     }
 
     # optim_hyper = {
