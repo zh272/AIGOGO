@@ -1,10 +1,10 @@
+import os
+import fire
 import numpy as np
 import pandas as pd
-import os
 from sklearn.decomposition import NMF
 from sklearn.metrics import mean_absolute_error
 import lightgbm as lgb
-import torch
 
 
 ######## feature template expansion ########
@@ -393,8 +393,9 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
 
     
     if method=='nn':
+        import torch
         # nn dimension reduction
-        model = torch.load(os.path.join('./saved_models', 'prem60_11.pt'))
+        model = torch.load(os.path.join('../models/saved_models', 'prem60_11.pt'))
         model.eval() # evaluation mode
         inp = torch.FloatTensor(mtx_df)
         with torch.no_grad():
@@ -625,7 +626,7 @@ def get_bs_real_prem_var_ic(df_policy, idx_df):
 
 
 ######## get pre feature selection data set ########
-def create_feature_selection_data(df_policy, df_claim):
+def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     '''
     In:
         DataFrame(df_policy),
@@ -697,7 +698,7 @@ def create_feature_selection_data(df_policy, df_claim):
 
     # insurance coverage
     print('Getting column real_prem_ic_nmf')
-    temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+    temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index, method=red_method)
     n_comp = temp.shape[1]
     print('>>> number of reduced features: {}'.format(n_comp))
     colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
@@ -917,7 +918,7 @@ def read_interim_data(file_name, index_col='Policy_Number'):
     return(interim_data)
 
 
-def write_test_data(df, file_name):
+def write_test_data(df, file_name, red_method='nmf'):
     '''
     In:
         DataFrame(df),
@@ -934,7 +935,7 @@ def write_test_data(df, file_name):
 
     return(None)
 
-
+def demo(red_method='nmf'):
     '''
     train data: training-set.csv
     test data: testing-set.csv
@@ -945,7 +946,7 @@ def write_test_data(df, file_name):
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 
-    create_feature_selection_data(df_policy, df_claim)
+    create_feature_selection_data(df_policy, df_claim, red_method=red_method)
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
@@ -971,3 +972,7 @@ def write_test_data(df, file_name):
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
     lgb_output = get_bs_quick_mae(lgb_params)
 #    lgb_output = get_bs_quick_submission(lgb_params)
+
+
+if __name__ == '__main__':
+    fire.Fire(demo)
