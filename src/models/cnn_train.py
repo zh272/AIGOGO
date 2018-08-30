@@ -5,7 +5,6 @@ import torch
 import random
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error
 import torch.nn.functional as F
 
 ## to detach from monitor
@@ -14,19 +13,19 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from trainer import Trainer
-from model import MLPRegressor
+from model import ConvNet1D
 from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 
 def get_submission(
-    X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
-    momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, zero_predict=False,
-    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt',
+    X_train, X_valid, y_train, y_valid, X_test, model=ConvNet1D, max_epoch=200, base_lr=0.1, 
+    momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
+    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='cnn.pt'
 ):    
     train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
         X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
     )
     
-    PATH = './saved_models'
+    PATH = './saved_model'
     if not os.path.isdir(PATH): os.makedirs(PATH)
     
     start_time = time.time()
@@ -36,7 +35,6 @@ def get_submission(
             torch.load(os.path.join(PATH, mdl_name)), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
             valid_set=valid_set, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
         )
-
     else:
         trainer = Trainer(
             model(**train_params), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
@@ -61,7 +59,7 @@ def get_submission(
         
         if plot:
             t_step = np.arange(0, max_epoch, 1)
-            train_hist = trainer.evaluator_loss.hist
+            train_hist = trainer.evaluator.hist
             fig_path = 'figures'
             if not os.path.isdir(fig_path): os.makedirs(fig_path)
             plt.figure()
@@ -78,49 +76,11 @@ def get_submission(
         if save:
             torch.save(trainer.model, os.path.join(PATH, mdl_name))
 
-    # train_loss = trainer.loss_epoch(load='train')
-    # valid_loss = trainer.loss_epoch(load='valid')
+            
+    train_loss = trainer.loss_epoch(load='train')
+    valid_loss = trainer.loss_epoch(load='valid')
+
     
-    train_pred = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
-    valid_pred = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
-    test_pred = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
-
-    train_loss = mean_absolute_error(y_train.values, train_pred)
-    valid_loss = mean_absolute_error(y_valid.values, valid_pred)
-    
-
-
-    # print('>>> original valid loss: {}'.format(valid_loss))
-    # valid_pred[valid_pred<=50] = 0
-    # valid_pred[np.absolute(valid_pred-100)<50] = 100
-    # new_valid_loss = mean_absolute_error(y_valid.values, valid_pred)
-    # print('>>> New valid loss: {}'.format(new_valid_loss))
-
-
-
-    if zero_predict:
-        # zero_predictor = load_obj('xgb_class')
-        # valid_pred_zeros = zero_predictor.predict(X_valid.values)
-
-        zero_predictor = torch.load(os.path.join(PATH, 'mlp_class.pt'))
-        zero_predictor.eval() # evaluation mode
-        inp = torch.FloatTensor(X_valid.values)
-        with torch.no_grad():
-            if torch.cuda.is_available():
-                inp = torch.autograd.Variable(inp.cuda())
-            else:
-                inp = torch.autograd.Variable(inp)
-        valid_pred_zeros = zero_predictor(inp).cpu().data.numpy().argsort(axis=1)[:,-1]
-
-        # train_pred_zeros = zero_predictor.predict(X_train.values)
-        # train_output[train_pred_zeros == 0] = 0
-        print('>>> original valid loss: {}'.format(valid_loss))
-        valid_pred[valid_pred_zeros==0,:] = 0
-
-        new_valid_loss = mean_absolute_error(y_valid.values, valid_pred)
-        print('>>> New valid loss: {}'.format(new_valid_loss))
-    
-
     state_dict = trainer.model.state_dict()
     if torch.cuda.device_count() > 1:
         input_weights = state_dict['module.regressor.fc0.weight'].cpu().numpy()
@@ -135,7 +95,7 @@ def get_submission(
     
     summary = '====== MLPRegressor Training Summary ======\n'
     summary += '>>> epochs={}, lr={}, momentum={}, weight_decay={}\n'.format(max_epoch,base_lr,momentum,weight_decay)
-    summary += '>>> schedule={}\n'.format(hyper['lr_schedule']) if 'lr_schedule' in hyper else 'None'
+    summary += '>>> schedule={}\n'.format(hyper['lr_schedule'])
     summary += '>>> hidden={}, optimizer="{}", batch_size={}\n'.format(train_params['num_neuron'],optimizer,batch_size)
     for idx in sorted_idx:
         summary += '[{:<25s}] {:<10.4f}\n'.format(feature_names[idx], feature_importances[idx])
@@ -143,12 +103,14 @@ def get_submission(
     summary += '>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
 
     # Generate submission
-    submission = pd.DataFrame(data=test_pred,index=X_test.index, columns=['Next_Premium'])
+    test_output = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
+    submission = pd.DataFrame(data=test_output,index=X_test.index, columns=['Next_Premium'])
     
-    submission_train = pd.DataFrame(data=train_pred,index=X_train.index, columns=['Next_Premium'])
+    train_output = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
+    submission_train = pd.DataFrame(data=train_output,index=X_train.index, columns=['Next_Premium'])
     
-    submission_valid = pd.DataFrame(data=valid_pred,index=X_valid.index, columns=['Next_Premium'])
-
+    valid_output = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
+    submission_valid = pd.DataFrame(data=valid_output,index=X_valid.index, columns=['Next_Premium'])
 
     return {
         'model': trainer, 'submission': submission, 
@@ -196,11 +158,12 @@ def write_precessed_data(df, suffix=None):
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=100, base_lr=0.005, momentum=0.9, weight_decay=0, 
-    batch_size=32, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
+    epochs=100, base_lr=0.0001, momentum=0.9, weight_decay=0, 
+    batch_size=128, optimizer='sgd', dropout=False, seed=None, 
     get_train=False, get_test=False, save=False, load=False
 ):
-    rand_reset(seed)
+    if seed is not None:
+        rand_reset(seed)
     X_train = read_interim_data('X_train_prefs.csv')
     y_train = read_interim_data('y_train_prefs.csv')
     X_valid = read_interim_data('X_valid_prefs.csv')
@@ -208,7 +171,6 @@ def demo(
     X_test = read_interim_data('X_test_prefs.csv')
 
     feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
-    feature_list = [feature for feature in feature_list if 'vequip' not in feature]
     num_features = len(feature_list)
     print('Number of features: {}'.format(num_features))
 
@@ -223,47 +185,32 @@ def demo(
     X_test = X_test.apply(lambda x:x.fillna(-1))
 
     # begin training
-    num_neuron = [110,55,10]
-    print('Network Architecture: {}'.format(num_neuron))
-    # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
-    # num_neuron = [160,30,8]
-
+    # n_input = X_train.shape[1]
     train_params = {
-        'num_input':len(feature_list), 'dropout':dropout, 
-        'num_neuron':num_neuron
+        'num_cv_filter': [1,40,80], 
+        'num_fc_neuron': [20,5,1], 
+        'dropout': dropout
     }
+
     optim_hyper = {
         'lr':base_lr, 
         'momentum':momentum,
         'weight_decay':weight_decay, 
-        # 'scheduler': 'plateau',
         'lr_schedule':{
-            25:base_lr, 
-            50:base_lr/5, 
-            75: base_lr/50,
-            100:base_lr/500
+            epochs//4:base_lr,
+            epochs//2:base_lr/5, 
+            epochs//4*3:base_lr/50, 
+            epochs: base_lr/200
         }
     }
-
-    # optim_hyper = {
-    #     'lr':base_lr, 
-    #     'momentum':momentum,
-    #     'weight_decay':weight_decay, 
-    #     'lr_schedule':{
-    #         epochs//4:base_lr,
-    #         epochs//2:base_lr/5, 
-    #         epochs//4*3:base_lr/50, 
-    #         epochs: base_lr/200
-    #     }
-    # }
     
     model_output = get_submission(
         X_train, X_valid, y_train, y_valid, X_test, 
-        model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, 
+        model=ConvNet1D, max_epoch=epochs, base_lr=base_lr, 
         momentum=momentum, weight_decay=weight_decay,
         batch_size = batch_size, train_params=train_params, 
         test_along=True, optimizer=optimizer, hyper=optim_hyper,
-        save=save, load=load, mdl_name='mlp.pt'
+        save=save, load=load
     )
 
     summary = model_output['summary']

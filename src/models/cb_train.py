@@ -1,56 +1,77 @@
 
 import os
+import fire
+import time
+import random
 import numpy as np
-from tabulate import tabulate
 import pandas as pd
 from catboost import CatBoostRegressor
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
+from helpers import load_obj, save_obj
 # import warnings
 # warnings.simplefilter("ignore", UserWarning)
 
-def get_submission(X, y, X_test, params, cate_col=None, col_types=None):
-
-    
-    categorical_features_indices = np.where(X.dtypes != np.float)[0]
-    X.fillna(-999, inplace=True)
+def get_submission(
+    X_train, y_train, X_valid, y_valid, X_test, params,
+    save=False, load=False, mdl_name='catb'
+):
+    categorical_features_indices = np.where(X_train.dtypes != np.float)[0]
+    X_train.fillna(-999, inplace=True)
+    X_valid.fillna(-999, inplace=True)
     X_test.fillna(-999,inplace=True)
 
-    # create model
-    model=CatBoostRegressor(**params)
 
-    # train with validation
-    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.2, random_state=1234)
-    model.fit(
-        X_train, y_train, cat_features=categorical_features_indices,
-        eval_set=(X_validation, y_validation), plot=False, early_stopping_rounds=20
-    )
 
-    # # train without validation
-    # model.fit(
-    #     X, y, cat_features=categorical_features_indices, plot=False
-    # )
+    PATH = './saved_model'
+    if not os.path.isdir(PATH): os.makedirs(PATH)
     
-    print('====== CatBoost Feature Importances ======')
-    feature_importances = np.array(model.feature_importances_)
-    feature_names = X.columns.values
+    start_time = time.time()
+    end_time = start_time
+    if load:
+        regressor = load_obj(mdl_name)
+    else:
+        regressor=CatBoostRegressor(**params)
+
+        regressor.fit(
+            X_train, y_train, cat_features=categorical_features_indices,
+            eval_set=(X_valid, y_valid), plot=False, early_stopping_rounds=None
+        )
+        end_time = time.time()
+
+        if save:
+            save_obj(regressor, mdl_name)
+
+    train_pred = regressor.predict(X_train.values)
+    valid_pred = regressor.predict(X_valid.values)
+    test_pred = regressor.predict(X_test.values)
+            
+    train_loss = mean_absolute_error(y_train.values, train_pred)
+    valid_loss = mean_absolute_error(y_valid.values, valid_pred)
+
+    feature_importances = np.array(regressor.feature_importances_)
+    
+    feature_names = X_train.columns.values
     sorted_idx = np.argsort(feature_importances*-1) # descending order
-    for idx in sorted_idx:
-        print('[{:20s}]'.format(feature_names[idx]), '{:7.4f}'.format(feature_importances[idx]))
     
-    with open('summary.txt', 'w') as f:
-        f.write('====== CatBoost Feature Importances ======\n')
-        for idx in sorted_idx:
-            f.write('[{:20s}] {:7.4f}'.format(feature_names[idx], feature_importances[idx]))
-        f.write('\n')
+    summary = '====== CatBoost Training Summary ======\n'
+    for idx in sorted_idx:
+        summary += '[{:<25s}] | {:<10.4f}\n'.format(feature_names[idx], feature_importances[idx])
+    summary += '>>> training_time={:10.2f}min\n'.format((end_time-start_time)/60)
+    summary += '>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
 
-    submission = pd.DataFrame()
-    submission['Policy_Number'] = X_test.index
-    submission['Next_Premium'] = model.predict(X_test)
-    submission = submission.set_index(['Policy_Number'])
+    # Generate submission
+    submission = pd.DataFrame(data=test_pred,index=X_test.index, columns=['Next_Premium'])
 
-    return({'model': model, 'submission': submission})
+    submission_train = pd.DataFrame(data=train_pred,index=X_train.index, columns=['Next_Premium'])
+    
+    submission_valid = pd.DataFrame(data=valid_pred,index=X_valid.index, columns=['Next_Premium'])
+
+    return {
+        'model': regressor, 'submission': submission, 
+        'submission_train':submission_train, 'submission_valid':submission_valid,
+        'valid_loss':valid_loss, 'summary':summary
+    }
 
 
 def read_interim_data(file_name, index_col='Policy_Number'):
@@ -69,7 +90,7 @@ def read_interim_data(file_name, index_col='Policy_Number'):
 
     return(interim_data)
 
-def write_precessed_data(df):
+def write_precessed_data(df, suffix=None):
     '''
     In:
         DataFrame(df),
@@ -82,22 +103,71 @@ def write_precessed_data(df):
     precessed_data_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), os.path.pardir, os.path.pardir, 'data', 'processed'
     )
-    write_sample_path = os.path.join(precessed_data_path, 'testing-set.csv')
+    if suffix is None:
+        file_name = 'testing-set.csv'
+    else:
+        file_name = 'testing-set_{}.csv'.format(suffix)
+    write_sample_path = os.path.join(precessed_data_path, file_name)
     df.to_csv(write_sample_path)
 
-    return(None)
 
-if __name__ == '__main__':
+def demo(
+    epochs=20000, lr=50, objective='MAE', task_type='CPU',
+    max_depth=4, colsample_bylevel=0.7, reg_lambda=None,
+    get_train=False, get_test=True, save=False, load=False, seed=None
+):
+    if seed is not None:
+        rand_reset(seed)
 
-    X_train = read_interim_data('X_train_bs.csv')
-    X_test = read_interim_data('X_test_bs.csv')
-    y_train = read_interim_data('y_train_bs.csv')
+    if task_type=='GPU':
+        colsample_bylevel=None
+    
+    X_train = read_interim_data('X_train_prefs.csv')
+    y_train = read_interim_data('y_train_prefs.csv')
+    X_valid = read_interim_data('X_valid_prefs.csv')
+    y_valid = read_interim_data('y_valid_prefs.csv')
+    X_test = read_interim_data('X_test_prefs.csv')
 
+
+    feature_list = X_train.columns.values
+    # feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
+    num_features = len(feature_list)
+    print('Number of features: {}'.format(num_features))
+
+    X_train = X_train[feature_list]
+    X_valid = X_valid[feature_list]
+    X_test = X_test[feature_list]
+
+    # colsample_bylevel should be None if task_type is 'GPU'
     params = {
-        'n_estimators':100000, 'learning_rate':20, 'objective':'MAE', 
-        'max_depth':4, 'colsample_bylevel':0.7, 'reg_lambda':None, 'task_type': 'CPU'
+        'n_estimators':epochs, 'learning_rate':lr, 'objective':objective, 
+        'max_depth':max_depth, 'colsample_bylevel':None, 'reg_lambda':reg_lambda, 
+        'task_type': task_type
     }
 
-    model_output = get_submission(X_train, y_train, X_test, params)
-    write_precessed_data(model_output['submission'])
+    model_output = get_submission(
+        X_train, y_train, X_valid, y_valid, X_test, params,
+        save=save, load=load, mdl_name='catb'
+    )
 
+    summary = model_output['summary']
+    summary += '>>> random seed: {}\n'.format(seed)
+
+    print(summary)
+    with open('summary_cb{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
+        f.write(summary)
+
+    # generate submission
+    if get_test:
+        write_precessed_data(model_output['submission'], suffix='cbtest{}'.format(int(model_output['valid_loss'])))
+    if get_train:
+        write_precessed_data(model_output['submission_train'], suffix='cbtrain')
+        write_precessed_data(model_output['submission_valid'], suffix='cbvalid')
+
+def rand_reset(seed):
+    random.seed(seed)
+    np.random.seed(random.randint(0,1000))
+
+
+if __name__ == '__main__':
+    fire.Fire(demo)

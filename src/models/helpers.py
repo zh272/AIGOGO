@@ -1,6 +1,8 @@
 import os
 import torch
+import pickle
 import numpy as np
+import torch.utils.data
 import torch.optim as optim
 import torch.nn.functional as F
 from sklearn import preprocessing
@@ -57,39 +59,86 @@ class MultiColumnLabelEncoder:
 
 
 
-def get_dataset(X_train, y_train, X_test, target_type=torch.FloatTensor, target_shape=None):
+def get_dataset(X_train, y_train, X_test, X_valid=None, y_valid=None, target_type=torch.FloatTensor, target_shape=None):
     if target_shape:
         y_train = y_train.reshape(*target_shape)
+        if y_valid is not None:
+            y_valid = y_valid.reshape(*target_shape)
     # X_train, X_valid, y_train, y_valid = train_test_split(X_train,y_train,test_size=0.2,random_state=101)
-    scaler = preprocessing.MinMaxScaler()
+    # scaler = preprocessing.MinMaxScaler()
+    scaler = preprocessing.StandardScaler()
     X_train = scaler.fit_transform(X_train)
+    if X_valid is not None:
+        X_valid = scaler.transform(X_valid)
     X_test = scaler.transform(X_test)
 
     train_set = torch.utils.data.TensorDataset(torch.FloatTensor(X_train), target_type(y_train))
-    # valid_set = torch.utils.data.TensorDataset(torch.FloatTensor(X_valid), target_type(y_valid))
+    if X_valid is None:
+        valid_set = None
+    else:
+        valid_set = torch.utils.data.TensorDataset(torch.FloatTensor(X_valid), target_type(y_valid))
 
-    return train_set, X_test
+    return train_set, valid_set, X_test, X_train, X_valid
 
 def ready(steps, threshold=100, population=None):
     return steps%threshold == 0
 
-def get_optimizer(model, hyper={}, epochs=None):
+def get_optimizer(model, hyper={}, epochs=None, optimizer='sgd'):
     """This is where users choose their optimizer and define the
        hyperparameter space they'd like to search."""
     lr = hyper['lr'] if 'lr' in hyper else np.random.choice(np.logspace(-3, 0, base=10))
     momentum = hyper['momentum'] if 'momentum' in hyper else np.random.choice(np.linspace(0.1, .9999))
-    hyper['lr'], hyper['momentum'] = lr, momentum
-    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True, weight_decay=0.0001)
+    weight_decay = hyper['weight_decay'] if 'weight_decay' in hyper else 0.0001
+    hyper['lr'], hyper['momentum'], hyper['weight_decay']= lr, momentum, weight_decay
+    if optimizer=='sgd':
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=True, weight_decay=weight_decay)
 
-    if hyper and 'lr_schedule' in hyper:
-        scheduler = CustomLR(optimizer, hyper['lr_schedule'])
-    elif epochs:
-        scheduler = optim.lr_scheduler.MultiStepLR(
-            optimizer,  milestones=[int(0.5 * epochs), int(0.75 * epochs)], gamma=0.1
-        )
-        hyper['lr_schedule'] = {0:lr, 0.5*epochs:lr*0.1, 0.75*epochs: lr*0.01}
-    else:
+        if hyper and 'lr_schedule' in hyper:
+            scheduler = CustomLR(optimizer, hyper['lr_schedule'])
+        elif epochs:
+            if 'scheduler' in hyper:
+                if hyper['scheduler'] == 'lambdalr':
+                    scheduler = optim.lr_scheduler.LambdaLR(
+                        optimizer, lr_lambda=lambda epoch: 1/(1+epoch)
+                    )
+                # elif hyper['scheduler'] == 'plateau':
+                #     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                #         optimizer, mode='min', verbose=True, patience=10, threshold=0.0001, min_lr=0.0000001
+                #     )
+            else:
+                scheduler = optim.lr_scheduler.MultiStepLR(
+                    optimizer,  milestones=[int(0.5 * epochs), int(0.75 * epochs)], gamma=0.1
+                )
+                hyper['lr_schedule'] = {0:lr, 0.5*epochs:lr*0.1, 0.75*epochs: lr*0.01}
+            
+            
+        else:
+            scheduler = None
+    elif optimizer=='adagrad':
+        optimizer = optim.Adagrad(model.parameters(), lr=lr,weight_decay=weight_decay)
         scheduler = None
+    elif optimizer=='adadelta':
+        optimizer = optim.Adadelta(model.parameters(), lr=lr,weight_decay=weight_decay)
+        scheduler = None
+    elif optimizer=='rmsprop':
+        optimizer = optim.RMSprop(model.parameters(), lr=lr,momentum=momentum, weight_decay=weight_decay)
+        scheduler = None
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=lr,weight_decay=weight_decay)
+        scheduler = None
+
+
+    # if hyper and 'lr_schedule' in hyper:
+    #     scheduler = CustomLR(optimizer, hyper['lr_schedule'])
+    # elif epochs:
+    #     scheduler = optim.lr_scheduler.MultiStepLR(
+    #         optimizer,  milestones=[int(0.5 * epochs), int(0.75 * epochs)], gamma=0.1
+    #     )
+    #     hyper['lr_schedule'] = {0:lr, 0.5*epochs:lr*0.1, 0.75*epochs: lr*0.01}
+    # else:
+    #     scheduler = None
+
+    
         
     return optimizer, scheduler, hyper
 
@@ -101,7 +150,7 @@ class CustomLR(optim.lr_scheduler._LRScheduler):
     def get_lr(self):
         return [
             self.lrs[
-                bisect_left(self.milestones, self.last_epoch)
+                bisect_right(self.milestones, self.last_epoch)
             ] for _ in self.base_lrs
         ]
 
@@ -127,7 +176,7 @@ class AverageMeter(object):
 
 
 
-def test_epoch(model, loader, print_freq=1, is_test=True, loss_fn=F.cross_entropy):
+def test_epoch(model, loader, print_freq=1, is_test=True, loss_fn=F.cross_entropy, eval_type='loss'):
     losses = AverageMeter()
     error = AverageMeter()
 
@@ -149,16 +198,35 @@ def test_epoch(model, loader, print_freq=1, is_test=True, loss_fn=F.cross_entrop
         output = model(input_var)
 
         # compute loss
-        # loss = loss_fn(output.view_as(target_var), target_var)
-        loss = loss_fn(output, target_var)
-
         batch_size = target.size(0)
 
-        # compute prediction error
-        # _, pred = output.data.cpu().topk(1, dim=1)
-        # error.update(torch.ne(pred.squeeze().long(), target.cpu().long()).float().sum() / batch_size, batch_size)
+        if eval_type=='loss':
+            loss = loss_fn(output, target_var)
+            losses.update(loss.item(), batch_size)
+        else:
+            # compute prediction error
+            _, pred = output.data.cpu().topk(1, dim=1)
+            error.update(torch.ne(pred.squeeze().long(), target.cpu().long()).float().sum() / batch_size, batch_size)
         
-        losses.update(loss.item(), batch_size)
 
     # Return summary statistics
     return losses.avg, error.avg
+
+def save_obj(obj, file_name, file_dir='./saved_models'):
+    if not os.path.isdir(file_dir): 
+        os.makedirs(file_dir)
+    
+    with open(os.path.join(file_dir,'{}.pkl'.format(file_name)), 'w+b') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+def load_obj(file_name, file_dir='./saved_models'):
+    try:
+        with open(os.path.join(file_dir,'{}.pkl'.format(file_name)), 'r+b') as f:
+            try:
+                obj = pickle.load(f)
+            except EOFError:
+                obj = {}
+            return obj
+    except FileNotFoundError:
+        return {}

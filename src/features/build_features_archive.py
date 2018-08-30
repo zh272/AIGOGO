@@ -3,8 +3,10 @@ import os
 import pandas as pd
 from catboost import CatBoostRegressor
 from sklearn.metrics import mean_absolute_error
+from sklearn.decomposition import NMF
 from helpers import MultiColumnLabelEncoder
 import lightgbm as lgb
+import itertools
 
 '''
 Steps to add a new feature:
@@ -46,6 +48,10 @@ def get_lgb_mae(cols_train, train, valid, params):
     valid_pred = model.predict(valid[cols_train])
     valid_mae = mean_absolute_error(valid['Next_Premium'], valid_pred)
     varimp = list(model.feature_importance())
+
+    train_pred = model.predict(train[cols_train])
+    train_mae = mean_absolute_error(train['Next_Premium'], train_pred)
+    print('Train mae is {}'.format(train_mae))
 
     cols_wst = []
     for i in range(min(20, len(varimp) - 1)):
@@ -103,12 +109,296 @@ def get_cat_mae(cols_train, train, valid, params):
     return(mae, cols_wst)
 
 
+def type_feature_selection(get_fs_mae, params, num_only=False):
+    '''
+    In:
+        any(get_fs_mae),
+        dict(params),
+        bool(num_only), # include numeric features only
+
+    Out:
+        dict(cols), # test mae and selected columns
+
+    Description:
+        feature selection by type
+    '''
+    X_train = read_interim_data('X_train_prefs.csv')
+    y_train = read_interim_data('y_train_prefs.csv')
+    X_valid = read_interim_data('X_valid_prefs.csv')
+    y_valid = read_interim_data('y_valid_prefs.csv')
+    # X_test = read_interim_data('X_test_prefs.csv')
+    # y_test = read_interim_data('y_test_prefs.csv')
+
+    # preprocessing
+    X_train.fillna(-999, inplace=True)
+    X_valid.fillna(-999, inplace=True)
+
+    All_train = y_train.merge(X_train, how='left', left_index=True, right_index=True)
+    All_valid = y_valid.merge(X_valid, how='left', left_index=True, right_index=True)
+
+    def feature_selection_by_scenario(mae_min, cols_fs, lst_cols):
+        print('Baseline data gives minimum mae {}'.format(mae_min))
+        for i in range(len(lst_cols)):
+            cols = lst_cols[i]
+
+            print('Testing features {}'.format(cols))
+            mae, cols_del = get_fs_mae(cols, All_train, All_valid, params)
+            print('MAE changes to {}'.format(mae))
+
+            cols_fs = cols if mae < mae_min else cols_fs
+            mae_min = mae if mae < mae_min else mae_min
+
+        return(mae_min, cols_fs)
+
+    # baseline column
+    cols_bs = ['real_prem_plc']
+    #cols_bs = ['real_prem_plc', 'real_prem_dmg', 'real_prem_lia', 'real_prem_thf', 'real_prem_ic_nmf_1', 'real_prem_ic_nmf_2', 'real_prem_ic_nmf_3', 'real_prem_ic_nmf_4', 'real_prem_ic_nmf_5', 'real_prem_ic_nmf_6', 'real_prem_ic_nmf_7', 'real_freq_distr', 'real_prem_ic_distr', 'real_mc_mean_distr', 'real_mc_prob_distr', 'int_acc_lia', 'real_acc_dmg', 'real_acc_lia', 'real_mc_prob_cancel', 'real_mc_mean_age', 'real_mc_prob_age', 'real_mc_mean_marriage', 'real_mc_prob_marriage', 'real_mc_mean_vmy', 'real_mc_prob_vmy', 'real_vcost', 'real_mc_prob_area', 'real_mc_mean_claim_ins', 'real_mc_prob_claim_ins']
+    #cols_bs = ['real_prem_plc', 'real_prem_dmg', 'real_prem_lia', 'real_prem_thf', 'real_prem_ic_nmf_1', 'real_prem_ic_nmf_2', 'real_prem_ic_nmf_3', 'real_prem_ic_nmf_4', 'real_prem_ic_nmf_5', 'real_prem_ic_nmf_6', 'real_prem_ic_nmf_7', 'real_mc_mean_distr', 'real_mc_prob_distr', 'real_acc_dmg', 'real_mc_mean_cancel', 'real_mc_prob_cancel', 'real_mc_mean_age', 'real_mc_prob_age', 'real_mc_mean_assured', 'real_mc_prob_assured', 'real_mc_mean_marriage', 'real_mc_prob_marriage', 'real_mc_mean_vmy', 'real_mc_prob_vmy', 'int_claim_plc', 'real_mc_mean_claim_ins', 'real_loss_plc', 'real_loss_ins']
+    cols_fs = cols_bs
+    mae_min, cols_del = get_fs_mae(cols_bs, All_train, All_valid, params)
+
+    # premium selection
+    # selected columns
+    '''
+    ['real_prem_plc',
+     'real_prem_dmg',
+     'real_prem_lia',
+     'real_prem_thf',
+     'real_prem_ic_nmf_1',
+     'real_prem_ic_nmf_2',
+     'real_prem_ic_nmf_3',
+     'real_prem_ic_nmf_4',
+     'real_prem_ic_nmf_5',
+     'real_prem_ic_nmf_6',
+     'real_prem_ic_nmf_7',
+     ]
+    '''
+    print('\nSelecting features based on Premium by Insurance Coverage')
+
+    cols_prem_grp = ['real_prem_dmg', 'real_prem_lia', 'real_prem_thf']
+    cols_prem_nmf = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
+    lst_cols_prem = [cols_prem_grp, cols_prem_nmf,
+                     [col for lst in [cols_bs, cols_prem_grp] for col in lst],
+                     [col for lst in [cols_bs, cols_prem_nmf] for col in lst],
+                     [col for lst in [cols_bs, cols_prem_grp, cols_prem_nmf] for col in lst]]
+    if num_only:
+        lst_cols_prem = [[col for col in lst if not col.startswith('cat')] for lst in lst_cols_prem]
+
+    mae_min, cols_fs = feature_selection_by_scenario(mae_min, cols_fs, lst_cols_prem)
+
+    print('Premium by Insurance Coverage feature selection gives columns {}'.format(cols_fs))
+    print('Premium by Insurance Coverage feature selection gives MAE {}'.format(mae_min))
+
+    # distribution selection
+    # selected columns
+    '''
+    ['real_freq_distr',
+     'real_prem_ic_distr',
+     'real_mc_mean_distr',
+     'real_mc_prob_distr'
+     ]
+    '''
+    print('\nSelecting features based on Distribution Channel')
+
+    cols_distr = [col for col in X_train.columns if 'distr' in col]
+    if num_only:
+        cols_distr = [col for col in cols_distr if not col.startswith('cat')]
+
+    lst_cols_distr = []
+    for l in range(1, len(cols_distr) + 1):
+        for lst in itertools.combinations(cols_distr, l):
+            lst_cols_distr.append(cols_fs + list(lst))
+
+    mae_min, cols_fs = feature_selection_by_scenario(mae_min, cols_fs, lst_cols_distr)
+
+    print('Premium by Distribution Channel feature selection gives columns {}'.format(cols_fs))
+    print('Premium by Distribution Channel feature selection gives MAE {}'.format(mae_min))
+
+    # policy selection
+    '''
+    ['int_acc_lia',
+    'real_acc_dmg',
+    'real_acc_lia',
+    'real_mc_prob_cancel'
+    ]
+    '''
+    print('\nSelecting features based on Policy Information')
+    cols_plc = ['int_acc_lia', 'real_acc_dmg', 'real_acc_lia', 'cat_cancel', 'real_mc_mean_cancel', 'real_mc_prob_cancel']
+    if num_only:
+        cols_plc = [col for col in cols_plc if not col.startswith('cat')]
+
+    lst_cols_plc = []
+    for l in range(1, len(cols_plc) + 1):
+        for lst in itertools.combinations(cols_plc, l):
+            lst_cols_plc.append(cols_fs + list(lst))
+
+    mae_min, cols_fs = feature_selection_by_scenario(mae_min, cols_fs, lst_cols_plc)
+
+    print('Premium by Policy feature selection gives columns {}'.format(cols_fs))
+    print('Premium by Policy feature selection gives MAE {}'.format(mae_min))
+
+    # insured selection
+    '''
+    ['real_mc_mean_age',
+     'real_mc_prob_age',
+     'real_mc_mean_marriage',
+     'real_mc_prob_marriage',
+     ]
+    '''
+    print('\nSelecting features based on Insured Information')
+
+    cols_ins_age = ['cat_age', 'real_mc_mean_age', 'real_mc_prob_age']
+    cols_ins_assured = ['cat_assured', 'real_mc_mean_assured', 'real_mc_prob_assured']
+    cols_ins_marriage = ['cat_marriage', 'real_mc_mean_marriage', 'real_mc_prob_marriage']
+    cols_ins_sex = ['cat_sex', 'real_mc_mean_sex', 'real_mc_prob_sex']
+    cols_ins_sex_marr = ['cat_sex_marr', 'real_mc_mean_sex_marr', 'real_mc_prob_sex_marr']
+
+    cols_ins = [cols_ins_age, cols_ins_assured, cols_ins_marriage, cols_ins_sex, cols_ins_sex_marr]
+
+    if num_only:
+        cols_ins = [[col for col in lst if not col.startswith('cat')] for lst in cols_ins]
+    # pre-selection by category
+    lst_cols_ins = []
+    for l in range(1, len(cols_ins) + 1):
+        for lst in itertools.combinations(cols_ins, l):
+            comb_list = [col for sublist in lst for col in sublist]
+            lst_cols_ins.append(cols_fs + list(comb_list))
+
+    mae_inter, cols_inter = feature_selection_by_scenario(mae_min, cols_fs, lst_cols_ins)
+
+    cols_ins = [col for col in cols_inter if col not in cols_fs]
+    # selection by each feature
+    lst_cols_ins = []
+    for l in range(1, len(cols_ins) + 1):
+        for lst in itertools.combinations(cols_ins, l):
+            lst_cols_ins.append(cols_fs + list(lst))
+
+    mae_min, cols_fs = feature_selection_by_scenario(mae_min, cols_fs, lst_cols_ins)
+
+    print('Premium by Insured feature selection gives columns {}'.format(cols_fs))
+    print('Premium by Insured feature selection gives MAE {}'.format(mae_min))
+
+    # vehicle selection
+    '''
+    ['real_mc_mean_vmy',
+     'real_mc_prob_vmy',
+     'real_vcost'
+     ]
+    '''
+    print('\nSelecting features based on Vehicle Information')
+
+    cols_veh_vc = ['cat_vc', 'real_mc_mean_vc', 'real_mc_prob_vc']
+    cols_veh_vmm1 = ['cat_vmm1', 'real_mc_mean_vmm1', 'real_mc_prob_vmm1']
+    cols_veh_vmm2 = ['cat_vmm2', 'real_mc_mean_vmm2', 'real_mc_prob_vmm2']
+    cols_veh_vmy = ['cat_vmy', 'real_mc_mean_vmy', 'real_mc_prob_vmy']
+    cols_veh_vregion = ['cat_vregion', 'real_mc_mean_vregion', 'real_mc_prob_vregion']
+    cols_veh_vqpt = ['cat_vqpt', 'real_mc_mean_vqpt', 'real_mc_prob_vqpt']
+    cols_veh_vcost = ['real_vcost']
+    cols_veh_ved = ['cat_ved', 'real_mc_mean_ved', 'real_mc_prob_ved', 'real_ved']
+    cols_veh = [cols_veh_vc, cols_veh_vmm1, cols_veh_vmm2, cols_veh_vmy, cols_veh_vregion, cols_veh_vqpt, cols_veh_vcost, cols_veh_ved]
+
+    if num_only:
+        cols_veh = [[col for col in lst if not col.startswith('cat')] for lst in cols_veh]
+    # pre-selection by category
+    lst_cols_veh = []
+    for l in range(1, len(cols_veh) + 1):
+        for lst in itertools.combinations(cols_veh, l):
+            comb_list = [col for sublist in lst for col in sublist]
+            lst_cols_veh.append(cols_fs + list(comb_list))
+
+    mae_inter, cols_inter = feature_selection_by_scenario(mae_min, cols_fs, lst_cols_veh)
+
+    cols_veh = [col for col in cols_inter if col not in cols_fs]
+    # selection by each feature
+    lst_cols_veh = []
+    for l in range(1, len(cols_veh) + 1):
+        for lst in itertools.combinations(cols_veh, l):
+            lst_cols_veh.append(cols_fs + list(lst))
+
+    mae_min, cols_fs = feature_selection_by_scenario(mae_min, cols_fs, lst_cols_veh)
+
+    print('Premium by Vehicle Information feature selection gives columns {}'.format(cols_fs))
+    print('Premium by Vehicle Information feature selection gives MAE {}'.format(mae_min))
+
+    # location selection
+    '''
+    ['real_mc_prob_area']
+    '''
+    print('\nSelecting features based on Location Information')
+
+    cols_loc = ['cat_zip', 'cat_area', 'real_mc_mean_zip', 'real_mc_prob_zip', 'real_mc_mean_area', 'real_mc_prob_area']
+    if num_only:
+        cols_loc = [col for col in cols_loc if not col.startswith('cat')]
+
+    lst_cols_loc = []
+    for l in range(1, len(cols_loc) + 1):
+        for lst in itertools.combinations(cols_loc, l):
+            lst_cols_loc.append(cols_fs + list(lst))
+
+    mae_min, cols_fs = feature_selection_by_scenario(mae_min, cols_fs, lst_cols_loc)
+
+    print('Premium by Location Information feature selection gives columns {}'.format(cols_fs))
+    print('Premium by Location Information feature selection gives MAE {}'.format(mae_min))
+
+    # claim selection
+    '''
+    ['real_mc_mean_claim_ins',
+     'real_mc_prob_claim_ins']
+    '''
+    print('\nSelecting features based on Claim Information')
+
+    cols_clm = ['int_claim_plc', 'cat_claim_ins', 'real_mc_mean_claim_ins', 'real_mc_prob_claim_ins', 'real_loss_plc', 'real_loss_ins']
+    if num_only:
+        cols_clm = [col for col in cols_clm if not col.startswith('cat')]
+
+    lst_cols_clm = []
+    for l in range(1, len(cols_clm) + 1):
+        for lst in itertools.combinations(cols_clm, l):
+            lst_cols_clm.append(cols_fs + list(lst))
+
+    mae_min, cols_fs = feature_selection_by_scenario(mae_min, cols_fs, lst_cols_clm)
+
+    print('Premium by Claim Information feature selection gives columns {}'.format(cols_fs))
+    print('Premium by Claim Information feature selection gives MAE {}'.format(mae_min))
+
+    # garbage bin
+    print('\nSelecting features based on Garbage Information')
+    '''
+    []->none
+    '''
+    cols_gb = ['int_others', 'cat_vdom', 'cat_vmotor', 'cat_vmm1_vmy', 'real_mc_mean_vdom', 'real_mc_prob_vdom', 'real_mc_mean_vmotor', 'real_mc_prob_vmotor', 'real_mc_mean_vmm1_vmy', 'real_mc_prob_vmm1_vmy', 'real_prem_ins', 'real_prem_vc', 'real_prem_ved', 'real_prem_vmm1', 'real_prem_vmm2', 'real_prem_vmy', 'real_prem_vqpt']
+    if num_only:
+        cols_gb = [col for col in cols_gb if not col.startswith('cat')]
+
+    forward = True
+    while(forward):
+        forward = False
+        for col_gb in cols_gb:
+            print('Testing add column {}'.format(col_gb))
+            cols_train = cols_fs + [col_gb]
+            mae, cols_del = get_fs_mae(cols_train, All_train, All_valid, params)
+            print('MAE changes to {}'.format(mae))
+            # update col_change, cols_del, and mae_min if mae is lower
+            forward = forward if mae >= mae_min else True
+            cols_fs = cols_fs if mae >= mae_min else cols_fs + [col_gb]
+            mae_min = mae_min if mae >= mae_min else mae
+
+    print('Premium by Garbage Information feature selection gives columns {}'.format(cols_fs))
+    print('Premium by Garbage Information feature selection gives MAE {}'.format(mae_min))
+
+    return(cols_fs)
+
+
 def stepwise_feature_selection(get_fs_mae, params, max_rounds=60, num_only=False, forward_step=False, backward_step=True, cols_init=[]):
     '''
     In:
+        any(get_fs_mae),
         dict(params),
-        float(max_rounds),
+        int(max_rounds),
         bool(num_only), # include numeric features only
+        bool(forward_step),
+        bool(backward_step),
+        list(cols_init),
 
     Out:
         dict(cols), # test mae and selected columns
@@ -214,7 +504,7 @@ def stepwise_feature_selection(get_fs_mae, params, max_rounds=60, num_only=False
     write_test_data(X_test, "X_test_fs.csv")
     write_test_data(y_test, "y_test_fs.csv")
 
-    return(cols_del)
+    return(cols_train)
 
 
 ######## template function ########
@@ -249,6 +539,97 @@ def get_bs_agg_premium(df_policy, idx_df, col):
     df = df.groupby(level=0).agg({'Premium': lambda x: x.iloc[0]})
     df = df.assign(real_prem = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
     return(df.loc[idx_df, 'real_prem'])
+
+
+def get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
+    '''
+    In:
+        str(col_cat)
+        DataFrame(X_train),
+        DataFrame(y_train),
+        DataFrame(X_valid),
+        bool(train_only),
+        double(fold),
+    Out:
+        Series(real_mc_prob_distr),
+    Description:
+        get mean of next_premium by col_cat
+    '''
+    if train_only:
+        np.random.seed(1)
+        rand = np.random.rand(len(X_train))
+        lvs = [i / float(fold) for i in range(fold+1)]
+
+        X_arr = []
+        for i in range(fold):
+            msk = (rand >= lvs[i]) & (rand < lvs[i+1])
+            X_slice = X_train[msk]
+            X_base = X_train[~msk]
+            y_base = y_train[~msk]
+            X_slice = get_bs_real_mc_mean(col_cat, X_base, y_base, X_valid=X_slice, train_only=False, prior=prior)
+            X_arr.append(X_slice)
+
+        X_valid = pd.concat(X_arr)
+
+    else:
+        # merge col_cat with label
+        y_train = y_train.merge(X_train[[col_cat]], how='left', left_index=True, right_index=True)
+        y_train = y_train.assign(real_mc_mean = y_train['Next_Premium'])
+
+        # get mean of each category and smoothed by global mean
+        smooth_mean = lambda x: (x.sum() + prior * y_train['real_mc_mean'].mean()) / (len(x) + prior)
+        y_train = y_train.groupby([col_cat]).agg({'real_mc_mean': smooth_mean})
+
+        #
+        X_valid = X_valid[[col_cat]].merge(y_train[['real_mc_mean']], how='left', left_on=[col_cat], right_index=True)
+        X_valid = X_valid['real_mc_mean'].where(~pd.isnull(X_valid['real_mc_mean']), np.nanmean(y_train['real_mc_mean']))
+
+    return(X_valid)
+
+
+def get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
+    '''
+    In:
+        str(col_cat)
+        DataFrame(X_train),
+        DataFrame(y_train),
+        DataFrame(X_valid),
+        bool(train_only),
+        double(fold),
+    Out:
+        Series(real_mc_prob_distr),
+    Description:
+        get probability of premium reducing to 0 by col_cat
+    '''
+    if train_only:
+        np.random.seed(1)
+        rand = np.random.rand(len(X_train))
+        lvs = [i / float(fold) for i in range(fold+1)]
+
+        X_arr = []
+        for i in range(fold):
+            msk = (rand >= lvs[i]) & (rand < lvs[i+1])
+            X_slice = X_train[msk]
+            X_base = X_train[~msk]
+            y_base = y_train[~msk]
+            X_slice = get_bs_real_mc_prob(col_cat, X_base, y_base, X_valid=X_slice, train_only=False, prior=prior)
+            X_arr.append(X_slice)
+
+        X_valid = pd.concat(X_arr)
+
+    else:
+        # merge col_cat with label
+        y_train = y_train.merge(X_train[[col_cat]], how='left', left_index=True, right_index=True)
+        y_train = y_train.assign(real_mc_prob = y_train['Next_Premium'] != 0)
+
+        # get mean of each category and smoothed by global mean
+        smooth_mean = lambda x: (x.sum() + prior * y_train['real_mc_prob'].mean()) / (len(x) + prior)
+        y_train = y_train.groupby([col_cat]).agg({'real_mc_prob': smooth_mean})
+
+        X_valid = X_valid[[col_cat]].merge(y_train[['real_mc_prob']], how='left', left_on=[col_cat], right_index=True)
+        X_valid = X_valid['real_mc_prob'].where(~pd.isnull(X_valid['real_mc_prob']), np.nanmean(y_train['real_mc_prob']))
+
+    return(X_valid)
 
 
 ######## feature explosion ########
@@ -816,21 +1197,21 @@ def get_bs_real_prem_distr(df_policy, idx_df):
     return(df['real_prem_distr'][idx_df])
 
 
-def get_bs_real_prem_ic_distr(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        Series(real_prem_ic_distr),
-    Description:
-        get premium by distribution channel * insurance coverage
-    '''
-    df = df_policy.groupby(['Insurance_Coverage', "Distribution_Channel"]).agg({'Premium': np.nanmedian})
-    df = df_policy[['Insurance_Coverage', "Distribution_Channel"]].merge(df, how='left', left_on=['Insurance_Coverage', "Distribution_Channel"], right_index=True)
-    df = df.groupby(level=0).agg({'Premium': np.nansum})
-    df = df.assign(real_prem_ic_distr = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
-    return(df['real_prem_ic_distr'][idx_df])
+    def get_bs_real_prem_ic_distr(df_policy, idx_df):
+        '''
+        In:
+            DataFrame(df_policy),
+            Any(idx_df),
+        Out:
+            Series(real_prem_ic_distr),
+        Description:
+            get premium by distribution channel * insurance coverage
+        '''
+        df = df_policy.groupby(['Insurance_Coverage', "Distribution_Channel"]).agg({'Premium': np.nanmedian})
+        df = df_policy[['Insurance_Coverage', "Distribution_Channel"]].merge(df, how='left', left_on=['Insurance_Coverage', "Distribution_Channel"], right_index=True)
+        df = df.groupby(level=0).agg({'Premium': np.nansum})
+        df = df.assign(real_prem_ic_distr = df['Premium'].map(lambda x: 0 if pd.isnull(x) else x))
+        return(df['real_prem_ic_distr'][idx_df])
 
 
 def get_bs_real_prem_area_distr(df_policy, idx_df):
@@ -925,44 +1306,25 @@ def get_bs_real_loss_ins(df_policy, df_claim, idx_df):
     return(df)
 
 
-######## mean encoding ########
-def get_bs_real_mc_prob_distr(X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5):
+def get_bs_real_prem_ic_nmf(df_policy, idx_df):
     '''
     In:
         DataFrame(df_policy),
-        DataFrame(X_train),
-        DataFrame(y_train),
-        DataFrame(X_valid),
-        bool(train_only),
+        Any(idx_df),
     Out:
-        Series(real_mc_prob_distr),
+        DataFrame(real_prem_ic_nmf),
     Description:
-        get probability of premium reducing to 0 by distribution
+        get premium by insurance coverage, with nonnegative matrix factorization
     '''
-    if train_only:
-        np.random.seed(1)
-        rand = np.random.rand(len(X_train))
-        lvs = [i / float(fold) for i in range(fold+1)]
+    df = df_policy[['Insurance_Coverage', 'Premium']]
+    df = df.set_index('Insurance_Coverage', append=True)
+    df = df.unstack(level=1)
+    mtx_df = df.fillna(0).as_matrix()
+    nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+    df = pd.DataFrame(nmf_df, index = df.index)
+    df.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
 
-        X_arr = []
-        for i in range(fold):
-            msk = (rand >= lvs[i]) & (rand < lvs[i+1])
-            X_slice = X_train[msk]
-            X_base = X_train[~msk]
-            y_base = y_train[~msk]
-            X_slice = get_bs_real_mc_prob_distr(X_base, y_base, X_valid=X_slice, train_only=False)
-            X_arr.append(X_slice)
-
-        X_valid = pd.concat(X_arr)
-
-    else:
-        y_train = y_train.merge(X_train[['cat_distr']], how='left', left_index=True, right_index=True)
-        y_train = y_train.assign(real_mc_prob_distr = y_train['Next_Premium'] != 0)
-        y_train = y_train.groupby(['cat_distr']).agg({'real_mc_prob_distr': np.nanmean})
-        X_valid = X_valid[['cat_distr']].merge(y_train[['real_mc_prob_distr']], how='left', left_on=['cat_distr'], right_index=True)
-        X_valid = X_valid['real_mc_prob_distr'].where(~pd.isnull(X_valid['real_mc_prob_distr']), np.nanmedian(y_train['real_mc_prob_distr']))
-
-    return(X_valid)
+    return(df.loc[idx_df])
 
 
 ######## get pre feature selection data set ########
@@ -984,6 +1346,9 @@ def create_feature_selection_data(df_policy, df_claim):
 
     X_train = read_interim_data('X_train_bs.csv')
     X_test = read_interim_data('X_test_bs.csv')
+
+    X_train = X_train.fillna(0)
+    X_test = X_test.fillna(0)
 
     y_train = read_raw_data('training-set.csv')
     y_test = read_raw_data('testing-set.csv')
@@ -1043,6 +1408,12 @@ def create_feature_selection_data(df_policy, df_claim):
     print('Getting column real_loss_ins')
     X_fs = X_fs.assign(real_loss_ins = get_bs_real_loss_ins(df_policy, df_claim, X_fs.index))
 
+    # insurance coverage
+    print('Getting column real_prem_ic_nmf')
+    real_prem_ic_nmf = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+    colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
+    X_fs[colnames] = real_prem_ic_nmf
+
     # write results
     X_train = X_fs.loc[X_train.index]
     y_train = y_fs.loc[y_train.index]
@@ -1057,12 +1428,23 @@ def create_feature_selection_data(df_policy, df_claim):
     y_train_t = y_train[msk]
 
     # add mean encoding
-    print('Getting column real_mc_prob_distr')
-    X_test = X_test.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train, y_train, X_valid=X_test, train_only=False))
+    cols_cat = [col for col in X_train.columns if col.startswith('cat')]
 
-    X_train_v = X_train_v.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train_t, y_train_t, X_valid=X_train_v, train_only=False))
+    # add mean encoding on next_premium mean
+    for col_cat in cols_cat:
+        col_mean = col_cat.replace('cat_', 'real_mc_mean_')
+        print('Getting column ' + col_mean)
+        X_test[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
+        X_train_v[col_mean] = get_bs_real_mc_mean(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
+        X_train_t[col_mean] = get_bs_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
-    X_train_t = X_train_t.assign(real_mc_prob_distr = get_bs_real_mc_prob_distr(X_train_t, y_train_t, train_only=True, fold=5))
+    # add mean encoding on probability of next_premium being 0
+    for col_cat in cols_cat:
+        col_prob = col_cat.replace('cat_', 'real_mc_prob_')
+        print('Getting column ' + col_prob)
+        X_test[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
+        X_train_v[col_prob] = get_bs_real_mc_prob(col_cat, X_train_t, y_train_t, X_valid=X_train_v, train_only=False, fold=5, prior=1000)
+        X_train_t[col_prob] = get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     write_test_data(X_train_t, "X_train_prefs.csv")
     write_test_data(y_train_t, "y_train_prefs.csv")
@@ -1140,7 +1522,7 @@ if __name__ == '__main__':
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 
-    create_feature_selection_data(df_policy, df_claim)
+    #create_feature_selection_data(df_policy, df_claim)
 
     cat_params = {
         'n_estimators':100000, 'learning_rate': 50, 'objective':'MAE', 'verbose':False,
@@ -1149,22 +1531,27 @@ if __name__ == '__main__':
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
-        'num_iterations': 500,
+        'num_iterations': 1000,
         'max_depth':-1,
-        'objective': 'regression',
+        'objective': 'regression_l1',
         'metric': 'mae',
-        'reg_alpha':0.5,
+        'lamba_l1':0.3,
         'num_leaves': 31,
         'learning_rate': 0.05,
         'colsample_bytree': 0.9,
         'subsample': 0.8,
-        'subsample_freq': 5
+        'subsample_freq': 5,
+        'min_data_in_leaf': 20,
+        'min_gain_to_split': 0,
+        'seed': 0,
     }
     lgb_train_params = {
-        'early_stopping_rounds':None,
+        'early_stopping_rounds': 3,
         'learning_rates': None, # lambda iter: 0.1*(0.99**iter),
         'verbose_eval': False,
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
 
-    stepwise_feature_selection(get_lgb_mae, lgb_params, max_rounds=60, num_only=False, forward_step=False, backward_step=True, cols_init=[])
+    #stepwise_feature_selection(get_lgb_mae, lgb_params, max_rounds=60, num_only=True, forward_step=False, backward_step=True, cols_init=[])
+
+    type_feature_selection(get_lgb_mae, lgb_params, num_only=True)

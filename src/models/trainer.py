@@ -8,8 +8,8 @@ from helpers import AverageMeter, get_optimizer, test_epoch
 
 
 class Trainer:
-    def __init__(self, model, train_set, loss_fn, hyper={},
-                batch_size=64, valid_size=0.1, epochs=None):
+    def __init__(self, model, train_set, loss_fn, valid_set=None, hyper={},
+                batch_size=64, valid_size=0.1, epochs=None, optimizer='sgd'):
         if torch.cuda.is_available():
             # Wrap model for multi-GPUs, if necessary
             if torch.cuda.device_count() > 1:
@@ -19,9 +19,10 @@ class Trainer:
         else:
             self.model = model
         self.optimizer, self.scheduler, self.hyper = get_optimizer(
-            model=model, hyper=hyper, epochs=epochs
+            model=model, hyper=hyper, epochs=epochs, optimizer=optimizer
         )
-        self.evaluator = AverageMeter()
+        self.evaluator_loss = AverageMeter()
+        self.evaluator_err = AverageMeter()
         self.num_params = 0
         self.layer_idx = [0]
         for p in self.model.parameters():
@@ -33,26 +34,47 @@ class Trainer:
 
         # Create train/valid split
         self.num_train = len(train_set)
-        self.num_valid = int(round(valid_size*self.num_train))
+        if valid_set is None:
+            self.num_valid = int(round(valid_size*self.num_train))
+        else:
+            self.num_valid = len(valid_set)
         self.train_set = train_set
+        self.valid_set = valid_set
         self.reset_train_valid()
 
     def reset_train_valid(self):
-        indices = torch.randperm(self.num_train)
-        train_indices = indices[:self.num_train - self.num_valid]
-        train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
-        valid_indices = indices[self.num_train - self.num_valid:]
-        valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
+        if self.valid_set is None:
+            indices = torch.randperm(self.num_train)
+            train_indices = indices[:self.num_train - self.num_valid]
+            train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
+            valid_indices = indices[self.num_train - self.num_valid:]
+            valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
 
-        # Data loaders
-        self.train_loader = torch.utils.data.DataLoader(
-            self.train_set, batch_size=self.batch_size, sampler=train_sampler,
-            pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
-        )
-        self.valid_loader = torch.utils.data.DataLoader(
-            self.train_set, batch_size=self.batch_size, sampler=valid_sampler,
-            pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
-        )
+            # Data loaders
+            self.train_loader = torch.utils.data.DataLoader(
+                self.train_set, batch_size=self.batch_size, sampler=train_sampler,
+                pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
+            )
+            self.valid_loader = torch.utils.data.DataLoader(
+                self.train_set, batch_size=self.batch_size, sampler=valid_sampler,
+                pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
+            )
+
+        else:
+            train_indices = torch.randperm(self.num_train)
+            valid_indices = torch.randperm(self.num_valid)
+            train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
+            valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
+
+            # Data loaders
+            self.train_loader = torch.utils.data.DataLoader(
+                self.train_set, batch_size=self.batch_size, sampler=train_sampler,
+                pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
+            )
+            self.valid_loader = torch.utils.data.DataLoader(
+                self.valid_set, batch_size=self.batch_size, sampler=valid_sampler,
+                pin_memory=(torch.cuda.is_available()), num_workers=0, drop_last=False
+            )
 
         self.train_loader_iter = iter(self.train_loader)
         self.valid_loader_iter = iter(self.valid_loader)
@@ -88,7 +110,11 @@ class Trainer:
 
         output = self.model(inputs)
         loss = self.loss_fn(output, target)
+        # loss = self.loss_fn(output, target.view_as(output))
+        # loss = self.loss_fn(output.view_as(target), target)
         if np.isnan(loss.item()):
+            # print(output)
+            # print(target)
             print('WARNING at trainer.py: Loss is NaN!')
 
         self.optimizer.zero_grad()
@@ -109,7 +135,7 @@ class Trainer:
         # pred = output.data.max(1, keepdim=True)[1]
         return output
 
-    def eval(self, load='valid', batch_id=None):
+    def eval(self, load='valid', batch_id=None, eval_type='loss'):
         """Evaluate model on the provided validation or test set."""
         self.model.eval() # evaluation mode
         if batch_id is None:
@@ -137,14 +163,18 @@ class Trainer:
         
         output = self.predict(inp)
 
-        # pred = output.data.max(1, keepdim=True)[1]
-        # correct = pred.eq(target.data.view_as(pred)).cpu().sum()
-        # accuracy = 100. * correct.item() / len(target)
-        loss = self.loss_fn(output, target).item()
+        
+        if eval_type=='loss':
+            result = self.loss_fn(output, target).item()
+            self.evaluator_loss.update(result, len(target))
+        else:
+            pred = output.data.max(1, keepdim=True)[1]
+            incorrect = pred.ne(target.data.view_as(pred)).cpu().sum()
+            result = incorrect.item() / len(target)
 
-        self.evaluator.update(loss, len(target))
+            self.evaluator_err.update(result, len(target))
         # return self.evaluator.avg
-        return loss
+        return result
     
     def loss(self, load='valid', batch_id=None):
         self.model.eval()
@@ -175,10 +205,13 @@ class Trainer:
         loss = self.loss_fn(output, target)
         return loss.item()
 
-    def loss_epoch(self, load='valid'):
+    def loss_epoch(self, load='valid', eval_type='loss'):
         loader = self.valid_loader if load=='valid' else self.train_loader
-        loss_avg, _ = test_epoch(self.model, loader, loss_fn=self.loss_fn)
-        return loss_avg
+        loss_avg, error_avg = test_epoch(self.model, loader, loss_fn=self.loss_fn, eval_type=eval_type)
+        if eval_type=='loss':
+            return loss_avg
+        else:
+            return error_avg
 
     def reset_evaluator(self):
         self.evaluator.reset()
