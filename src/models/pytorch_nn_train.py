@@ -196,7 +196,7 @@ def write_precessed_data(df, suffix=None):
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=100, base_lr=0.0005, momentum=0.9, weight_decay=0, 
+    epochs=100, base_lr=0.005, momentum=0.9, weight_decay=0, 
     batch_size=32, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
     get_train=False, get_test=False, save=False, load=False
 ):
@@ -236,13 +236,13 @@ def demo(
         'lr':base_lr, 
         'momentum':momentum,
         'weight_decay':weight_decay, 
-        'scheduler': 'plateau',
-        # 'lr_schedule':{
-        #     25:base_lr, 
-        #     50:base_lr/5, 
-        #     75: base_lr/50,
-        #     100:base_lr/500
-        # }
+        # 'scheduler': 'plateau',
+        'lr_schedule':{
+            25:base_lr, 
+            50:base_lr/5, 
+            75: base_lr/50,
+            100:base_lr/500
+        }
     }
 
     # optim_hyper = {

@@ -3,8 +3,9 @@ import pandas as pd
 import os
 from sklearn.decomposition import NMF
 from sklearn.metrics import mean_absolute_error
-from sklearn.cluster import KMeans
 import lightgbm as lgb
+import torch
+
 
 ######## feature template expansion ########
 def get_bs_cat(df_policy, idx_df, col):
@@ -366,7 +367,7 @@ def get_bs_real_loss_ins(df_policy, df_claim, idx_df):
     return(real_loss_ins)
 
 
-def get_bs_real_prem_ic_nmf(df_policy, idx_df):
+def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
     '''
     In:
         DataFrame(df_policy),
@@ -384,14 +385,94 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df):
     df_policy = df_policy[['Premium']].unstack(level=1)
     # transform dataframe to matrix
     mtx_df = df_policy.fillna(0).as_matrix()
-    # non-negative matrix factorization
-    nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+
+    ### Uncomment below for creating csv file of 60 premium features
+    # interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+    # write_sample_path = os.path.join(interim_data_path, 'premium_60_new.csv')
+    # df_policy.fillna(0).to_csv(write_sample_path)
+
+    
+    if method=='nn':
+        # nn dimension reduction
+        model = torch.load(os.path.join('./saved_models', 'prem60_11.pt'))
+        model.eval() # evaluation mode
+        inp = torch.FloatTensor(mtx_df)
+        with torch.no_grad():
+            if torch.cuda.is_available():
+                inp = torch.autograd.Variable(inp.cuda())
+            else:
+                inp = torch.autograd.Variable(inp)
+        nmf_df = inp
+        modulelist = list(model.regressor.modules())
+        for l in modulelist[1:-1]:
+            nmf_df = l(nmf_df)
+        nmf_df = nmf_df.cpu().data.numpy()
+    else:
+        # non-negative matrix factorization
+        nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+
+    
+
     #
+    n_comp = nmf_df.shape[1]
+    print('>>> number of reduced features: {}'.format(n_comp))
     real_prem_ic_nmf = pd.DataFrame(nmf_df, index = df_policy.index).fillna(0)
-    real_prem_ic_nmf.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
+    real_prem_ic_nmf.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
 
     return(real_prem_ic_nmf.loc[idx_df].fillna(0))
 
+
+def get_bs_real_prem_ic_nmf(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        DataFrame(real_prem_ic_nmf),
+    Description:
+        get premium by insurance coverage, with nonnegative matrix factorization
+    '''
+    # remove terminated cols
+    real_ia = df_policy['Insured_Amount1'] + df_policy['Insured_Amount2'] + df_policy['Insured_Amount3']
+    df_policy = df_policy[real_ia != 0]
+    # rows: policy number; cols: insurance coverage
+    df_policy = df_policy.set_index('Insurance_Coverage', append=True)
+    df_policy = df_policy[['Premium']].unstack(level=1)
+    # transform dataframe to matrix
+    mtx_df = df_policy.fillna(0).values
+
+    ### Uncomment below for creating csv file of 60 premium features
+    # interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+    # write_sample_path = os.path.join(interim_data_path, 'premium_60_new.csv')
+    # df_policy.fillna(0).to_csv(write_sample_path)
+
+    # non-negative matrix factorization
+    # nmf_df = mtx_df
+
+    # nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+
+    model = torch.load(os.path.join('./saved_models', 'prem60_11.pt'))
+    model.eval() # evaluation mode
+    inp = torch.FloatTensor(mtx_df)
+    with torch.no_grad():
+        if torch.cuda.is_available():
+            inp = torch.autograd.Variable(inp.cuda())
+        else:
+            inp = torch.autograd.Variable(inp)
+    nmf_df = inp
+    modulelist = list(model.regressor.modules())
+    for l in modulelist[1:-1]:
+        nmf_df = l(nmf_df)
+    nmf_df = nmf_df.cpu().data.numpy()
+
+
+    #
+    n_comp = nmf_df.shape[1]
+    print('>>> number of reduced features: {}'.format(n_comp))
+    real_prem_ic_nmf = pd.DataFrame(nmf_df, index = df_policy.index)
+    real_prem_ic_nmf.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
+
+    return(real_prem_ic_nmf.loc[idx_df])
 
 def get_bs_real_ia_ic_nmf(df_policy, idx_df):
     '''
@@ -668,8 +749,11 @@ def create_feature_selection_data(df_policy, df_claim):
 
     # insurance coverage
     print('Getting column real_prem_ic_nmf')
-    colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, 8)]
-    X_fs[colnames] = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+    temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+    n_comp = temp.shape[1]
+    print('>>> number of reduced features: {}'.format(n_comp))
+    colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
+    X_fs[colnames] = temp
 
 #    print('Getting column real_ia_ic_nmf')
 #    colnames = ['real_ia_ic_nmf_' + str(i) for i in range(1, 6)]
@@ -903,7 +987,6 @@ def write_test_data(df, file_name):
     return(None)
 
 
-if __name__ == '__main__':
     '''
     train data: training-set.csv
     test data: testing-set.csv
