@@ -9,7 +9,7 @@ from helpers import AverageMeter, get_optimizer, test_epoch
 
 class Trainer:
     def __init__(self, model, train_set, loss_fn, valid_set=None, hyper={},
-                batch_size=64, valid_size=0.1, epochs=None, optimizer='sgd'):
+                batch_size=64, valid_size=0, epochs=None, optimizer='sgd'):
         if torch.cuda.is_available():
             # Wrap model for multi-GPUs, if necessary
             if torch.cuda.device_count() > 1:
@@ -135,7 +135,7 @@ class Trainer:
         # pred = output.data.max(1, keepdim=True)[1]
         return output
 
-    def eval(self, load='valid', batch_id=None, eval_type='loss'):
+    def eval(self, load='train', batch_id=None, eval_type='loss'):
         """Evaluate model on the provided validation or test set."""
         self.model.eval() # evaluation mode
         if batch_id is None:
@@ -176,7 +176,7 @@ class Trainer:
         # return self.evaluator.avg
         return result
     
-    def loss(self, load='valid', batch_id=None):
+    def loss(self, load='train', batch_id=None):
         self.model.eval()
         if batch_id is None:
             loader = self.valid_loader_iter if load=='valid' else self.train_loader_iter

@@ -21,6 +21,7 @@ class MLPRegressor(nn.Module):
             self.regressor.add_module('fc{}_relu'.format(idx), nn.ReLU(inplace=True))
             # self.regressor.add_module('fc{}_dropout'.format(idx), nn.Dropout())
         self.regressor.add_module('fc{}'.format(len(num_neuron)), nn.Linear(num_neuron[-1],1))
+        self.regressor.add_module('fc{}_relu'.format(len(num_neuron)), nn.ReLU(inplace=True))
 
         # Initialization
         for name, param in self.named_parameters():
