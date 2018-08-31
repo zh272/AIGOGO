@@ -1,10 +1,10 @@
+import os
+import fire
 import numpy as np
 import pandas as pd
-import os
 from sklearn.decomposition import NMF
 from sklearn.metrics import mean_absolute_error
 import lightgbm as lgb
-import torch
 
 
 ######## feature template expansion ########
@@ -393,8 +393,9 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
 
     
     if method=='nn':
+        import torch
         # nn dimension reduction
-        model = torch.load(os.path.join('./saved_models', 'prem60_11.pt'))
+        model = torch.load(os.path.join('../models/saved_models', 'prem60_11.pt'))
         model.eval() # evaluation mode
         inp = torch.FloatTensor(mtx_df)
         with torch.no_grad():
@@ -421,58 +422,6 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
 
     return(real_prem_ic_nmf.loc[idx_df].fillna(0))
 
-
-def get_bs_real_prem_ic_nmf(df_policy, idx_df):
-    '''
-    In:
-        DataFrame(df_policy),
-        Any(idx_df),
-    Out:
-        DataFrame(real_prem_ic_nmf),
-    Description:
-        get premium by insurance coverage, with nonnegative matrix factorization
-    '''
-    # remove terminated cols
-    real_ia = df_policy['Insured_Amount1'] + df_policy['Insured_Amount2'] + df_policy['Insured_Amount3']
-    df_policy = df_policy[real_ia != 0]
-    # rows: policy number; cols: insurance coverage
-    df_policy = df_policy.set_index('Insurance_Coverage', append=True)
-    df_policy = df_policy[['Premium']].unstack(level=1)
-    # transform dataframe to matrix
-    mtx_df = df_policy.fillna(0).values
-
-    ### Uncomment below for creating csv file of 60 premium features
-    # interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
-    # write_sample_path = os.path.join(interim_data_path, 'premium_60_new.csv')
-    # df_policy.fillna(0).to_csv(write_sample_path)
-
-    # non-negative matrix factorization
-    # nmf_df = mtx_df
-
-    # nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
-
-    model = torch.load(os.path.join('./saved_models', 'prem60_11.pt'))
-    model.eval() # evaluation mode
-    inp = torch.FloatTensor(mtx_df)
-    with torch.no_grad():
-        if torch.cuda.is_available():
-            inp = torch.autograd.Variable(inp.cuda())
-        else:
-            inp = torch.autograd.Variable(inp)
-    nmf_df = inp
-    modulelist = list(model.regressor.modules())
-    for l in modulelist[1:-1]:
-        nmf_df = l(nmf_df)
-    nmf_df = nmf_df.cpu().data.numpy()
-
-
-    #
-    n_comp = nmf_df.shape[1]
-    print('>>> number of reduced features: {}'.format(n_comp))
-    real_prem_ic_nmf = pd.DataFrame(nmf_df, index = df_policy.index)
-    real_prem_ic_nmf.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
-
-    return(real_prem_ic_nmf.loc[idx_df])
 
 def get_bs_real_ia_ic_nmf(df_policy, idx_df):
     '''
@@ -677,7 +626,7 @@ def get_bs_real_prem_var_ic(df_policy, idx_df):
 
 
 ######## get pre feature selection data set ########
-def create_feature_selection_data(df_policy, df_claim):
+def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     '''
     In:
         DataFrame(df_policy),
@@ -749,7 +698,7 @@ def create_feature_selection_data(df_policy, df_claim):
 
     # insurance coverage
     print('Getting column real_prem_ic_nmf')
-    temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index)
+    temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index, method=red_method)
     n_comp = temp.shape[1]
     print('>>> number of reduced features: {}'.format(n_comp))
     colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
@@ -969,7 +918,7 @@ def read_interim_data(file_name, index_col='Policy_Number'):
     return(interim_data)
 
 
-def write_test_data(df, file_name):
+def write_test_data(df, file_name, red_method='nmf'):
     '''
     In:
         DataFrame(df),
@@ -986,7 +935,7 @@ def write_test_data(df, file_name):
 
     return(None)
 
-
+def demo(red_method='nmf'):
     '''
     train data: training-set.csv
     test data: testing-set.csv
@@ -997,7 +946,7 @@ def write_test_data(df, file_name):
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 
-    create_feature_selection_data(df_policy, df_claim)
+    create_feature_selection_data(df_policy, df_claim, red_method=red_method)
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
@@ -1023,3 +972,7 @@ def write_test_data(df, file_name):
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
     lgb_output = get_bs_quick_mae(lgb_params)
 #    lgb_output = get_bs_quick_submission(lgb_params)
+
+
+if __name__ == '__main__':
+    fire.Fire(demo)

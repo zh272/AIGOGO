@@ -20,11 +20,22 @@ from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 def get_submission(
     X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
     momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, zero_predict=False,
-    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt',
+    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt',all_train=False
 ):    
-    train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
-        X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
-    )
+    if all_train:
+        X_train = pd.concat([X_train, X_valid])
+        y_train = pd.concat([y_train, y_valid])
+        X_valid = None
+        y_valid = None
+        test_along = False
+
+        train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
+            X_train.values, y_train.values, X_test.values
+        )
+    else:
+        train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
+            X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
+        )
     
     PATH = './saved_models'
     if not os.path.isdir(PATH): os.makedirs(PATH)
@@ -52,9 +63,9 @@ def get_submission(
             if test_along:
                 temp_valid = trainer.loss_epoch()
                 valid_hist.append(temp_valid)
-                print('Epoch {:3}: Training MAE={:8.2f}, Valid MAE={:8.2f}, lr={}'.format(epochs, trainer.eval(), temp_valid, temp_lr))
+                print('Epoch {:3}: Training MAE={:8.2f}, Valid MAE={:8.2f}, lr={}'.format(epochs, trainer.eval(load='train'), temp_valid, temp_lr))
             else:
-                print('Epoch {:3}: Training MAE={:8.2f}, lr={}'.format(epochs, trainer.eval(), temp_lr))
+                print('Epoch {:3}: Training MAE={:8.2f}, lr={}'.format(epochs, trainer.eval(load='train'), temp_lr))
         end_time = time.time()
         
         
@@ -82,13 +93,16 @@ def get_submission(
     # valid_loss = trainer.loss_epoch(load='valid')
     
     train_pred = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
-    valid_pred = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
-    test_pred = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
-
     train_loss = mean_absolute_error(y_train.values, train_pred)
-    valid_loss = mean_absolute_error(y_valid.values, valid_pred)
     
+    if X_valid_np is not None:
+        valid_pred = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
+        valid_loss = mean_absolute_error(y_valid.values, valid_pred)
+    else:
+        valid_pred = None
+        valid_loss = 0
 
+    test_pred = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
 
     # print('>>> original valid loss: {}'.format(valid_loss))
     # valid_pred[valid_pred<=50] = 0
@@ -138,7 +152,7 @@ def get_submission(
     summary += '>>> schedule={}\n'.format(hyper['lr_schedule']) if 'lr_schedule' in hyper else 'None'
     summary += '>>> hidden={}, optimizer="{}", batch_size={}\n'.format(train_params['num_neuron'],optimizer,batch_size)
     for idx in sorted_idx:
-        summary += '[{:<25s}] {:<10.4f}\n'.format(feature_names[idx], feature_importances[idx])
+        summary += '[{:<30s}] {:<10.4f}\n'.format(feature_names[idx], feature_importances[idx])
     summary += '>>> training_time={:10.2f}min\n'.format((end_time-start_time)/60)
     summary += '>>> Final MAE: {:10.4f}(Training), {:10.4f}(Validation)\n'.format(train_loss,valid_loss)
 
@@ -147,7 +161,7 @@ def get_submission(
     
     submission_train = pd.DataFrame(data=train_pred,index=X_train.index, columns=['Next_Premium'])
     
-    submission_valid = pd.DataFrame(data=valid_pred,index=X_valid.index, columns=['Next_Premium'])
+    submission_valid = pd.DataFrame(data=valid_pred,index=X_valid.index, columns=['Next_Premium']) if valid_pred is not None else None
 
 
     return {
@@ -196,8 +210,8 @@ def write_precessed_data(df, suffix=None):
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=100, base_lr=0.005, momentum=0.9, weight_decay=0, 
-    batch_size=32, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
+    epochs=100, base_lr=0.001, momentum=0.9, weight_decay=0, all_train=False,
+    batch_size=128, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
     get_train=False, get_test=False, save=False, load=False
 ):
     rand_reset(seed)
@@ -223,7 +237,7 @@ def demo(
     X_test = X_test.apply(lambda x:x.fillna(-1))
 
     # begin training
-    num_neuron = [110,55,10]
+    num_neuron = [100,50,8]
     print('Network Architecture: {}'.format(num_neuron))
     # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
     # num_neuron = [160,30,8]
@@ -238,10 +252,10 @@ def demo(
         'weight_decay':weight_decay, 
         # 'scheduler': 'plateau',
         'lr_schedule':{
-            25:base_lr, 
-            50:base_lr/5, 
-            75: base_lr/50,
-            100:base_lr/500
+            10:base_lr,
+            25:base_lr/5, 
+            50:base_lr/50, 
+            100:base_lr/1000
         }
     }
 
@@ -258,7 +272,7 @@ def demo(
     # }
     
     model_output = get_submission(
-        X_train, X_valid, y_train, y_valid, X_test, 
+        X_train, X_valid, y_train, y_valid, X_test, all_train=all_train,
         model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, 
         momentum=momentum, weight_decay=weight_decay,
         batch_size = batch_size, train_params=train_params, 
