@@ -625,6 +625,21 @@ def get_bs_real_prem_var_ic(df_policy, idx_df):
     return(real_prem_var_ic.loc[idx_df])
 
 
+def get_bs_cat_assured_grp(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(cat_assured_grp),
+    Description:
+        get grouped assured
+    '''
+    cat_assured_grp = get_bs_cat(df_policy, idx_df, 'fassured')
+    cat_assured_grp = np.where(cat_assured_grp % 2 == 0, 2, 1)
+
+    return(cat_assured_grp)
+
 ######## get pre feature selection data set ########
 def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     '''
@@ -655,10 +670,17 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     y_fs = pd.concat([y_train, y_valid, y_test])
 
     # basic
-#    print('Getting column cat_zip')
-#    X_fs = X_fs.assign(cat_zip = get_bs_cat(df_policy, X_fs.index, 'aassured_zip'))
-#    print('Getting column cat_ins_self')
-#    X_fs = X_fs.assign(cat_ins_self = get_bs_cat_ins_self(df_policy, X_fs.index))
+    print('Getting column cat_zip')
+    X_fs = X_fs.assign(cat_zip = get_bs_cat(df_policy, X_fs.index, 'aassured_zip'))
+
+    print('Getting column cat_assured_grp')
+    X_fs = X_fs.assign(cat_assured_grp = get_bs_cat_assured_grp(df_policy, X_fs.index))
+
+    print('Getting column cat_acc_dmg')
+    X_fs = X_fs.assign(cat_acc_dmg = get_bs_cat(df_policy, X_fs.index, 'pdmg_acc'))
+
+    print('Getting column cat_ins_self')
+    X_fs = X_fs.assign(cat_ins_self = get_bs_cat_ins_self(df_policy, X_fs.index))
 #
 #    # distribution
 #    print('Getting column real_prem_ic_distr')
@@ -673,6 +695,10 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
 
     print('Getting column real_ia3_55J_indiv')
     X_fs = X_fs.assign(real_ia3_55J_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '55J', 'Insured_Amount3'))
+
+    print('Getting column real_ia3_16P_indiv')
+    X_fs = X_fs.assign(real_ia3_16P_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16P', 'Insured_Amount3'))
+
 #    # vehicle
 #    print('Getting column real_prem_ic_vmy')
 #    X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_exst(df_policy, X_fs.index, 'Manafactured_Year_and_Month', get_bs_real_prem_ic))
@@ -733,8 +759,14 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     X_fs = X_fs.assign(cat_ic_combo = get_bs_cat_ic_combo(df_policy, X_fs.index))
 
     # feature template expansion
-    cols_cat = [col for col in X_fs.columns if col.startswith('cat') and col not in X_train.columns]
-    cols_cat_all = [col for col in X_fs.columns if col.startswith('cat')]
+    cols_cat_all = [col for col in X_fs.columns if col.startswith('cat') and len(X_fs[col].unique()) > 2]
+    cols_bin = [col for col in X_fs.columns if col.startswith('cat') and len(X_fs[col].unique()) <= 2]
+    cols_cat = [col for col in cols_cat_all if col not in X_train.columns]
+
+    # binary category results
+    for col_bin in cols_bin:
+        col_real = col_bin.replace('cat_', 'real_')
+        X_fs[col_real] = X_fs[col_bin]
 
     # frequency of category values
     for col_cat in cols_cat:
@@ -765,7 +797,7 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
         X_train_all[col_mean] = get_bs_real_mc_mean(col_cat, X_train_all, y_train_all, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     # add mean encoding on mean of diff btw next_premium and premium
-    for col_cat in cols_cat_all:
+    for col_cat in cols_cat:
         col_mean = col_cat.replace('cat_', 'real_mc_mean_diff_')
         print('Getting column ' + col_mean)
         X_test[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
