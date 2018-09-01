@@ -1,5 +1,6 @@
 import os
 import fire
+import torch
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import NMF
@@ -391,9 +392,8 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
     # write_sample_path = os.path.join(interim_data_path, 'premium_60_new.csv')
     # df_policy.fillna(0).to_csv(write_sample_path)
 
-    
+
     if method=='nn':
-        import torch
         # nn dimension reduction
         model = torch.load(os.path.join('../models/saved_models', 'prem60_11.pt'))
         model.eval() # evaluation mode
@@ -412,7 +412,7 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
         # non-negative matrix factorization
         nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
 
-    
+
 
     #
     n_comp = nmf_df.shape[1]
@@ -670,6 +670,9 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
 
     print('Getting column real_ia1_16G_indiv')
     X_fs = X_fs.assign(real_ia1_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount1'))
+
+    print('Getting column real_ia3_55J_indiv')
+    X_fs = X_fs.assign(real_ia3_55J_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '55J', 'Insured_Amount3'))
 #    # vehicle
 #    print('Getting column real_prem_ic_vmy')
 #    X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_exst(df_policy, X_fs.index, 'Manafactured_Year_and_Month', get_bs_real_prem_ic))
