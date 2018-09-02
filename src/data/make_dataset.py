@@ -275,8 +275,29 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     print('Getting column cat_sex')
     df_bs = df_bs.assign(cat_sex = get_bs_cat(df_policy, df_bs.index, 'fsex'))
 
+    print('Getting column cat_zip')
+    df_bs = df_bs.assign(cat_zip = get_bs_cat(df_policy, df_bs.index, 'aassured_zip'))
+
     print('Getting column cat_vmy')
     df_bs = df_bs.assign(cat_vmy = get_bs_cat_vmy(df_policy, df_bs.index))
+
+    print('Getting column cat_vmm1')
+    df_bs = df_bs.assign(cat_vmm1 = get_bs_cat(df_policy, df_bs.index, 'Vehicle_Make_and_Model1'))
+
+    print('Getting column cat_vmm2')
+    df_bs = df_bs.assign(cat_vmm2 = get_bs_cat(df_policy, df_bs.index, 'Vehicle_Make_and_Model2'))
+
+    print('Getting column cat_vc')
+    df_bs = df_bs.assign(cat_vc = get_bs_cat(df_policy, df_bs.index, 'Coding_of_Vehicle_Branding_&_Type'))
+
+    print('Getting column cat_vqpt')
+    df_bs = df_bs.assign(cat_vqpt = get_bs_cat(df_policy, df_bs.index, 'qpt'))
+
+    print('Getting column cat_vregion')
+    df_bs = df_bs.assign(cat_vregion = get_bs_cat(df_policy, df_bs.index, 'Imported_or_Domestic_Car'))
+
+    print('Getting column real_vengine')
+    df_bs = df_bs.assign(cat_vengine = get_bs_cat(df_policy, df_bs.index, 'Engine_Displacement_(Cubic_Centimeter)'))
 
     print('Getting column cat_acc_lia')
     df_bs = df_bs.assign(cat_acc_lia = get_bs_cat(df_policy, df_bs.index, 'lia_class'))

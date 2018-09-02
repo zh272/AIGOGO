@@ -577,10 +577,8 @@ def get_bs_cat_age(df_policy, idx_df):
     '''
     df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0]})
 
-    get_cat_age = lambda x: 0 if pd.isnull(x) else 2016 - int(x[3:])
+    get_cat_age = lambda x: 0 if pd.isnull(x) else round((2016 - int(x[3:])) / 5)
     cat_age = df_policy['ibirth'].map(get_cat_age)
-    cut_edge = [-1, 0, 20, 26, 31, 36, 39, 71, 75, 300]
-    cat_age = pd.cut(cat_age, cut_edge, labels = list(range(1, len(cut_edge))))
 
     return(cat_age)
 
@@ -670,8 +668,8 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     y_fs = pd.concat([y_train, y_valid, y_test])
 
     # basic
-    print('Getting column cat_zip')
-    X_fs = X_fs.assign(cat_zip = get_bs_cat(df_policy, X_fs.index, 'aassured_zip'))
+    print('Getting column cat_age')
+    X_fs = X_fs.assign(cat_age = get_bs_cat_age(df_policy, X_fs.index))
 
     print('Getting column cat_assured_grp')
     X_fs = X_fs.assign(cat_assured_grp = get_bs_cat_assured_grp(df_policy, X_fs.index))
@@ -683,8 +681,8 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     X_fs = X_fs.assign(cat_ins_self = get_bs_cat_ins_self(df_policy, X_fs.index))
 #
 #    # distribution
-#    print('Getting column real_prem_ic_distr')
-#    X_fs = X_fs.assign(real_prem_ic_distr = get_bs_real_prem_ic(df_policy, X_fs.index, 'Distribution_Channel'))
+    print('Getting column real_prem_ic_distr')
+    X_fs = X_fs.assign(real_prem_ic_distr = get_bs_real_prem_ic(df_policy, X_fs.index, 'Distribution_Channel'))
 #
     # insurance coverage
     print('Getting column real_prem_16G_indiv')
@@ -699,15 +697,16 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     print('Getting column real_ia3_16P_indiv')
     X_fs = X_fs.assign(real_ia3_16P_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16P', 'Insured_Amount3'))
 
-#    # vehicle
-#    print('Getting column real_prem_ic_vmy')
-#    X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_exst(df_policy, X_fs.index, 'Manafactured_Year_and_Month', get_bs_real_prem_ic))
-#
+    # vehicle
+    print('Getting column real_prem_ic_vmy')
+    X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_exst(df_policy, X_fs.index, 'Manafactured_Year_and_Month', get_bs_real_prem_ic))
+
+
 #    print('Getting column real_prem_per_vcost')
 #    X_fs = X_fs.assign(real_prem_per_vcost = X_fs['real_prem_plc'] / X_fs['real_vcost'])
 #
-    print('Getting column cat_vequip')
-    X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
+#    print('Getting column cat_vequip')
+#    X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
 
 #    print('Getting column cat_ic_cluster_vmm2')
 #    X_fs = X_fs.assign(cat_ic_cluster_vmm2 = get_bs_cat_ic_cluster(df_policy, X_fs.index, 'Vehicle_Make_and_Model2', 60))
@@ -721,9 +720,9 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
 
     print('Getting column cat_claim_theft')
     X_fs = X_fs.assign(cat_claim_theft = get_bs_cat_claim_theft(df_claim, X_fs.index))
-#
-#    print('Getting column real_claim_fault')
-#    X_fs = X_fs.assign(real_claim_fault = get_bs_real_claim_fault(df_claim, X_fs.index))
+
+    print('Getting column real_claim_fault')
+    X_fs = X_fs.assign(real_claim_fault = get_bs_real_claim_fault(df_claim, X_fs.index))
 
     # insurance coverage
     print('Getting column real_prem_ic_nmf')
@@ -873,14 +872,47 @@ def get_bs_quick_mae(params):
     varimp = list(model.feature_importance())
     varimp = dict(zip(cols_train, varimp))
     for key, value in sorted(varimp.items(), key=lambda x: -x[1]):
-        print("%s: %s" % (key, value))
+        print("'%s': %s," % (key, value))
 
     lgb_output = {'varimp': varimp, 'mae': valid_mae}
 
     return(lgb_output)
 
+def get_bs_train_weight(X_train, X_valid, prelim):
+    '''
+    In:
 
-def get_bs_quick_submission(params):
+    Out:
+        float(mae)
+
+    Description:
+        calculate quick mae on validation set
+    '''
+    varimp = prelim['varimp']
+    cols_cat = [col for col in X_train.columns if col.startswith('cat')]
+
+    for col_cat in cols_cat:
+        col_real = col_cat.replace('cat_', 'real_')
+        col_mean = col_cat.replace('cat_', 'real_mc_mean_')
+        col_diff = col_cat.replace('cat_', 'real_mc_mean_diff_')
+        col_prob = col_cat.replace('cat_', 'real_mc_prob_')
+        varimp[col_cat] = varimp.get(col_mean, 0) + varimp.get(col_diff, 0) + varimp.get(col_prob, 0) + varimp.get(col_real, 0)
+
+    weight = pd.Series(0, index=X_train.index)
+    imp_total = 0
+    for col in cols_cat:
+        imp_total = imp_total + varimp[col]
+        train_freq = X_train[col].value_counts() / len(X_train)
+        valid_freq = X_valid[col].value_counts().loc[train_freq.index].fillna(0) / len(X_valid)
+        col_weight = X_train[col].map(valid_freq) / X_train[col].map(train_freq)
+        weight = weight + col_weight
+    weight = weight / imp_total
+    weight_norm = weight + weight.max()
+
+    return(weight_norm)
+
+
+def get_bs_quick_submission(params, prelim):
     '''
     In:
 
@@ -900,11 +932,12 @@ def get_bs_quick_submission(params):
     X_valid.fillna(-999, inplace=True)
 
     cols_train = [col for col in X_train.columns if not col.startswith('cat')]
-
     All_train = y_train.merge(X_train, how='left', left_index=True, right_index=True)
     All_valid = y_valid.merge(X_valid, how='left', left_index=True, right_index=True)
+    All_weight = get_bs_train_weight(X_train, X_valid, prelim)
 
-    lgb_train = lgb.Dataset(All_train[cols_train].values, All_train['Next_Premium'].values.flatten(), free_raw_data=False)
+
+    lgb_train = lgb.Dataset(All_train[cols_train].values, All_train['Next_Premium'].values.flatten(), free_raw_data=False, weight=All_weight)
 
     model = lgb.train(
         params['model'], lgb_train, **params['train']
@@ -978,10 +1011,10 @@ def demo(red_method='nmf'):
     independent_policy: policy_0702.csv
     '''
 
-    df_claim = read_raw_data('claim_0702.csv')
-    df_policy = read_raw_data('policy_0702.csv')
+#    df_claim = read_raw_data('claim_0702.csv')
+#    df_policy = read_raw_data('policy_0702.csv')
 
-    create_feature_selection_data(df_policy, df_claim, red_method=red_method)
+#    create_feature_selection_data(df_policy, df_claim, red_method=red_method)
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
@@ -1006,7 +1039,30 @@ def demo(red_method='nmf'):
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
     lgb_output = get_bs_quick_mae(lgb_params)
-#    lgb_output = get_bs_quick_submission(lgb_params)
+
+    lgb_model_params = {
+        'boosting_type': 'gbdt',
+        'num_iterations': 5000,
+        'max_depth':-1,
+        'objective': 'regression_l1',
+        'metric': 'mae',
+        'lamba_l1':0.1,
+        'num_leaves': 40,
+        'learning_rate': 0.01,
+        'colsample_bytree': 0.8,
+        'subsample': 0.8,
+        'subsample_freq': 5,
+        'min_data_in_leaf': 15,
+        'min_gain_to_split': 0.01,
+        'seed': 0,
+    }
+    lgb_train_params = {
+        'early_stopping_rounds': None,
+        'learning_rates': None, # lambda iter: 0.1*(0.99**iter),
+        'verbose_eval': True,
+    }
+    lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
+    get_bs_quick_submission(lgb_params, lgb_output)
 
 
 if __name__ == '__main__':
