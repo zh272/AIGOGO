@@ -222,7 +222,13 @@ def demo(
     X_test = read_interim_data('X_test_prefs.csv')
 
     feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
-    feature_list = [feature for feature in feature_list if 'vequip' not in feature]
+
+    # feature_list = [feature for feature in feature_list if 'vequip' not in feature]
+    # feature_list = [feature for feature in feature_list if 'nmf' not in feature]
+    # feature_list = [feature for feature in feature_list if 'real_mc_mean_diff' in feature or 'real_acc' in feature]
+    feature_list = [feature for feature in feature_list if 'nmf' in feature]
+
+
     num_features = len(feature_list)
     print('Number of features: {}'.format(num_features))
 
@@ -237,7 +243,8 @@ def demo(
     X_test = X_test.apply(lambda x:x.fillna(-1))
 
     # begin training
-    num_neuron = [100,50,8]
+    # num_neuron = [100,50,8]
+    num_neuron = [20,5]
     print('Network Architecture: {}'.format(num_neuron))
     # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
     # num_neuron = [160,30,8]
@@ -253,9 +260,10 @@ def demo(
         # 'scheduler': 'plateau',
         'lr_schedule':{
             10:base_lr,
-            25:base_lr/5, 
-            50:base_lr/50, 
-            100:base_lr/1000
+            25:base_lr/2, 
+            50:base_lr/10, 
+            100:base_lr/100,
+            200:base_lr/1000
         }
     }
 

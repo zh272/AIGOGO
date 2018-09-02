@@ -158,12 +158,11 @@ def write_precessed_data(df, suffix=None):
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=60, base_lr=0.0005, momentum=0.9, weight_decay=0, 
-    batch_size=128, optimizer='sgd', dropout=False, seed=None, 
+    epochs=80, base_lr=0.0005, momentum=0.9, weight_decay=0, 
+    batch_size=128, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
     get_train=False, get_test=False, save=False, load=False, reduction=10
 ):
-    if seed is not None:
-        rand_reset(seed)
+    rand_reset(seed)
     X = read_interim_data('premium_60.csv')
     X_test = read_interim_data('X_test_bs.csv')
 
@@ -196,7 +195,7 @@ def demo(
     X_test = X_test.apply(lambda x:x.fillna(0))
 
     # begin training
-    num_neuron = [110,50,reduction]
+    num_neuron = [100,50,reduction]
     # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
     # num_neuron = [160,30,8]
 
@@ -208,11 +207,13 @@ def demo(
         'lr':base_lr, 
         'momentum':momentum,
         'weight_decay':weight_decay, 
+        # 'scheduler': 'plateau',
         'lr_schedule':{
-            epochs//4:base_lr,
-            epochs//2:base_lr/10, 
-            epochs//4*3:base_lr/100, 
-            epochs: base_lr/1000
+            10:base_lr,
+            25:base_lr/2, 
+            50:base_lr/10, 
+            100:base_lr/100,
+            200:base_lr/1000
         }
     }
     

@@ -368,7 +368,7 @@ def get_bs_real_loss_ins(df_policy, df_claim, idx_df):
     return(real_loss_ins)
 
 
-def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
+def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf', file_name='prem60_10.pt'):
     '''
     In:
         DataFrame(df_policy),
@@ -395,7 +395,7 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
 
     if method=='nn':
         # nn dimension reduction
-        model = torch.load(os.path.join('../models/saved_models', 'prem60_11.pt'))
+        model = torch.load(os.path.join('../models/saved_models', file_name))
         model.eval() # evaluation mode
         inp = torch.FloatTensor(mtx_df)
         with torch.no_grad():
@@ -639,7 +639,7 @@ def get_bs_cat_assured_grp(df_policy, idx_df):
     return(cat_assured_grp)
 
 ######## get pre feature selection data set ########
-def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
+def create_feature_selection_data(df_policy, df_claim, red_method='nmf', file_name='prem60_10.pt'):
     '''
     In:
         DataFrame(df_policy),
@@ -726,7 +726,7 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
 
     # insurance coverage
     print('Getting column real_prem_ic_nmf')
-    temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index, method=red_method)
+    temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index, method=red_method, file_name=file_name)
     n_comp = temp.shape[1]
     print('>>> number of reduced features: {}'.format(n_comp))
     colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
@@ -1003,7 +1003,7 @@ def write_test_data(df, file_name, red_method='nmf'):
 
     return(None)
 
-def demo(red_method='nmf'):
+def demo(red_method='nmf',reduction=10):
     '''
     train data: training-set.csv
     test data: testing-set.csv
@@ -1011,10 +1011,12 @@ def demo(red_method='nmf'):
     independent_policy: policy_0702.csv
     '''
 
-#    df_claim = read_raw_data('claim_0702.csv')
-#    df_policy = read_raw_data('policy_0702.csv')
+    df_claim = read_raw_data('claim_0702.csv')
+    df_policy = read_raw_data('policy_0702.csv')
 
-#    create_feature_selection_data(df_policy, df_claim, red_method=red_method)
+    create_feature_selection_data(
+        df_policy, df_claim, red_method=red_method, file_name='prem60_{}.pt'.format(reduction)
+    )
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
