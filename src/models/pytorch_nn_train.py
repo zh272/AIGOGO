@@ -215,11 +215,11 @@ def demo(
     get_train=False, get_test=False, save=False, load=False
 ):
     rand_reset(seed)
-    X_train = read_interim_data('X_train_prefs.csv')
-    y_train = read_interim_data('y_train_prefs.csv')
-    X_valid = read_interim_data('X_valid_prefs.csv')
-    y_valid = read_interim_data('y_valid_prefs.csv')
-    X_test = read_interim_data('X_test_prefs.csv')
+    X_train = read_interim_data('X_train_new.csv')
+    y_train = read_interim_data('y_train_new.csv')
+    X_valid = read_interim_data('X_valid_new.csv')
+    y_valid = read_interim_data('y_valid_new.csv')
+    X_test = read_interim_data('X_test_new.csv')
 
     feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
 
@@ -244,7 +244,7 @@ def demo(
 
     # begin training
     # num_neuron = [100,50,8]
-    num_neuron = [20,5]
+    num_neuron = [20,10]
     print('Network Architecture: {}'.format(num_neuron))
     # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
     # num_neuron = [160,30,8]

@@ -23,7 +23,7 @@ def get_submission(
 
 
 
-    PATH = './saved_model'
+    PATH = './saved_models'
     if not os.path.isdir(PATH): os.makedirs(PATH)
     
     start_time = time.time()
@@ -122,11 +122,11 @@ def demo(
     if task_type=='GPU':
         colsample_bylevel=None
     
-    X_train = read_interim_data('X_train_prefs.csv')
-    y_train = read_interim_data('y_train_prefs.csv')
-    X_valid = read_interim_data('X_valid_prefs.csv')
-    y_valid = read_interim_data('y_valid_prefs.csv')
-    X_test = read_interim_data('X_test_prefs.csv')
+    X_train = read_interim_data('X_train_new.csv')
+    y_train = read_interim_data('y_train_new.csv')
+    X_valid = read_interim_data('X_valid_new.csv')
+    y_valid = read_interim_data('y_valid_new.csv')
+    X_test = read_interim_data('X_test_new.csv')
 
 
     feature_list = X_train.columns.values

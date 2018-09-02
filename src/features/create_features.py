@@ -385,39 +385,42 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf', reduction=7):
     df_policy = df_policy.set_index('Insurance_Coverage', append=True)
     df_policy = df_policy[['Premium']].unstack(level=1)
     # transform dataframe to matrix
-    mtx_df = df_policy.fillna(0).as_matrix()
+    mtx_df = df_policy.fillna(0).values
 
     ### Uncomment below for creating csv file of 60 premium features
     # interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
-    # write_sample_path = os.path.join(interim_data_path, 'premium_60_new.csv')
+    # write_sample_path = os.path.join(interim_data_path, 'premium_60.csv')
     # df_policy.fillna(0).to_csv(write_sample_path)
 
 
     if method=='nn':
         # nn dimension reduction
-        model = torch.load(os.path.join('../models/saved_models', 'prem60_{}.pt'.format(reduction)))
-        model.eval() # evaluation mode
-        inp = torch.FloatTensor(mtx_df)
-        with torch.no_grad():
-            if torch.cuda.is_available():
-                inp = torch.autograd.Variable(inp.cuda())
-            else:
-                inp = torch.autograd.Variable(inp)
-        nmf_df = inp
-        modulelist = list(model.regressor.modules())
-        for l in modulelist[1:-2]:
-            nmf_df = l(nmf_df)
-        nmf_df = nmf_df.cpu().data.numpy()
+        # model = torch.load(os.path.join('../models/saved_models', 'prem60_{}.pt'.format(reduction)))
+        # model.eval() # evaluation mode
+        # inp = torch.FloatTensor(mtx_df)
+        # with torch.no_grad():
+        #     if torch.cuda.is_available():
+        #         inp = torch.autograd.Variable(inp.cuda())
+        #     else:
+        #         inp = torch.autograd.Variable(inp)
+        # nmf_df = inp
+        # modulelist = list(model.regressor.modules())
+        # for l in modulelist[1:-2]:
+        #     nmf_df = l(nmf_df)
+        # nmf_df = nmf_df.cpu().data.numpy()
+
+        # nn_df = read_interim_data('premium_60_{}.csv'.format(reduction))
+        red_values = read_interim_data('premium_60_{}.csv'.format(reduction)).values
     else:
         # non-negative matrix factorization
-        nmf_df = NMF(n_components=reduction, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+        red_values = NMF(n_components=reduction, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
 
 
 
     #
-    n_comp = nmf_df.shape[1]
+    n_comp = red_values.shape[1]
     print('>>> number of reduced features: {}'.format(n_comp))
-    real_prem_ic_nmf = pd.DataFrame(nmf_df, index = df_policy.index).fillna(0)
+    real_prem_ic_nmf = pd.DataFrame(red_values, index = idx_df).fillna(0)
     real_prem_ic_nmf.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
 
     return(real_prem_ic_nmf.loc[idx_df].fillna(0))
@@ -639,21 +642,6 @@ def get_bs_cat_assured_grp(df_policy, idx_df):
     return(cat_assured_grp)
 
 
-def get_base_prem(file_name='premium_60_8.csv'):
-    '''
-    In:
-        Any(idx_df),
-        String(file_name)
-    Out:
-        DataFrame(base_cols),
-    Description:
-        get basic feature columns from file
-    '''
-    base_cols = read_interim_data(file_name)
-    # base_cols = _X.loc[idx_df].fillna(-1)
-    return base_cols
-
-
 ######## get pre feature selection data set ########
 def create_feature_selection_data(df_policy, df_claim, red_method='nmf', reduction=7):
     '''
@@ -668,24 +656,17 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf', reducti
     Description:
         create train dataset with additional columns
     '''
-    # X_train = read_interim_data('X_train_bs.csv')
-    # X_valid = read_interim_data('X_valid_bs.csv')
-    # X_test = read_interim_data('X_test_bs.csv')
+    X_train = read_interim_data('X_train_bs.csv')
+    X_valid = read_interim_data('X_valid_bs.csv')
+    X_test = read_interim_data('X_test_bs.csv')
 
-    # X_train = X_train.fillna(0)
-    # X_valid = X_valid.fillna(0)
-    # X_test = X_test.fillna(0)
-
-    _X = get_base_prem(file_name='premium_60_8.csv')
-
+    X_train = X_train.fillna(0)
+    X_valid = X_valid.fillna(0)
+    X_test = X_test.fillna(0)
 
     y_train = read_interim_data('y_train_bs.csv')
     y_valid = read_interim_data('y_valid_bs.csv')
     y_test = read_interim_data('y_test_bs.csv')
-
-    X_train = _X.loc[y_train.index]
-    X_valid = _X.loc[y_valid.index]
-    X_test = _X.loc[y_test.index]
 
     X_fs = pd.concat([X_train, X_valid, X_test])
     y_fs = pd.concat([y_train, y_valid, y_test])
@@ -751,7 +732,6 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf', reducti
     print('Getting column real_prem_ic_nmf')
     temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index, method=red_method, reduction=reduction)
     n_comp = temp.shape[1]
-    print('>>> number of reduced features: {}'.format(n_comp))
     colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
     X_fs[colnames] = temp
 

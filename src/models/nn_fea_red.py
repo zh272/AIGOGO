@@ -19,9 +19,9 @@ from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
 def get_submission(
     X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
     momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
-    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt'
+    test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp_fea_red.pt'
 ):    
-    train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
+    train_set, valid_set, X_test_np, X_train_np, X_valid_np, scaler = get_dataset(
         X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
     )
     
@@ -115,11 +115,11 @@ def get_submission(
     return {
         'model': trainer, 'submission': submission, 
         'submission_train':submission_train, 'submission_valid':submission_valid,
-        'valid_loss':valid_loss, 'summary':summary
+        'valid_loss':valid_loss, 'summary':summary, 'scaler':scaler
     }
 
 
-def read_interim_data(file_name, index_col='Policy_Number'):
+def read_data(file_name, index_col='Policy_Number', path='interim'):
     '''
     In: file_name
     Out: interim_data
@@ -127,7 +127,7 @@ def read_interim_data(file_name, index_col='Policy_Number'):
     '''
     # set the path of raw data
     interim_data_path = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), os.path.pardir, os.path.pardir, 'data', 'interim'
+        os.path.dirname(os.path.realpath(__file__)), os.path.pardir, os.path.pardir, 'data', path
     )
 
     file_path = os.path.join(interim_data_path, file_name)
@@ -155,19 +155,37 @@ def write_precessed_data(df, suffix=None):
     write_sample_path = os.path.join(precessed_data_path, file_name)
     df.to_csv(write_sample_path)
 
+def gen_prem_60(df_policy, save=False):
+    # df_policy = read_data('policy_0702.csv', path='raw')
 
-# empirical scale: weight_decay=0.0001
+    # remove terminated cols
+    real_ia = df_policy['Insured_Amount1'] + df_policy['Insured_Amount2'] + df_policy['Insured_Amount3']
+
+    # rows: policy number; cols: insurance coverage
+    prem60 = df_policy[real_ia != 0].set_index('Insurance_Coverage', append=True)[['Premium']].unstack(level=1).fillna(0)
+    prem60.columns = [col[1] for col in prem60.columns]
+
+    if save:
+        interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+        write_sample_path = os.path.join(interim_data_path, 'premium_60.csv')
+        prem60.to_csv(write_sample_path)
+
+    return prem60
+
+
 def demo(
-    epochs=80, base_lr=0.0005, momentum=0.9, weight_decay=0, 
+    epochs=80, base_lr=0.0002, momentum=0.9, weight_decay=0, 
     batch_size=128, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
-    get_train=False, get_test=False, save=False, load=False, reduction=10
+    get_test=False, save=False, load=False, reduction=10
 ):
     rand_reset(seed)
-    X = read_interim_data('premium_60.csv')
-    X_test = read_interim_data('X_test_bs.csv')
+    df_policy = read_data('policy_0702.csv', path='raw')
+    # X = read_data('premium_60.csv', path='interim')
+    X = gen_prem_60(df_policy)
+    X_test = read_data('X_test_bs.csv', path='interim')
 
-    y_train = read_interim_data('y_train_prefs.csv')
-    y_valid = read_interim_data('y_valid_prefs.csv')
+    y_train = read_data('y_train_prefs.csv', path='interim')
+    y_valid = read_data('y_valid_prefs.csv', path='interim')
 
     X_train = X.loc[y_train.index]
     X_valid = X.loc[y_valid.index]
@@ -232,13 +250,48 @@ def demo(
     print(summary)
 
     # generate submission
-    if get_test:
-        write_precessed_data(model_output['submission'], suffix='mlptest{}'.format(int(model_output['valid_loss'])))
-        with open('summary_mlp{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
-            f.write(summary)
-    if get_train:
-        write_precessed_data(model_output['submission_train'], suffix='mlptrain')
-        write_precessed_data(model_output['submission_valid'], suffix='mlpvalid')
+    if save:
+        # write_precessed_data(model_output['submission'], suffix='mlptest{}'.format(int(model_output['valid_loss'])))
+        # with open('summary_mlp{}.txt'.format(int(model_output['valid_loss'])), 'w') as f:
+        #     f.write(summary)
+
+        # # remove terminated cols
+        real_ia = df_policy['Insured_Amount1'] + df_policy['Insured_Amount2'] + df_policy['Insured_Amount3']
+        # df_policy = df_policy[real_ia != 0]
+
+        scaler = model_output['scaler']
+
+        # transform dataframe to matrix
+        df_policy_iapos = df_policy.assign(Premium = np.where(real_ia != 0, df_policy['Premium'], 0))
+        mtx_df = df_policy_iapos.set_index('Insurance_Coverage', append=True)[['Premium']].unstack(level=1).fillna(0)
+
+        # nn dimension reduction
+        model = model_output['model'].model
+        model.eval() # evaluation mode
+        inp = torch.FloatTensor(scaler.transform(mtx_df.values))
+        with torch.no_grad():
+            if torch.cuda.is_available():
+                inp = torch.autograd.Variable(inp.cuda())
+            else:
+                inp = torch.autograd.Variable(inp)
+        nn_df = inp
+        modulelist = list(model.regressor.modules())
+        for l in modulelist[1:-2]:
+            nn_df = l(nn_df)
+        nn_df = nn_df.cpu().data.numpy()
+        non_cons_cols = np.var(nn_df, axis=0) != 0
+        nn_df = nn_df[:,non_cons_cols]
+        print('>>> constant columns: {}'.format(len(non_cons_cols)))
+
+        n_comp = nn_df.shape[1]
+        print('>>> number of reduced features: {}'.format(n_comp))
+        real_prem_ic_nn = pd.DataFrame(nn_df, index = mtx_df.index).fillna(0)
+        real_prem_ic_nn.columns = ['real_prem_ic_nn_' + str(i) for i in range(1, n_comp+1)]
+
+        interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+        write_sample_path = os.path.join(interim_data_path, 'premium_60_{}.csv'.format(reduction))
+        real_prem_ic_nn.to_csv(write_sample_path)
+
 
 def rand_reset(seed):
     random.seed(seed)
