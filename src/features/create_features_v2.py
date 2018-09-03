@@ -1,8 +1,5 @@
 import numpy as np
 import pandas as pd
-import sys
-sys.path.insert(0, '../data')
-from utils import *
 
 ######## feature template expansion ########
 def get_bs2_cat(df_policy, idx_df, col, mv=0):
