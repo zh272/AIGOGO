@@ -1,5 +1,6 @@
 import os
 import fire
+import torch
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import NMF
@@ -367,7 +368,7 @@ def get_bs_real_loss_ins(df_policy, df_claim, idx_df):
     return(real_loss_ins)
 
 
-def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
+def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf', reduction=7):
     '''
     In:
         DataFrame(df_policy),
@@ -384,40 +385,42 @@ def get_bs_real_prem_ic_nmf(df_policy, idx_df, method='nmf'):
     df_policy = df_policy.set_index('Insurance_Coverage', append=True)
     df_policy = df_policy[['Premium']].unstack(level=1)
     # transform dataframe to matrix
-    mtx_df = df_policy.fillna(0).as_matrix()
+    mtx_df = df_policy.fillna(0).values
 
     ### Uncomment below for creating csv file of 60 premium features
     # interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
-    # write_sample_path = os.path.join(interim_data_path, 'premium_60_new.csv')
+    # write_sample_path = os.path.join(interim_data_path, 'premium_60.csv')
     # df_policy.fillna(0).to_csv(write_sample_path)
 
-    
+
     if method=='nn':
-        import torch
         # nn dimension reduction
-        model = torch.load(os.path.join('../models/saved_models', 'prem60_11.pt'))
-        model.eval() # evaluation mode
-        inp = torch.FloatTensor(mtx_df)
-        with torch.no_grad():
-            if torch.cuda.is_available():
-                inp = torch.autograd.Variable(inp.cuda())
-            else:
-                inp = torch.autograd.Variable(inp)
-        nmf_df = inp
-        modulelist = list(model.regressor.modules())
-        for l in modulelist[1:-1]:
-            nmf_df = l(nmf_df)
-        nmf_df = nmf_df.cpu().data.numpy()
+        # model = torch.load(os.path.join('../models/saved_models', 'prem60_{}.pt'.format(reduction)))
+        # model.eval() # evaluation mode
+        # inp = torch.FloatTensor(mtx_df)
+        # with torch.no_grad():
+        #     if torch.cuda.is_available():
+        #         inp = torch.autograd.Variable(inp.cuda())
+        #     else:
+        #         inp = torch.autograd.Variable(inp)
+        # nmf_df = inp
+        # modulelist = list(model.regressor.modules())
+        # for l in modulelist[1:-2]:
+        #     nmf_df = l(nmf_df)
+        # nmf_df = nmf_df.cpu().data.numpy()
+
+        # nn_df = read_interim_data('premium_60_{}.csv'.format(reduction))
+        red_values = read_interim_data('premium_60_{}.csv'.format(reduction)).values
     else:
         # non-negative matrix factorization
-        nmf_df = NMF(n_components=7, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
+        red_values = NMF(n_components=reduction, random_state=1, alpha=.1, l1_ratio=.5).fit_transform(mtx_df)
 
-    
+
 
     #
-    n_comp = nmf_df.shape[1]
+    n_comp = red_values.shape[1]
     print('>>> number of reduced features: {}'.format(n_comp))
-    real_prem_ic_nmf = pd.DataFrame(nmf_df, index = df_policy.index).fillna(0)
+    real_prem_ic_nmf = pd.DataFrame(red_values, index = idx_df).fillna(0)
     real_prem_ic_nmf.columns = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
 
     return(real_prem_ic_nmf.loc[idx_df].fillna(0))
@@ -577,10 +580,8 @@ def get_bs_cat_age(df_policy, idx_df):
     '''
     df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0]})
 
-    get_cat_age = lambda x: 0 if pd.isnull(x) else 2016 - int(x[3:])
+    get_cat_age = lambda x: 0 if pd.isnull(x) else round((2016 - int(x[3:])) / 5)
     cat_age = df_policy['ibirth'].map(get_cat_age)
-    cut_edge = [-1, 0, 20, 26, 31, 36, 39, 71, 75, 300]
-    cat_age = pd.cut(cat_age, cut_edge, labels = list(range(1, len(cut_edge))))
 
     return(cat_age)
 
@@ -625,8 +626,24 @@ def get_bs_real_prem_var_ic(df_policy, idx_df):
     return(real_prem_var_ic.loc[idx_df])
 
 
+def get_bs_cat_assured_grp(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(cat_assured_grp),
+    Description:
+        get grouped assured
+    '''
+    cat_assured_grp = get_bs_cat(df_policy, idx_df, 'fassured')
+    cat_assured_grp = np.where(cat_assured_grp % 2 == 0, 2, 1)
+
+    return(cat_assured_grp)
+
+
 ######## get pre feature selection data set ########
-def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
+def create_feature_selection_data(df_policy, df_claim, red_method='nmf', reduction=7):
     '''
     In:
         DataFrame(df_policy),
@@ -655,14 +672,21 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     y_fs = pd.concat([y_train, y_valid, y_test])
 
     # basic
-#    print('Getting column cat_zip')
-#    X_fs = X_fs.assign(cat_zip = get_bs_cat(df_policy, X_fs.index, 'aassured_zip'))
-#    print('Getting column cat_ins_self')
-#    X_fs = X_fs.assign(cat_ins_self = get_bs_cat_ins_self(df_policy, X_fs.index))
+    print('Getting column cat_age')
+    X_fs = X_fs.assign(cat_age = get_bs_cat_age(df_policy, X_fs.index))
+
+    print('Getting column cat_assured_grp')
+    X_fs = X_fs.assign(cat_assured_grp = get_bs_cat_assured_grp(df_policy, X_fs.index))
+
+    print('Getting column cat_acc_dmg')
+    X_fs = X_fs.assign(cat_acc_dmg = get_bs_cat(df_policy, X_fs.index, 'pdmg_acc'))
+
+    print('Getting column cat_ins_self')
+    X_fs = X_fs.assign(cat_ins_self = get_bs_cat_ins_self(df_policy, X_fs.index))
 #
 #    # distribution
-#    print('Getting column real_prem_ic_distr')
-#    X_fs = X_fs.assign(real_prem_ic_distr = get_bs_real_prem_ic(df_policy, X_fs.index, 'Distribution_Channel'))
+    print('Getting column real_prem_ic_distr')
+    X_fs = X_fs.assign(real_prem_ic_distr = get_bs_real_prem_ic(df_policy, X_fs.index, 'Distribution_Channel'))
 #
     # insurance coverage
     print('Getting column real_prem_16G_indiv')
@@ -670,15 +694,23 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
 
     print('Getting column real_ia1_16G_indiv')
     X_fs = X_fs.assign(real_ia1_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount1'))
-#    # vehicle
-#    print('Getting column real_prem_ic_vmy')
-#    X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_exst(df_policy, X_fs.index, 'Manafactured_Year_and_Month', get_bs_real_prem_ic))
-#
+
+    print('Getting column real_ia3_55J_indiv')
+    X_fs = X_fs.assign(real_ia3_55J_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '55J', 'Insured_Amount3'))
+
+    print('Getting column real_ia3_16P_indiv')
+    X_fs = X_fs.assign(real_ia3_16P_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16P', 'Insured_Amount3'))
+
+    # vehicle
+    print('Getting column real_prem_ic_vmy')
+    X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_exst(df_policy, X_fs.index, 'Manafactured_Year_and_Month', get_bs_real_prem_ic))
+
+
 #    print('Getting column real_prem_per_vcost')
 #    X_fs = X_fs.assign(real_prem_per_vcost = X_fs['real_prem_plc'] / X_fs['real_vcost'])
 #
-    print('Getting column cat_vequip')
-    X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
+#    print('Getting column cat_vequip')
+#    X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
 
 #    print('Getting column cat_ic_cluster_vmm2')
 #    X_fs = X_fs.assign(cat_ic_cluster_vmm2 = get_bs_cat_ic_cluster(df_policy, X_fs.index, 'Vehicle_Make_and_Model2', 60))
@@ -692,15 +724,14 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
 
     print('Getting column cat_claim_theft')
     X_fs = X_fs.assign(cat_claim_theft = get_bs_cat_claim_theft(df_claim, X_fs.index))
-#
-#    print('Getting column real_claim_fault')
-#    X_fs = X_fs.assign(real_claim_fault = get_bs_real_claim_fault(df_claim, X_fs.index))
+
+    print('Getting column real_claim_fault')
+    X_fs = X_fs.assign(real_claim_fault = get_bs_real_claim_fault(df_claim, X_fs.index))
 
     # insurance coverage
     print('Getting column real_prem_ic_nmf')
-    temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index, method=red_method)
+    temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index, method=red_method, reduction=reduction)
     n_comp = temp.shape[1]
-    print('>>> number of reduced features: {}'.format(n_comp))
     colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
     X_fs[colnames] = temp
 
@@ -730,8 +761,14 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
     X_fs = X_fs.assign(cat_ic_combo = get_bs_cat_ic_combo(df_policy, X_fs.index))
 
     # feature template expansion
-    cols_cat = [col for col in X_fs.columns if col.startswith('cat') and col not in X_train.columns]
-    cols_cat_all = [col for col in X_fs.columns if col.startswith('cat')]
+    cols_cat_all = [col for col in X_fs.columns if col.startswith('cat') and len(X_fs[col].unique()) > 2]
+    cols_bin = [col for col in X_fs.columns if col.startswith('cat') and len(X_fs[col].unique()) <= 2]
+    cols_cat = [col for col in cols_cat_all if col not in X_train.columns]
+
+    # binary category results
+    for col_bin in cols_bin:
+        col_real = col_bin.replace('cat_', 'real_')
+        X_fs[col_real] = X_fs[col_bin]
 
     # frequency of category values
     for col_cat in cols_cat:
@@ -762,7 +799,7 @@ def create_feature_selection_data(df_policy, df_claim, red_method='nmf'):
         X_train_all[col_mean] = get_bs_real_mc_mean(col_cat, X_train_all, y_train_all, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     # add mean encoding on mean of diff btw next_premium and premium
-    for col_cat in cols_cat_all:
+    for col_cat in cols_cat:
         col_mean = col_cat.replace('cat_', 'real_mc_mean_diff_')
         print('Getting column ' + col_mean)
         X_test[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
@@ -838,14 +875,47 @@ def get_bs_quick_mae(params):
     varimp = list(model.feature_importance())
     varimp = dict(zip(cols_train, varimp))
     for key, value in sorted(varimp.items(), key=lambda x: -x[1]):
-        print("%s: %s" % (key, value))
+        print("'%s': %s," % (key, value))
 
     lgb_output = {'varimp': varimp, 'mae': valid_mae}
 
     return(lgb_output)
 
+def get_bs_train_weight(X_train, X_valid, prelim):
+    '''
+    In:
 
-def get_bs_quick_submission(params):
+    Out:
+        float(mae)
+
+    Description:
+        calculate quick mae on validation set
+    '''
+    varimp = prelim['varimp']
+    cols_cat = [col for col in X_train.columns if col.startswith('cat')]
+
+    for col_cat in cols_cat:
+        col_real = col_cat.replace('cat_', 'real_')
+        col_mean = col_cat.replace('cat_', 'real_mc_mean_')
+        col_diff = col_cat.replace('cat_', 'real_mc_mean_diff_')
+        col_prob = col_cat.replace('cat_', 'real_mc_prob_')
+        varimp[col_cat] = varimp.get(col_mean, 0) + varimp.get(col_diff, 0) + varimp.get(col_prob, 0) + varimp.get(col_real, 0)
+
+    weight = pd.Series(0, index=X_train.index)
+    imp_total = 0
+    for col in cols_cat:
+        imp_total = imp_total + varimp[col]
+        train_freq = X_train[col].value_counts() / len(X_train)
+        valid_freq = X_valid[col].value_counts().loc[train_freq.index].fillna(0) / len(X_valid)
+        col_weight = X_train[col].map(valid_freq) / X_train[col].map(train_freq)
+        weight = weight + col_weight
+    weight = weight / imp_total
+    weight_norm = weight + weight.max()
+
+    return(weight_norm)
+
+
+def get_bs_quick_submission(params, prelim):
     '''
     In:
 
@@ -865,11 +935,12 @@ def get_bs_quick_submission(params):
     X_valid.fillna(-999, inplace=True)
 
     cols_train = [col for col in X_train.columns if not col.startswith('cat')]
-
     All_train = y_train.merge(X_train, how='left', left_index=True, right_index=True)
     All_valid = y_valid.merge(X_valid, how='left', left_index=True, right_index=True)
+    All_weight = get_bs_train_weight(X_train, X_valid, prelim)
 
-    lgb_train = lgb.Dataset(All_train[cols_train].values, All_train['Next_Premium'].values.flatten(), free_raw_data=False)
+
+    lgb_train = lgb.Dataset(All_train[cols_train].values, All_train['Next_Premium'].values.flatten(), free_raw_data=False, weight=All_weight)
 
     model = lgb.train(
         params['model'], lgb_train, **params['train']
@@ -945,7 +1016,7 @@ def write_test_data(df, file_name, red_method='nmf'):
 
     return(None)
 
-def demo(red_method='nmf'):
+def demo(red_method='nmf',reduction=7):
     '''
     train data: training-set.csv
     test data: testing-set.csv
@@ -958,7 +1029,9 @@ def demo(red_method='nmf'):
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 
-    create_feature_selection_data(df_policy, df_claim, red_method=red_method)
+    create_feature_selection_data(
+        df_policy, df_claim, red_method=red_method, reduction=reduction
+    )
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
@@ -983,7 +1056,30 @@ def demo(red_method='nmf'):
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
     lgb_output = get_bs_quick_mae(lgb_params)
-#    lgb_output = get_bs_quick_submission(lgb_params)
+
+    lgb_model_params = {
+        'boosting_type': 'gbdt',
+        'num_iterations': 5000,
+        'max_depth':-1,
+        'objective': 'regression_l1',
+        'metric': 'mae',
+        'lamba_l1':0.1,
+        'num_leaves': 40,
+        'learning_rate': 0.01,
+        'colsample_bytree': 0.8,
+        'subsample': 0.8,
+        'subsample_freq': 5,
+        'min_data_in_leaf': 15,
+        'min_gain_to_split': 0.01,
+        'seed': 0,
+    }
+    lgb_train_params = {
+        'early_stopping_rounds': None,
+        'learning_rates': None, # lambda iter: 0.1*(0.99**iter),
+        'verbose_eval': True,
+    }
+    lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
+    get_bs_quick_submission(lgb_params, lgb_output)
 
 
 if __name__ == '__main__':

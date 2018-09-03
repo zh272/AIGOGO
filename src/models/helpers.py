@@ -78,7 +78,7 @@ def get_dataset(X_train, y_train, X_test, X_valid=None, y_valid=None, target_typ
     else:
         valid_set = torch.utils.data.TensorDataset(torch.FloatTensor(X_valid), target_type(y_valid))
 
-    return train_set, valid_set, X_test, X_train, X_valid
+    return train_set, valid_set, X_test, X_train, X_valid, scaler
 
 def ready(steps, threshold=100, population=None):
     return steps%threshold == 0

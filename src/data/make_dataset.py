@@ -133,14 +133,14 @@ def get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), 
     else:
         # merge col_cat with label
         y_train = y_train.merge(X_train[[col_cat, 'real_prem_plc']], how='left', left_index=True, right_index=True)
-        y_train = y_train.assign(real_mc_mean_diff = y_train['Next_Premium'] / y_train['real_prem_plc'])
+        y_train = y_train.assign(real_mc_mean_diff = y_train['Next_Premium'] - y_train['real_prem_plc'])
 
         # get mean of each category and smoothed by global mean
         smooth_mean = lambda x: (x.sum() + prior * y_train['real_mc_mean_diff'].mean()) / (len(x) + prior)
         y_train = y_train.groupby([col_cat]).agg({'real_mc_mean_diff': smooth_mean})
         real_mc_mean_diff = X_valid[col_cat].map(y_train['real_mc_mean_diff'])
         # fill na with global mean
-        real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff'])) * X_valid['real_prem_plc']
+        real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff'])) + X_valid['real_prem_plc']
 
     return(real_mc_mean_diff)
 
@@ -190,6 +190,22 @@ def get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train
 
 
 ######## manual feature ########
+def get_bs_cat_cancel(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(cat_cancel),
+    Description:
+        get whether the policy has previous policy
+    '''
+    cat_cancel = get_bs_cat(df_policy, idx_df, 'Cancellation')
+    cat_cancel = np.where(cat_cancel == 'Y', 1, 0)
+
+    return(cat_cancel)
+
+
 def get_bs_cat_vmy(df_policy, idx_df):
     '''
     In:
@@ -245,7 +261,7 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     df_bs = pd.concat([df_train, df_test])
 
     print('Getting column cat_cancel')
-    df_bs = df_bs.assign(cat_cancel = get_bs_cat(df_policy, df_bs.index, 'Cancellation'))
+    df_bs = df_bs.assign(cat_cancel = get_bs_cat_cancel(df_policy, df_bs.index))
 
     print('Getting column cat_distr')
     df_bs = df_bs.assign(cat_distr = get_bs_cat(df_policy, df_bs.index, 'Distribution_Channel'))
@@ -259,8 +275,29 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     print('Getting column cat_sex')
     df_bs = df_bs.assign(cat_sex = get_bs_cat(df_policy, df_bs.index, 'fsex'))
 
+    print('Getting column cat_zip')
+    df_bs = df_bs.assign(cat_zip = get_bs_cat(df_policy, df_bs.index, 'aassured_zip'))
+
     print('Getting column cat_vmy')
     df_bs = df_bs.assign(cat_vmy = get_bs_cat_vmy(df_policy, df_bs.index))
+
+    print('Getting column cat_vmm1')
+    df_bs = df_bs.assign(cat_vmm1 = get_bs_cat(df_policy, df_bs.index, 'Vehicle_Make_and_Model1'))
+
+    print('Getting column cat_vmm2')
+    df_bs = df_bs.assign(cat_vmm2 = get_bs_cat(df_policy, df_bs.index, 'Vehicle_Make_and_Model2'))
+
+    print('Getting column cat_vc')
+    df_bs = df_bs.assign(cat_vc = get_bs_cat(df_policy, df_bs.index, 'Coding_of_Vehicle_Branding_&_Type'))
+
+    print('Getting column cat_vqpt')
+    df_bs = df_bs.assign(cat_vqpt = get_bs_cat(df_policy, df_bs.index, 'qpt'))
+
+    print('Getting column cat_vregion')
+    df_bs = df_bs.assign(cat_vregion = get_bs_cat(df_policy, df_bs.index, 'Imported_or_Domestic_Car'))
+
+    print('Getting column real_vengine')
+    df_bs = df_bs.assign(cat_vengine = get_bs_cat(df_policy, df_bs.index, 'Engine_Displacement_(Cubic_Centimeter)'))
 
     print('Getting column cat_acc_lia')
     df_bs = df_bs.assign(cat_acc_lia = get_bs_cat(df_policy, df_bs.index, 'lia_class'))
@@ -278,7 +315,7 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     df_bs = df_bs.assign(real_vcost = get_bs_cat(df_policy, df_bs.index, 'Replacement_cost_of_insured_vehicle'))
 
     # feature template expansion
-    cols_cat = [col for col in df_bs.columns if col.startswith('cat')]
+    cols_cat = [col for col in df_bs.columns if col.startswith('cat') and len(df_bs[col].unique()) > 2]
 
     # frequency of category values
     for col_cat in cols_cat:
@@ -307,13 +344,13 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
         X_valid[col_mean] = get_bs_real_mc_mean(col_cat, X_train, df_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
         X_train[col_mean] = get_bs_real_mc_mean(col_cat, X_train, df_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
-#    # add mean encoding on mean of diff btw next_premium and premium
-#    for col_cat in cols_cat:
-#        col_mean = col_cat.replace('cat_', 'real_mc_mean_diff_')
-#        print('Getting column ' + col_mean)
-#        X_test[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, df_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
-#        X_valid[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, df_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
-#        X_train[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, df_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
+    # add mean encoding on mean of diff btw next_premium and premium
+    for col_cat in cols_cat:
+        col_mean = col_cat.replace('cat_', 'real_mc_mean_diff_')
+        print('Getting column ' + col_mean)
+        X_test[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, df_train, X_valid=X_test, train_only=False, fold=5, prior=1000)
+        X_valid[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, df_train, X_valid=X_valid, train_only=False, fold=5, prior=1000)
+        X_train[col_mean] = get_bs_real_mc_mean_diff(col_cat, X_train, df_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     # add mean encoding on probability of next_premium being 0
     for col_cat in cols_cat:
