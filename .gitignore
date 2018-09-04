@@ -78,5 +78,16 @@ target/
 # exclude data from source control by default
 /data/
 
+# exclude data from source control by default
+/docs/
+
 # Mac OS-specific storage files
 .DS_Store
+
+# Zhiyong
+src/models/saved_model
+src/models/play*
+src/models/catboost_info/
+src/models/create_features.py
+src/models/figures/
+src/models/summary*
