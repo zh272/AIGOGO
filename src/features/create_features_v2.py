@@ -23,7 +23,7 @@ def get_bs2_cat(df_policy, idx_df, col, mv=0):
     return(df.fillna(mv))
 
 
-def get_bs_real_prem(df_policy, idx_df, col, mv=0):
+def get_bs2_real_prem(df_policy, idx_df, col, mv=0):
     '''
     In:
         DataFrame(df_policy),
@@ -51,8 +51,7 @@ def get_bs_real_prem(df_policy, idx_df, col, mv=0):
 
     return(real_prem_col.fillna(mv))
 
-
-def get_bs_real_prem_ic(df_policy, idx_df, col, mv=0):
+def get_bs2_real_prem_ic(df_policy, idx_df, col, mv=0):
     '''
     In:
         DataFrame(df_policy),
@@ -81,7 +80,7 @@ def get_bs_real_prem_ic(df_policy, idx_df, col, mv=0):
     return(real_prem_ic.fillna(mv))
 
 
-def get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
+def get_bs2_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
     '''
     In:
         str(col_cat)
@@ -106,7 +105,7 @@ def get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), 
             X_slice = X_train[msk]
             X_base = X_train[~msk]
             y_base = y_train[~msk]
-            X_slice = get_bs_real_mc_mean_diff(col_cat, X_base, y_base, X_valid=X_slice, train_only=False, prior=prior)
+            X_slice = get_bs2_real_mc_mean_diff(col_cat, X_base, y_base, X_valid=X_slice, train_only=False, prior=prior)
             X_arr.append(X_slice)
         real_mc_mean_diff = pd.concat(X_arr).loc[X_train.index]
 
@@ -123,3 +122,21 @@ def get_bs_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), 
         real_mc_mean_diff = real_mc_mean_diff.where(~pd.isnull(real_mc_mean_diff), np.mean(y_train['real_mc_mean_diff'])) + X_valid['real_prem_plc']
 
     return(real_mc_mean_diff)
+
+
+def get_bs2_real_age(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(real_age),
+    Description:
+        get inssured age
+    '''
+    df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0]})
+
+    get_real_age = lambda x: 0 if pd.isnull(x) else 2016 - int(x[3:])
+    real_age = df_policy['ibirth'].map(get_real_age)
+
+    return(real_age.loc[idx_df])
