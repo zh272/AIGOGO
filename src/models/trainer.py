@@ -4,11 +4,11 @@ import numpy as np
 from copy import deepcopy
 from torch.autograd import Variable
 
-from helpers import AverageMeter, get_optimizer, test_epoch
+from helpers import AverageMeter, get_optimizer, test_epoch, WeightedSubsetRandomSampler
 
 
 class Trainer:
-    def __init__(self, model, train_set, loss_fn, valid_set=None, hyper={},
+    def __init__(self, model, train_set, loss_fn, valid_set=None, weights=None, hyper={}, 
                 batch_size=64, valid_size=0, epochs=None, optimizer='sgd'):
         if torch.cuda.is_available():
             # Wrap model for multi-GPUs, if necessary
@@ -40,15 +40,22 @@ class Trainer:
             self.num_valid = len(valid_set)
         self.train_set = train_set
         self.valid_set = valid_set
+        self.weights = weights
         self.reset_train_valid()
 
     def reset_train_valid(self):
         if self.valid_set is None:
             indices = torch.randperm(self.num_train)
             train_indices = indices[:self.num_train - self.num_valid]
-            train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
             valid_indices = indices[self.num_train - self.num_valid:]
+            # train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
+            if self.weights is None:
+                train_sampler = WeightedSubsetRandomSampler(train_indices,None)
+            else:
+                train_sampler = WeightedSubsetRandomSampler(train_indices, self.weights[train_indices])
             valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
+
+
 
             # Data loaders
             self.train_loader = torch.utils.data.DataLoader(
@@ -63,7 +70,11 @@ class Trainer:
         else:
             train_indices = torch.randperm(self.num_train)
             valid_indices = torch.randperm(self.num_valid)
-            train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
+            # train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
+            if self.weights is None:
+                train_sampler = WeightedSubsetRandomSampler(train_indices,None)
+            else:
+                train_sampler = WeightedSubsetRandomSampler(train_indices, self.weights[train_indices])
             valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
 
             # Data loaders
@@ -88,15 +99,6 @@ class Trainer:
             self.scheduler.step()
         for _, (inputs, target) in enumerate(self.train_loader):
             self.step(inputs, target)
-
-    def train_step(self):
-        if self.scheduler:
-            self.scheduler.step()
-        inputs, target = next(self.train_loader_iter, (None,None))
-        if target is None:
-            self.train_loader_iter = iter(self.train_loader)
-            inputs, target = next(self.train_loader_iter)
-        self.step(inputs, target)
 
     def step(self, inputs, target):
         """Forward pass and backpropagation"""

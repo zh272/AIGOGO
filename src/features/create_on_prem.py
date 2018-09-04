@@ -7,7 +7,6 @@ from sklearn.decomposition import NMF
 from sklearn.metrics import mean_absolute_error
 import lightgbm as lgb
 
-
 ######## feature template expansion ########
 def get_bs_cat(df_policy, idx_df, col):
     '''
