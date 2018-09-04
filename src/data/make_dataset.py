@@ -188,7 +188,30 @@ def get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train
 
     return(real_mc_prob)
 
+def get_nan_table(df_policy, idx_df, col):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+        str(col),
+    Out:
+        DataFrame(dfzero) which is 
+    Description:
+        get policy_number with its number index which has Nan value in correpsonding column
+    '''
+    #### agg df
+    df = df_policy.groupby(level=0).agg({col: lambda x: x.iloc[0]})
+    df = df.loc[idx_df, col]
+    df = df.reset_index()
+    #df_nan = df.loc[df[col]!=df.loc[[i for i in df.index],col]]#way1: judge if the value is NaN (if nan, the value would not match itself.)
+    df_nan=df.loc[df.loc[:,col].isnull()]#way2
 
+    # #### df_policy
+    # df =df_policy.reset_index()
+    # df_nan=df.loc[df.loc[:,col].isnull()]
+
+    return df_nan
+    
 ######## manual feature ########
 def get_bs_cat_cancel(df_policy, idx_df):
     '''
@@ -259,6 +282,9 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     df_bs = pd.concat([X_train, X_test])
     '''
     df_bs = pd.concat([df_train, df_test])
+
+    df_zero=get_nan_table(df_policy, df_bs.index, 'dbirth')    
+    df_zero.to_csv('dbirth_nan3.csv')
 
     print('Getting column cat_cancel')
     df_bs = df_bs.assign(cat_cancel = get_bs_cat_cancel(df_policy, df_bs.index))
@@ -445,5 +471,6 @@ if __name__ == '__main__':
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 
+    
     create_train_test_data_bs(df_train, df_test, df_policy, df_claim)
 
