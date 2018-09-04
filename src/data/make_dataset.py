@@ -188,7 +188,30 @@ def get_bs_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train
 
     return(real_mc_prob)
 
+def get_nan_table(df_policy, idx_df, col):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+        str(col),
+    Out:
+        DataFrame(dfzero) which is 
+    Description:
+        get policy_number with its number index which has Nan value in correpsonding column
+    '''
+    #### agg df
+    df = df_policy.groupby(level=0).agg({col: lambda x: x.iloc[0]})
+    df = df.loc[idx_df, col]
+    df = df.reset_index()
+    #df_nan = df.loc[df[col]!=df.loc[[i for i in df.index],col]]#way1: judge if the value is NaN (if nan, the value would not match itself.)
+    df_nan=df.loc[df.loc[:,col].isnull()]#way2
 
+    # #### df_policy
+    # df =df_policy.reset_index()
+    # df_nan=df.loc[df.loc[:,col].isnull()]
+
+    return df_nan
+    
 ######## manual feature ########
 def get_bs_cat_cancel(df_policy, idx_df):
     '''
@@ -259,6 +282,9 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     df_bs = pd.concat([X_train, X_test])
     '''
     df_bs = pd.concat([df_train, df_test])
+
+    df_zero=get_nan_table(df_policy, df_bs.index, 'dbirth')    
+    df_zero.to_csv('dbirth_nan3.csv')
 
     print('Getting column cat_cancel')
     df_bs = df_bs.assign(cat_cancel = get_bs_cat_cancel(df_policy, df_bs.index))
@@ -379,15 +405,11 @@ def read_raw_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/raw
     '''
     # set the path of raw data
-<<<<<<< HEAD
     if os.getcwd()[-1]=='O':
         raw_data_path = os.path.join(os.getcwd(), 'data', 'raw') #os.getcwd(), should direct to the path /AIGOGO
     else: #os.getcwd()[-1]=='a':
         raw_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'raw')
     
-=======
-    raw_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'raw')
->>>>>>> 34d24b0c772fe4d9917a6877a60e5315e3d78ab0
 
     file_path = os.path.join(raw_data_path, file_name)
     raw_data = pd.read_csv(file_path, index_col=index_col)
@@ -404,14 +426,10 @@ def read_interim_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/interim
     '''
     # set the path of raw data
-<<<<<<< HEAD
     if os.getcwd()[-1]=='O':
         interim_data_path = os.path.join(os.getcwd(), 'data', 'interim') #os.getcwd(), should direct to the path /AIGOGO
     else: #os.getcwd()[-1]=='a':
         interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
-=======
-    interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
->>>>>>> 34d24b0c772fe4d9917a6877a60e5315e3d78ab0
 
     file_path = os.path.join(interim_data_path, file_name)
     interim_data = pd.read_csv(file_path, index_col=index_col)
@@ -430,10 +448,14 @@ def write_test_data(df, file_name):
     Description:
         Write sample data to directory /data/interim
     '''
-    interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+    if os.getcwd()[-1]=='O':
+        interim_data_path = os.path.join(os.getcwd(), 'data', 'interim') #os.getcwd(), should direct to the path /AIGOGO
+    else: #os.getcwd()[-1]=='a':
+        interim_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'interim')
+    #interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
     write_sample_path = os.path.join(interim_data_path, file_name)
     df.to_csv(write_sample_path)
-
+ 
     return(None)
 
 if __name__ == '__main__':
@@ -449,5 +471,6 @@ if __name__ == '__main__':
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 
+    
     create_train_test_data_bs(df_train, df_test, df_policy, df_claim)
 
