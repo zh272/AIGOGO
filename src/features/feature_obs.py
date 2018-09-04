@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pandas as pd
 
-def contour_observe(df):
+def contour_observe(df,n2sflag=False):
     '''
         In: data in dataframe
         Out: contour data in dataframe
@@ -35,7 +35,7 @@ def contour_observe(df):
     return contour,Totalcol
 
 
-def relation_observe(df,grp_col,agg_col,n2sflag):
+def relation_observe(df,grp_col,agg_col):
     '''
         In: data in dataframe,
             str(grp_col)
@@ -55,6 +55,20 @@ def relation_observe(df,grp_col,agg_col,n2sflag):
         dfcol_aggfreq['Policy_Number_freq'] = df.groupby(by=grp_col).agg({'Policy_Number' : lambda x: len(np.unique(x))})
 
     return dfcol_aggfreq
+
+def uq_value_observe(df,col):
+    '''
+    In:
+        DataFrame(df_policy),
+        str(col),
+    Out:
+        DataFrame(dfzero) which is 
+    Description:
+        get policy_number with its number index which has Nan value in correpsonding column
+    '''
+    df_col_uni=df[col].unique()
+
+    return df_col_uni,len(df_col_uni)
 
 def nan_observe(df, col):
     '''
@@ -144,38 +158,36 @@ if __name__ == '__main__':
 
     # df_train_raw = read_raw_data('training-set.csv')
     # df_test_raw = read_raw_data('testing-set.csv')
-    df_claim_raw = read_raw_data('claim_0702.csv')
-    #df_policy_raw = read_raw_data('policy_0702.csv')
+    # df_claim_raw = read_raw_data('claim_0702.csv')
+    df_policy_raw = read_raw_data('policy_0702.csv')
     #df_train = read_interim_data('X_train_bs.csv')
     # df_test = read_interim_data('X_test_bs.csv')
     # df_valid = read_interim_data('X_valid_bs.csv')
 
     
 
-    ###contour observe section
+    ### contour observe section ###
     # if not os.path.isdir('contour_obs'):
     #     os.mkdir('contour_obs')
     # contour,total_col=contour_observe(df_train)
     # #contour.to_csv('feature_obs_train.csv')
     # print(total_col)#32
-    contour,total_col=contour_observe(df_claim_raw)
-    contour.to_csv('feature_obs_rawclaim.csv')
-    print(total_col)#19
+    # contour,total_col=contour_observe(df_claim_raw)
+    # contour.to_csv('feature_obs_rawclaim.csv')
+    # print(total_col)#19
     # contour,total_col=contour_observe(df_policy_raw)
     # contour.to_csv('feature_obs_rawpolicy.csv')
     # print(total_col)#40 (if print 41, additional 1 is index which is 'Policy_Number')
 
-    df_claim_raw=rev_numeric_to_cat(df_claim_raw)
-    contour,total_col=contour_observe(df_claim_raw)
-    contour.to_csv('feature_obs_rawclaim_numToCat.csv')
-    print(total_col)#19
-    # df_policy_raw=rev_numeric_to_cat(df_policy_raw)
-    # contour,total_col=contour_observe(df_policy_raw)
+    # contour,total_col=contour_observe(df_claim_raw,n2sflag=True)
+    # contour.to_csv('feature_obs_rawclaim_numToCat.csv')
+    # print(total_col)#20
+    # contour,total_col=contour_observe(df_policy_raw,n2sflag=True)
     # contour.to_csv('feature_obs_rawpolicy_numToCat.csv')
-    # print(total_col)#40 (if print 41, additional 1 is index which is 'Policy_Number')
+    # print(total_col)#41 (if print 41, additional 1 is index which is 'Policy_Number')
 
     
-    # ### column relationship observation
+    # ### column relationship observation ###
     # if not os.path.isdir('column_obs'):
     #     os.mkdir('column_obs')
     # relation= relation_observe(df_policy_raw,'Vehicle_identifier','Policy_Number')
@@ -188,6 +200,17 @@ if __name__ == '__main__':
     # relation.to_csv(r'.\column_obs\feature_obs_CoVBnTToVMnM2.csv')
     # relation= relation_observe(df_policy_raw,'Vehicle_Make_and_Model2','Coding_of_Vehicle_Branding_&_Type')
     # relation.to_csv(r'.\column_obs\feature_obs_VMnM2ToCoVBnT.csv')
+    relation=relation_observe(df_policy_raw,'Insurance_Coverage','Policy_Number')
+    relation.to_csv(r'.\column_obs\feature_obs_ICToPN.csv')
 
-
+    ### column value observation ###
+    # type of Insurance_Coverage
+    df_col_uni,total_uni_value=uq_value_observe(df_policy_raw,'Insurance_Coverage')
+    print(total_uni_value)
+    print(np.sort(df_col_uni))
     
+
+    ### speical record section ###
+    #type1=['00I','01A','01J','02K','03L','04M','05E','06F','07P','08H','14N','20B','20K','32N','33F','33O','34P','35H','36I','45@','51O','55J','56B','56K','57C','66C','66L','67D']
+    #type2=['05N','09@','09I','10A','68E','68N']
+    #type3=['12','14E','15F','15O','16G','16P','18@','18I','25G','26H','27I','29B','29K','37J','40M','41E','41N','42F','46A','47B','57L','65K','70G','70P','71H','72@']
