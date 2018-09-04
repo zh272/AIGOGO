@@ -20,9 +20,27 @@ base case: 1799
 + real_acc_lia: 1795
 + real_acc_dmg & lia: 1784
 
-+ real_mc_mean_diff_dmg:
++ real_mc_mean_dmg:
 
 + real_age: 1793
++ real_age_grp: 1794
++ real_age_tail: 1793
+
++ real_mc_mean_sex: 1790
++ real_mc_prob_sex: 1789
+
++ real_mc_mean_marriage: 1798
++ real_mc_prob_marriage: 1799
+
++ real_mc_mean_sex_marriage: 1791
+
++ real_mc_prob_sex & mean_marriage: 1791
++ real_mc_prob_sex & prob_marriage: 1791
+
++ real_mc_sex + real_age: 1787
+
++ real_mc_mean_zip: 1801
++ real_mc_prob_zip: 1803
 
 + replacement cost: 1795
 '''
@@ -50,9 +68,6 @@ def get_bs2_combined_features(df_policy, df_claim):
 
     print('Getting neural network processed premiums')
     X_fs = read_data('premium_60_1.csv')
-
-    print('Getting column real_age')
-    X_fs = X_fs.assign(real_age = get_bs2_real_age(df_policy, X_fs.index))
 
     print('\nSplitting train valid test features\n')
     X_train_all = X_fs.loc[y_train_all.index]
