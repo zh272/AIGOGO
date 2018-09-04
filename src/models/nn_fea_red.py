@@ -276,7 +276,8 @@ def demo(
                 inp = torch.autograd.Variable(inp)
         nn_df = inp
         modulelist = list(model.regressor.modules())
-        for l in modulelist[1:-2]:
+        # for l in modulelist[1:-2]:
+        for l in modulelist[1:]:
             nn_df = l(nn_df)
         nn_df = nn_df.cpu().data.numpy()
         non_cons_cols = np.var(nn_df, axis=0) != 0

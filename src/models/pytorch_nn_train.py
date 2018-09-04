@@ -15,10 +15,10 @@ import matplotlib.pyplot as plt
 
 from trainer import Trainer
 from model import MLPRegressor
-from helpers import get_dataset, test_epoch, ready, save_obj, load_obj
+from helpers import get_dataset, test_epoch, ready, save_obj, load_obj, weighted_mae_loss
 
 def get_submission(
-    X_train, X_valid, y_train, y_valid, X_test, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
+    X_train, X_valid, y_train, y_valid, X_test, weights=None, model=MLPRegressor, max_epoch=200, base_lr=0.1, 
     momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, zero_predict=False,
     test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt',all_train=False
 ):    
@@ -29,11 +29,11 @@ def get_submission(
         y_valid = None
         test_along = False
 
-        train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
+        train_set, valid_set, X_test_np, X_train_np, X_valid_np, _ = get_dataset(
             X_train.values, y_train.values, X_test.values
         )
     else:
-        train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
+        train_set, valid_set, X_test_np, X_train_np, X_valid_np, _ = get_dataset(
             X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
         )
     
@@ -45,13 +45,13 @@ def get_submission(
     if load:
         trainer = Trainer(
             torch.load(os.path.join(PATH, mdl_name)), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
-            valid_set=valid_set, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
+            valid_set=valid_set, weights=weights, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
         )
 
     else:
         trainer = Trainer(
             model(**train_params), train_set=train_set, loss_fn=F.l1_loss, hyper=hyper,
-            valid_set=valid_set, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
+            valid_set=valid_set, weights=weights, batch_size=batch_size, epochs=max_epoch, optimizer=optimizer
         )
 
         valid_hist = []
@@ -215,18 +215,18 @@ def demo(
     get_train=False, get_test=False, save=False, load=False
 ):
     rand_reset(seed)
-    X_train = read_interim_data('X_train_new.csv')
-    y_train = read_interim_data('y_train_new.csv')
-    X_valid = read_interim_data('X_valid_new.csv')
-    y_valid = read_interim_data('y_valid_new.csv')
-    X_test = read_interim_data('X_test_new.csv')
+    X_train = read_interim_data('X_train_prefs.csv')
+    y_train = read_interim_data('y_train_prefs.csv')
+    X_valid = read_interim_data('X_valid_prefs.csv')
+    y_valid = read_interim_data('y_valid_prefs.csv')
+    X_test = read_interim_data('X_test_prefs.csv')
 
     feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
 
     # feature_list = [feature for feature in feature_list if 'vequip' not in feature]
     # feature_list = [feature for feature in feature_list if 'nmf' not in feature]
     # feature_list = [feature for feature in feature_list if 'real_mc_mean_diff' in feature or 'real_acc' in feature]
-    feature_list = [feature for feature in feature_list if 'nmf' in feature]
+    # feature_list = [feature for feature in feature_list if 'nmf' in feature]
 
 
     num_features = len(feature_list)
@@ -243,7 +243,7 @@ def demo(
     X_test = X_test.apply(lambda x:x.fillna(-1))
 
     # begin training
-    # num_neuron = [100,50,8]
+    # num_neuron = [160,50,8]
     num_neuron = [20,10]
     print('Network Architecture: {}'.format(num_neuron))
     # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
@@ -278,9 +278,11 @@ def demo(
     #         epochs: base_lr/200
     #     }
     # }
+
+    train_weights = None
     
     model_output = get_submission(
-        X_train, X_valid, y_train, y_valid, X_test, all_train=all_train,
+        X_train, X_valid, y_train, y_valid, X_test, weights=train_weights, all_train=all_train,
         model=MLPRegressor, max_epoch=epochs, base_lr=base_lr, 
         momentum=momentum, weight_decay=weight_decay,
         batch_size = batch_size, train_params=train_params, 

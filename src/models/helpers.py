@@ -230,3 +230,37 @@ def load_obj(file_name, file_dir='./saved_models'):
             return obj
     except FileNotFoundError:
         return {}
+
+def weighted_mae_loss(inp, target, weights=None):
+    if weights is None:
+        weights = torch.tensor([1.0], device=target.data.device, dtype=target.data.dtype)
+    else:
+        assert len(weights) == len(target)
+
+    weights = weights.expand_as(target)
+    out = (inp-target).abs() * weights
+    # expand_as because weights are prob not defined for mini-batch
+    loss = out.sum()/weights.sum() # or sum over whatever dimensions
+    return loss
+
+
+class WeightedSubsetRandomSampler(torch.utils.data.sampler.Sampler):
+
+    def __init__(self, indices, weights=None, replacement=True):
+        if not isinstance(replacement, bool):
+            raise ValueError("replacement should be a boolean value, but got "
+                             "replacement={}".format(replacement))
+        self.indices = indices
+        if weights is None:
+            self.weights = torch.tensor([1.0], dtype=torch.double).expand_as(indices)
+        else:
+            assert len(weights) == len(indices)
+            self.weights = torch.tensor(weights, dtype=torch.double)
+        self.num_samples = len(self.indices)
+        self.replacement = replacement
+
+    def __iter__(self):
+        return (self.indices[i] for i in torch.multinomial(self.weights, self.num_samples, self.replacement))
+
+    def __len__(self):
+        return self.num_samples
