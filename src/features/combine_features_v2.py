@@ -20,8 +20,6 @@ base case: 1799
 + real_acc_lia: 1795
 + real_acc_dmg & lia: 1784
 
-+ real_mc_mean_dmg:
-
 + real_age: 1793
 + real_age_grp: 1794
 + real_age_tail: 1793
@@ -88,7 +86,7 @@ def get_bs2_combined_features(df_policy, df_claim):
     return(None)
 
 
-def get_bs2_quick_mae(params):
+def get_bs2_quick_mae(params, get_imp=True):
     '''
     In:
 
@@ -117,10 +115,11 @@ def get_bs2_quick_mae(params):
     valid_mae = mean_absolute_error(y_valid, valid_pred)
     print('pre-selection mae is {}'.format(valid_mae))
 
-    varimp = list(model.feature_importance())
-    varimp = dict(zip(cols_train, varimp))
-    for key, value in sorted(varimp.items(), key=lambda x: -x[1]):
-        print("'%s': %s," % (key, value))
+    if get_imp:
+        varimp = list(model.feature_importance())
+        varimp = dict(zip(cols_train, varimp))
+        for key, value in sorted(varimp.items(), key=lambda x: -x[1]):
+            print("'%s': %s," % (key, value))
 
     return(None)
 
