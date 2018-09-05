@@ -20,6 +20,7 @@ base case: 1799
 + real_acc_lia: 1795
 + real_acc_dmg & lia: 1784
 
+<<<<<<< HEAD
 + real_age: 1793
 + real_age_grp: 1794
 + real_age_tail: 1793
@@ -39,6 +40,11 @@ base case: 1799
 
 + real_mc_mean_zip: 1801
 + real_mc_prob_zip: 1803
+=======
++ real_mc_mean_diff_dmg:
+
++ real_age: 1793
+>>>>>>> dddb05ba206ebfa8eda1a37adff490ad5c444440
 
 + replacement cost: 1795
 '''
@@ -67,6 +73,12 @@ def get_bs2_combined_features(df_policy, df_claim):
     print('Getting neural network processed premiums')
     X_fs = read_data('premium_60_1.csv')
 
+<<<<<<< HEAD
+=======
+    print('Getting column real_age')
+    X_fs = X_fs.assign(real_age = get_bs2_real_age(df_policy, X_fs.index))
+
+>>>>>>> dddb05ba206ebfa8eda1a37adff490ad5c444440
     print('\nSplitting train valid test features\n')
     X_train_all = X_fs.loc[y_train_all.index]
     X_train = X_fs.loc[y_train.index]
@@ -86,7 +98,11 @@ def get_bs2_combined_features(df_policy, df_claim):
     return(None)
 
 
+<<<<<<< HEAD
 def get_bs2_quick_mae(params, get_imp=True):
+=======
+def get_bs2_quick_mae(params):
+>>>>>>> dddb05ba206ebfa8eda1a37adff490ad5c444440
     '''
     In:
 
@@ -115,11 +131,18 @@ def get_bs2_quick_mae(params, get_imp=True):
     valid_mae = mean_absolute_error(y_valid, valid_pred)
     print('pre-selection mae is {}'.format(valid_mae))
 
+<<<<<<< HEAD
     if get_imp:
         varimp = list(model.feature_importance())
         varimp = dict(zip(cols_train, varimp))
         for key, value in sorted(varimp.items(), key=lambda x: -x[1]):
             print("'%s': %s," % (key, value))
+=======
+    varimp = list(model.feature_importance())
+    varimp = dict(zip(cols_train, varimp))
+    for key, value in sorted(varimp.items(), key=lambda x: -x[1]):
+        print("'%s': %s," % (key, value))
+>>>>>>> dddb05ba206ebfa8eda1a37adff490ad5c444440
 
     return(None)
 

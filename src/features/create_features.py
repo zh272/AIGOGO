@@ -964,7 +964,10 @@ def read_raw_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/raw
     '''
     # set the path of raw data
-    raw_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'raw')
+    if os.getcwd()[-1]=='O':
+        raw_data_path = os.path.join(os.path.dirname('__file__'), 'data', 'raw') #os.getcwd(), should direct to the path /AIGOGO
+    else: #os.getcwd()[-1]=='a':
+        raw_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'raw')
 
     file_path = os.path.join(raw_data_path, file_name)
     raw_data = pd.read_csv(file_path, index_col=index_col)
@@ -981,7 +984,10 @@ def read_interim_data(file_name, index_col='Policy_Number'):
     Description: read data from directory /data/interim
     '''
     # set the path of raw data
-    interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+    if os.getcwd()[-1]=='O':
+        interim_data_path = os.path.join(os.path.dirname('__file__'), 'data', 'interim') #os.getcwd(), should direct to the path /AIGOGO
+    else: #os.getcwd()[-1]=='a':
+        interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
 
     file_path = os.path.join(interim_data_path, file_name)
     interim_data = pd.read_csv(file_path, index_col=index_col)
@@ -1000,7 +1006,11 @@ def write_test_data(df, file_name, red_method='nmf'):
     Description:
         Write sample data to directory /data/interim
     '''
-    interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+    if os.getcwd()[-1]=='O':
+        interim_data_path = os.path.join(os.path.dirname('__file__'), 'data', 'interim') #os.getcwd(), should direct to the path /AIGOGO
+    else: #os.getcwd()[-1]=='a':
+        interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+
     write_sample_path = os.path.join(interim_data_path, file_name)
     df.to_csv(write_sample_path)
 
@@ -1013,7 +1023,9 @@ def demo(red_method='nmf',reduction=7):
     independent_claim: claim_0702.csv
     independent_policy: policy_0702.csv
     '''
-
+    
+    # df_train = read_raw_data('training-set.csv')
+    # df_test = read_raw_data('testing-set.csv')
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 

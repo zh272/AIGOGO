@@ -1,8 +1,5 @@
 import numpy as np
 import pandas as pd
-import sys
-sys.path.insert(0, '../data')
-from utils import *
 
 ######## feature template expansion ########
 def get_bs2_cat(df_policy, idx_df, col, mv=0):
@@ -26,7 +23,11 @@ def get_bs2_cat(df_policy, idx_df, col, mv=0):
     return(df.fillna(mv))
 
 
+<<<<<<< HEAD
 def get_bs2_cat_inter(df_policy, idx_df, col1, col2):
+=======
+def get_bs2_real_prem(df_policy, idx_df, col, mv=0):
+>>>>>>> dddb05ba206ebfa8eda1a37adff490ad5c444440
     '''
     In:
         DataFrame(df_policy),
@@ -44,8 +45,12 @@ def get_bs2_cat_inter(df_policy, idx_df, col1, col2):
 
     return(cat_col1_col2.loc[idx_df])
 
+<<<<<<< HEAD
 
 def get_bs2_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
+=======
+def get_bs2_real_prem_ic(df_policy, idx_df, col, mv=0):
+>>>>>>> dddb05ba206ebfa8eda1a37adff490ad5c444440
     '''
     In:
         str(col_cat)
@@ -89,7 +94,11 @@ def get_bs2_real_mc_mean(col_cat, X_train, y_train, X_valid=pd.DataFrame(), trai
     return(real_mc_mean)
 
 
+<<<<<<< HEAD
 def get_bs2_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
+=======
+def get_bs2_real_mc_mean_diff(col_cat, X_train, y_train, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000):
+>>>>>>> dddb05ba206ebfa8eda1a37adff490ad5c444440
     '''
     In:
         str(col_cat)
@@ -114,7 +123,11 @@ def get_bs2_real_mc_prob(col_cat, X_train, y_train, X_valid=pd.DataFrame(), trai
             X_slice = X_train[msk]
             X_base = X_train[~msk]
             y_base = y_train[~msk]
+<<<<<<< HEAD
             X_slice = get_bs2_real_mc_prob(col_cat, X_base, y_base, X_valid=X_slice, train_only=False, prior=prior)
+=======
+            X_slice = get_bs2_real_mc_mean_diff(col_cat, X_base, y_base, X_valid=X_slice, train_only=False, prior=prior)
+>>>>>>> dddb05ba206ebfa8eda1a37adff490ad5c444440
             X_arr.append(X_slice)
         real_mc_prob = pd.concat(X_arr).loc[X_train.index]
 
@@ -190,4 +203,26 @@ def get_bs2_real_age_tail(df_policy, idx_df):
     get_age_head = lambda x: 20 if x < 25 and x > 0 else x
     real_age = real_age.map(get_age_head)
 
+<<<<<<< HEAD
     return(real_age)
+=======
+    return(real_mc_mean_diff)
+
+
+def get_bs2_real_age(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(real_age),
+    Description:
+        get inssured age
+    '''
+    df_policy = df_policy.groupby(level=0).agg({'ibirth': lambda x: x.iloc[0]})
+
+    get_real_age = lambda x: 0 if pd.isnull(x) else 2016 - int(x[3:])
+    real_age = df_policy['ibirth'].map(get_real_age)
+
+    return(real_age.loc[idx_df])
+>>>>>>> dddb05ba206ebfa8eda1a37adff490ad5c444440
