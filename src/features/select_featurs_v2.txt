@@ -1,0 +1,60 @@
+'''
+base case: 1799
+
++ premium by main coverage grp: 1799
++ premium on 0 insured amounts: 1799
++ premium avg of insured coverage: 1800
++ premium avg of insured coverage by vmy: 1799
+
++ real_acc_dmg: 1787
++ real_acc_lia: 1795
++ real_acc_dmg & lia: 1784
+
++ real_age: 1793
++ real_age_grp: 1794
++ real_age_tail: 1793
+
++ real_mc_mean_sex: 1790
++ real_mc_prob_sex: 1789
+
++ real_mc_mean_marriage: 1798
++ real_mc_prob_marriage: 1799
+
++ real_mc_mean_sex_marriage: 1791
+
++ real_mc_prob_sex & mean_marriage: 1791
++ real_mc_prob_sex & prob_marriage: 1791
+
++ real_mc_sex + real_age: 1787
+
++ real_mc_mean_zip: 1801
++ real_mc_prob_zip: 1803
+
++ replacement cost: 1795
+
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex']: 1787.010912440195
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_diff_sex']: 1793.11215476349
+['real_prem_ic_nn_1', 'real_age', 'real_mc_prob_sex']: 1787.1841883237264
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex']: 1785.135343607413
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_prob_sex']: 1786.8542626282697
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1784.940775318955
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1784.738598753464
+
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage']: 1785.0574858351679
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_diff_marriage']: 1785.839101487293
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_prob_marriage']: 1785.8625729375285
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage', 'real_mc_mean_diff_marriage']: 1785.8929310999101
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage', 'real_mc_prob_marriage']: 1785.252438048371
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_diff_marriage', 'real_mc_prob_marriage']: 1785.7511633329077
+['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage', 'real_mc_mean_diff_marriage', 'real_mc_prob_marriage']: 1786.0011350450363
+
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex']: 1770.6868410525633
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex']: 1764.270359974596
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_prob_sex']: 1772.1862854294627
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex']: 1762.5041077193582
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_prob_sex']: 1772.4457878810592
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1762.2694519722431
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1763.6338994131777
+
+
+'''

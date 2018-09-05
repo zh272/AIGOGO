@@ -195,7 +195,7 @@ def get_nan_table(df_policy, idx_df, col):
         Any(idx_df),
         str(col),
     Out:
-        DataFrame(dfzero) which is 
+        DataFrame(dfzero) which is
     Description:
         get policy_number with its number index which has Nan value in correpsonding column
     '''
@@ -211,7 +211,7 @@ def get_nan_table(df_policy, idx_df, col):
     # df_nan=df.loc[df.loc[:,col].isnull()]
 
     return df_nan
-    
+
 ######## manual feature ########
 def get_bs_cat_cancel(df_policy, idx_df):
     '''
@@ -245,7 +245,7 @@ def get_bs_cat_vmy(df_policy, idx_df):
     return(cat_vmy.loc[idx_df].fillna(0))
 
 
-def get_bs_real_prem_plc(df_policy, idx_df):
+def get_bs2_real_prem_plc(df_policy, idx_df):
     '''
     In:
         DataFrame(df_policy),
@@ -253,7 +253,6 @@ def get_bs_real_prem_plc(df_policy, idx_df):
     Out:
         Series(real_prem_plc),
     Description:
-        get liability class label
     '''
     real_prem_plc = df_policy.groupby(level=0).agg({'Premium': np.nansum})
     return(real_prem_plc.loc[idx_df])
@@ -283,7 +282,7 @@ def create_train_test_data_bs(df_train, df_test, df_policy, df_claim):
     '''
     df_bs = pd.concat([df_train, df_test])
 
-    df_zero=get_nan_table(df_policy, df_bs.index, 'dbirth')    
+    df_zero=get_nan_table(df_policy, df_bs.index, 'dbirth')
     df_zero.to_csv('dbirth_nan3.csv')
 
     print('Getting column cat_cancel')
@@ -409,7 +408,7 @@ def read_raw_data(file_name, index_col='Policy_Number'):
         raw_data_path = os.path.join(os.getcwd(), 'data', 'raw') #os.getcwd(), should direct to the path /AIGOGO
     else: #os.getcwd()[-1]=='a':
         raw_data_path = os.path.join(os.getcwd(), os.path.pardir, os.path.pardir, 'data', 'raw')
-    
+
 
     file_path = os.path.join(raw_data_path, file_name)
     raw_data = pd.read_csv(file_path, index_col=index_col)
@@ -455,7 +454,7 @@ def write_test_data(df, file_name):
     #interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
     write_sample_path = os.path.join(interim_data_path, file_name)
     df.to_csv(write_sample_path)
- 
+
     return(None)
 
 if __name__ == '__main__':
@@ -471,6 +470,6 @@ if __name__ == '__main__':
     df_claim = read_raw_data('claim_0702.csv')
     df_policy = read_raw_data('policy_0702.csv')
 
-    
+
     create_train_test_data_bs(df_train, df_test, df_policy, df_claim)
 

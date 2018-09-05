@@ -170,3 +170,15 @@ def get_bs2_real_age_tail(df_policy, idx_df):
 
     return(real_age)
 
+
+def get_bs2_real_prem_plc(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df),
+    Out:
+        Series(real_prem_plc),
+    Description:
+    '''
+    real_prem_plc = df_policy.groupby(level=0).agg({'Premium': np.nansum})
+    return(real_prem_plc.loc[idx_df])
