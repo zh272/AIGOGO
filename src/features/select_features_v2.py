@@ -67,7 +67,8 @@ def get_bs2_feature_selection(df_policy, df_claim):
     X_fs = read_data('premium_60_1.csv')
 
     # insured
-
+    print('Getting column real_age')
+    X_fs = X_fs.assign(real_age = get_bs2_real_age(df_policy, X_fs.index))
 
     print('\nSplitting train valid test features\n')
     X_train = X_fs.loc[y_train.index]
@@ -81,3 +82,65 @@ def get_bs2_feature_selection(df_policy, df_claim):
 
     return(None)
 
+
+def get_bs2_quick_mae(params, get_imp=True):
+    '''
+    In:
+
+    Out:
+        float(mae)
+
+    Description:
+        calculate quick mae on validation set
+    '''
+    X_train = read_data('X_train_fs.csv')
+    y_train = read_data('y_train_fs.csv')
+    X_valid = read_data('X_valid_fs.csv')
+    y_valid = read_data('y_valid_fs.csv')
+
+    cols_train = [col for col in X_train.columns if not col.startswith('cat')]
+
+    lgb_train = lgb.Dataset(X_train[cols_train].values, y_train.values.flatten(), free_raw_data=False)
+    lgb_valid = lgb.Dataset(X_valid[cols_train].values, y_valid.values.flatten(), reference=lgb_train, free_raw_data=False)
+
+    model = lgb.train(
+        params['model'], lgb_train, valid_sets=lgb_valid, **params['train']
+    )
+
+    valid_pred = model.predict(X_valid[cols_train])
+    valid_pred = pd.DataFrame(valid_pred, index = X_valid.index, columns = ['Next_Premium'])
+    valid_mae = mean_absolute_error(y_valid, valid_pred)
+    print('pre-selection mae is {}'.format(valid_mae))
+
+    if get_imp:
+        varimp = list(model.feature_importance())
+        varimp = dict(zip(cols_train, varimp))
+        for key, value in sorted(varimp.items(), key=lambda x: -x[1]):
+            print("'%s': %s," % (key, value))
+
+    return(None)
+
+
+def demo():
+    df_claim = read_data('claim_0702.csv', path='raw')
+    df_policy = read_data('policy_0702.csv', path='raw')
+    get_bs2_feature_selection(df_policy, df_claim)
+
+    lgb_model_params = {
+        'boosting_type': 'gbdt',
+        'num_iterations': 5000,
+        'objective': 'regression_l1',
+        'metric': 'mae',
+        'seed': 0,
+    }
+    lgb_train_params = {
+        'early_stopping_rounds': 3,
+        'learning_rates': lambda iter: max(0.1*(0.99**iter), 0.005)
+    }
+    lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
+
+
+    get_bs2_quick_mae(lgb_params)
+
+if __name__ == '__main__':
+    fire.Fire(demo)
