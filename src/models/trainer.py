@@ -48,9 +48,9 @@ class Trainer:
             indices = torch.randperm(self.num_train)
             train_indices = indices[:self.num_train - self.num_valid]
             valid_indices = indices[self.num_train - self.num_valid:]
-            # train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
             if self.weights is None:
-                train_sampler = WeightedSubsetRandomSampler(train_indices,None)
+                # train_sampler = WeightedSubsetRandomSampler(train_indices,None)
+                train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
             else:
                 train_sampler = WeightedSubsetRandomSampler(train_indices, self.weights[train_indices])
             valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)
@@ -70,9 +70,9 @@ class Trainer:
         else:
             train_indices = torch.randperm(self.num_train)
             valid_indices = torch.randperm(self.num_valid)
-            # train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
             if self.weights is None:
-                train_sampler = WeightedSubsetRandomSampler(train_indices,None)
+                # train_sampler = WeightedSubsetRandomSampler(train_indices,None)
+                train_sampler = torch.utils.data.sampler.SubsetRandomSampler(train_indices)
             else:
                 train_sampler = WeightedSubsetRandomSampler(train_indices, self.weights[train_indices])
             valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(valid_indices)

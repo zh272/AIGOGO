@@ -112,9 +112,9 @@ def write_precessed_data(df, suffix=None):
 
 
 def demo(
-    epochs=20000, lr=50, objective='MAE', task_type='CPU',
+    epochs=20000, lr=100, objective='MAE', task_type='CPU',
     max_depth=4, colsample_bylevel=0.7, reg_lambda=None,
-    get_train=False, get_test=True, save=False, load=False, seed=None
+    get_train=False, get_test=False, save=False, load=False, seed=random.randint(0,1000)
 ):
     if seed is not None:
         rand_reset(seed)

@@ -638,7 +638,7 @@ def get_bs_cat_assured_grp(df_policy, idx_df):
     return(cat_assured_grp)
 
 
-def get_base_prem(file_name='premium_60_8.csv'):
+def get_base_prem(file_names=['premium_60_1.csv']):
     '''
     In:
         Any(idx_df),
@@ -648,9 +648,14 @@ def get_base_prem(file_name='premium_60_8.csv'):
     Description:
         get basic feature columns from file
     '''
-    base_cols = read_data(file_name, 'interim')
-    # base_cols = _X.loc[idx_df].fillna(-1)
-    return base_cols
+    base_cols = []
+    for idx, name in enumerate(file_names):
+        base_cols.append(read_data(name, 'interim'))
+    result = base_cols[0]
+    if len(file_names)>1:
+        for idx in range(1, len(base_cols)):
+            result = result.merge(base_cols[idx], how='left', left_index=True, right_index=True)
+    return result
 
 
 ######## get pre feature selection data set ########
@@ -668,7 +673,22 @@ def create_feature_selection_data(df_policy, df_claim, reduction=10):
         create train dataset with additional columns
     '''
 
-    _X = get_base_prem(file_name='premium_60_{}.csv'.format(reduction))
+    # _X = get_base_prem(file_names=[
+    #     'prem_60_{}.csv'.format(reduction), 
+    #     'ia_60_{}.csv'.format(reduction)
+    # ])
+    # _X = get_base_prem(file_names=[
+    #     'prem_60.csv', 
+    #     'ia_60.csv'
+    # ])
+    _X = get_base_prem(file_names=[
+        'prem_60_9.csv', 
+        'ia_60_10.csv'
+    ])
+    # _X = get_base_prem(file_names=[
+    #     'prem_60_1.csv', 
+    #     'ia_60_1.csv'
+    # ])
 
 
     y_train = read_data('y_train_bs.csv', 'interim')
@@ -681,96 +701,6 @@ def create_feature_selection_data(df_policy, df_claim, reduction=10):
 
     X_fs = pd.concat([X_train, X_valid, X_test])
     y_fs = pd.concat([y_train, y_valid, y_test])
-
-#     # basic
-#     print('Getting column cat_age')
-#     X_fs = X_fs.assign(cat_age = get_bs_cat_age(df_policy, X_fs.index))
-
-#     print('Getting column cat_assured_grp')
-#     X_fs = X_fs.assign(cat_assured_grp = get_bs_cat_assured_grp(df_policy, X_fs.index))
-
-#     print('Getting column cat_acc_dmg')
-#     X_fs = X_fs.assign(cat_acc_dmg = get_bs_cat(df_policy, X_fs.index, 'pdmg_acc'))
-
-#     print('Getting column cat_ins_self')
-#     X_fs = X_fs.assign(cat_ins_self = get_bs_cat_ins_self(df_policy, X_fs.index))
-# #
-# #    # distribution
-#     print('Getting column real_prem_ic_distr')
-#     X_fs = X_fs.assign(real_prem_ic_distr = get_bs_real_prem_ic(df_policy, X_fs.index, 'Distribution_Channel'))
-# #
-#     # insurance coverage
-#     print('Getting column real_prem_16G_indiv')
-#     X_fs = X_fs.assign(real_prem_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Premium'))
-
-#     print('Getting column real_ia1_16G_indiv')
-#     X_fs = X_fs.assign(real_ia1_16G_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16G', 'Insured_Amount1'))
-
-#     print('Getting column real_ia3_55J_indiv')
-#     X_fs = X_fs.assign(real_ia3_55J_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '55J', 'Insured_Amount3'))
-
-#     print('Getting column real_ia3_16P_indiv')
-#     X_fs = X_fs.assign(real_ia3_16P_indiv = get_bs_real_ic_indiv(df_policy, X_fs.index, '16P', 'Insured_Amount3'))
-
-#     # vehicle
-#     print('Getting column real_prem_ic_vmy')
-#     X_fs = X_fs.assign(real_prem_ic_vmy = get_bs_real_prem_exst(df_policy, X_fs.index, 'Manafactured_Year_and_Month', get_bs_real_prem_ic))
-
-
-# #    print('Getting column real_prem_per_vcost')
-# #    X_fs = X_fs.assign(real_prem_per_vcost = X_fs['real_prem_plc'] / X_fs['real_vcost'])
-# #
-# #    print('Getting column cat_vequip')
-# #    X_fs = X_fs.assign(cat_vequip = get_bs_cat_vequip(df_policy, X_fs.index))
-
-# #    print('Getting column cat_ic_cluster_vmm2')
-# #    X_fs = X_fs.assign(cat_ic_cluster_vmm2 = get_bs_cat_ic_cluster(df_policy, X_fs.index, 'Vehicle_Make_and_Model2', 60))
-
-#     # claim
-#     print('Getting column cat_claim_ins')
-#     X_fs = X_fs.assign(cat_claim_ins = get_bs_cat_claim_ins(df_policy, df_claim, X_fs.index))
-
-#     print('Getting column real_loss_ins')
-#     X_fs = X_fs.assign(real_loss_ins = get_bs_real_loss_ins(df_policy, df_claim, X_fs.index))
-
-#     print('Getting column cat_claim_theft')
-#     X_fs = X_fs.assign(cat_claim_theft = get_bs_cat_claim_theft(df_claim, X_fs.index))
-
-#     print('Getting column real_claim_fault')
-#     X_fs = X_fs.assign(real_claim_fault = get_bs_real_claim_fault(df_claim, X_fs.index))
-
-#     # insurance coverage
-#     print('Getting column real_prem_ic_nmf')
-#     temp = get_bs_real_prem_ic_nmf(df_policy, X_fs.index, method=red_method, reduction=reduction)
-#     n_comp = temp.shape[1]
-#     print('>>> number of reduced features: {}'.format(n_comp))
-#     colnames = ['real_prem_ic_nmf_' + str(i) for i in range(1, n_comp+1)]
-#     X_fs[colnames] = temp
-
-# #    print('Getting column real_ia_ic_nmf')
-# #    colnames = ['real_ia_ic_nmf_' + str(i) for i in range(1, 6)]
-# #    X_fs[colnames] = get_bs_real_ia_ic_nmf(df_policy, X_fs.index)
-
-#     print('Getting column real_prem_terminate')
-#     X_fs = X_fs.assign(real_prem_terminate = get_bs_real_prem_terminate(df_policy, X_fs.index))
-
-#     print('Getting column real_prem_dmg')
-#     X_fs = X_fs.assign(real_prem_dmg = get_bs_real_prem_exst(df_policy, X_fs.index, '車損', get_bs_real_prem_grp))
-
-#     print('Getting column real_prem_lia')
-#     X_fs = X_fs.assign(real_prem_lia = get_bs_real_prem_exst(df_policy, X_fs.index, '車責', get_bs_real_prem_grp))
-
-#     print('Getting column real_prem_thf')
-#     X_fs = X_fs.assign(real_prem_thf = get_bs_real_prem_exst(df_policy, X_fs.index, '竊盜', get_bs_real_prem_grp))
-
-#     print('Getting column real_prem_ic')
-#     X_fs = X_fs.assign(real_prem_ic = get_bs_real_prem_exst(df_policy, X_fs.index, 'Main_Insurance_Coverage_Group', get_bs_real_prem_ic))
-
-#     print('Getting column real_prem_var_ic')
-#     X_fs = X_fs.assign(real_prem_var_ic = get_bs_real_prem_var_ic(df_policy, X_fs.index))
-
-#     print('Getting column cat_ic_combo')
-#     X_fs = X_fs.assign(cat_ic_combo = get_bs_cat_ic_combo(df_policy, X_fs.index))
 
     # feature template expansion
     cols_cat_all = [col for col in X_fs.columns if col.startswith('cat') and len(X_fs[col].unique()) > 2]
@@ -999,7 +929,7 @@ def write_test_data(df, file_name, path='interim'):
     df.to_csv(write_sample_path)
 
 
-def demo(reduction=10):
+def demo(reduction=1):
     '''
     train data: training-set.csv
     test data: testing-set.csv

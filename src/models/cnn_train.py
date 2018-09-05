@@ -21,7 +21,7 @@ def get_submission(
     momentum=0.9, weight_decay=0.0001, batch_size = 128, train_params={}, plot=True, 
     test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='cnn.pt'
 ):    
-    train_set, valid_set, X_test_np, X_train_np, X_valid_np = get_dataset(
+    train_set, valid_set, X_test_np, X_train_np, X_valid_np, _ = get_dataset(
         X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
     )
     
@@ -164,11 +164,16 @@ def demo(
 ):
     if seed is not None:
         rand_reset(seed)
-    X_train = read_interim_data('X_train_prefs.csv')
-    y_train = read_interim_data('y_train_prefs.csv')
-    X_valid = read_interim_data('X_valid_prefs.csv')
-    y_valid = read_interim_data('y_valid_prefs.csv')
-    X_test = read_interim_data('X_test_prefs.csv')
+    # X_train = read_interim_data('X_train_prefs.csv')
+    # y_train = read_interim_data('y_train_prefs.csv')
+    # X_valid = read_interim_data('X_valid_prefs.csv')
+    # y_valid = read_interim_data('y_valid_prefs.csv')
+    # X_test = read_interim_data('X_test_prefs.csv')
+    X_train = read_interim_data('X_train_new.csv')
+    y_train = read_interim_data('y_train_new.csv')
+    X_valid = read_interim_data('X_valid_new.csv')
+    y_valid = read_interim_data('y_valid_new.csv')
+    X_test = read_interim_data('X_test_new.csv')
 
     feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
     num_features = len(feature_list)
