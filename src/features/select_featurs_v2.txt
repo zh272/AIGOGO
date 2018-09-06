@@ -25,12 +25,6 @@ base case: 1799
 + real_mc_prob_sex & mean_marriage: 1791
 + real_mc_prob_sex & prob_marriage: 1791
 
-+ real_mc_sex + real_age: 1787
-
-+ real_mc_mean_zip: 1801
-+ real_mc_prob_zip: 1803
-
-+ replacement cost: 1795
 
 ['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex']: 1787.010912440195
 ['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_diff_sex']: 1793.11215476349
@@ -40,6 +34,7 @@ base case: 1799
 ['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1784.940775318955
 ['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1784.738598753464
 
+# No: marriage
 ['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage']: 1785.0574858351679
 ['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_diff_marriage']: 1785.839101487293
 ['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_prob_marriage']: 1785.8625729375285
@@ -48,6 +43,7 @@ base case: 1799
 ['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_diff_marriage', 'real_mc_prob_marriage']: 1785.7511633329077
 ['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage', 'real_mc_mean_diff_marriage', 'real_mc_prob_marriage']: 1786.0011350450363
 
+# Yes: mc_mean_diff
 ['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex']: 1770.6868410525633
 ['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex']: 1764.270359974596
 ['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_prob_sex']: 1772.1862854294627
@@ -56,5 +52,36 @@ base case: 1799
 ['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1762.2694519722431
 ['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1763.6338994131777
 
+# Yes: mc_mean_div
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex']: 1770.6868410525633
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex']: 1764.270359974596
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_div_sex']: 1765.6331790286324
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_prob_sex']: 1772.1862854294627
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex']: 1762.5041077193582
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_div_sex']: 1762.367800889318
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_prob_sex']: 1772.4457878810592
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex']: 1765.7630921658558
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1762.2694519722431
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1760.6043721046435
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex']: 1761.602177865311
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1763.6338994131777
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1764.6058419288008
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1761.260832243446
 
+# Yes: mc_median
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex']: 1770.7101317109893
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_diff_sex']: 1765.734770611225
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_div_sex']: 1766.4286383211495
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_prob_sex']: 1772.1862854294627
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_diff_sex']: 1762.6006402069409
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_div_sex']: 1761.868365415161
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_prob_sex']: 1772.4457878810592
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_diff_sex', 'real_mc_median_div_sex']: 1765.998724540985
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_diff_sex', 'real_mc_prob_sex']: 1762.8729875986078
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1762.719505131778
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_median_div_sex']: 1761.2448563582532
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_prob_sex']: 1761.6178915024088
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1761.9499442897504
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_diff_sex', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1759.7431877762665
+['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1763.216073874318
 '''
