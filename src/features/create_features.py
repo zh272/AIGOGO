@@ -1023,7 +1023,7 @@ def demo(red_method='nmf',reduction=7):
     independent_claim: claim_0702.csv
     independent_policy: policy_0702.csv
     '''
-    
+
     # df_train = read_raw_data('training-set.csv')
     # df_test = read_raw_data('testing-set.csv')
     df_claim = read_raw_data('claim_0702.csv')

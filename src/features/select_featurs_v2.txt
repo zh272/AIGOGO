@@ -1,4 +1,60 @@
 '''
+# insured
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_age', 'real_mc_median_sex', 'real_mc_median_diff_sex','real_mc_prob_marriage',]: 1773
+
+# policy
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_div_ic_combo']: 1751
+
+# vehicle
+['real_prem_ic_nn_1', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1786
+
+# claim
+['real_prem_ic_nn_1', 'real_loss', 'real_loss_ins', 'real_salvage', 'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause', 'real_mc_prob_claim_area', 'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants']: 1785
+
+# feature selection
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_age', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_prob_marriage', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_div_ic_combo', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc', 'real_loss', 'real_loss_ins', 'real_salvage', 'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause', 'real_mc_prob_claim_area', 'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants']: 1708.096652687557
+'real_prem_ic_nn_1': 6178,
+'real_mc_prob_ins': 2727,
+'real_mc_mean_div_claim_cause': 2537,
+'real_loss': 2138,
+'real_vmy': 2088,
+'real_mc_median_ins': 2024,
+'real_mc_median_ic_combo': 1953,
+'real_prem_terminate': 1641,
+'real_salvage': 1630,
+'real_acc_lia': 1521,
+'real_acc_dmg': 1359,
+'real_vcost': 1211,
+'real_mc_median_distr': 1169,
+'real_age': 1100,
+'real_cancel': 1047,
+'real_loss_ins': 948,
+'real_mc_median_div_distr': 939,
+'real_mc_median_div_vregion': 872,
+'real_mc_mean_diff_vmm1': 850,
+'real_mc_median_diff_assured': 847,
+'real_mc_median_div_ic_combo': 843,
+'real_mc_median_sex': 836,
+'real_mc_median_div_ic_grp_combo': 762,
+'real_mc_median_diff_sex': 732,
+'real_nearest_claim': 721,
+'real_mc_prob_claim_cause': 703,
+'real_mc_median_div_ins': 701,
+'real_mc_mean_diff_vmm2': 566,
+'real_dage': 471,
+'real_mc_mean_diff_vc': 450,
+'real_mc_prob_claim_area': 366,
+'real_mc_prob_marriage': 343,
+'real_mc_median_div_area': 319,
+'real_vqpt': 307,
+'cat_vengine': 253,
+'real_claim_fault': 223,
+'real_claimants': 200,
+'real_mc_median_assured': 145,
+'real_num_claim': 110,
+'''
+
+'''
 base case: 1799
 
 + premium by main coverage grp: 1799
@@ -6,82 +62,728 @@ base case: 1799
 + premium avg of insured coverage: 1800
 + premium avg of insured coverage by vmy: 1799
 
-+ real_acc_dmg: 1787
-+ real_acc_lia: 1795
-+ real_acc_dmg & lia: 1784
+['real_prem_ic_nn_1', 'real_mc_mean_ins']: 1791.5374891617314
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ins']: 1798.618471018974
+['real_prem_ic_nn_1', 'real_mc_mean_div_ins']: 1798.1684441230732
+['real_prem_ic_nn_1', 'real_mc_prob_ins']: 1794.4863608123032
+['real_prem_ic_nn_1', 'real_mc_mean_ins', 'real_mc_mean_diff_ins']: 1790.0391387711861
+['real_prem_ic_nn_1', 'real_mc_mean_ins', 'real_mc_mean_div_ins']: 1791.1852533618132
+['real_prem_ic_nn_1', 'real_mc_mean_ins', 'real_mc_prob_ins']: 1787.5639624649095
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ins', 'real_mc_mean_div_ins']: 1797.0870708774582
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ins', 'real_mc_prob_ins']: 1794.9376315819914
+['real_prem_ic_nn_1', 'real_mc_mean_div_ins', 'real_mc_prob_ins']: 1793.7671271173085
+['real_prem_ic_nn_1', 'real_mc_mean_ins', 'real_mc_mean_diff_ins', 'real_mc_mean_div_ins']: 1789.2022232902546
+['real_prem_ic_nn_1', 'real_mc_mean_ins', 'real_mc_mean_diff_ins', 'real_mc_prob_ins']: 1786.888523298729
+['real_prem_ic_nn_1', 'real_mc_mean_ins', 'real_mc_mean_div_ins', 'real_mc_prob_ins']: 1785.682755075314
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ins', 'real_mc_mean_div_ins', 'real_mc_prob_ins']: 1794.2212191942328
+['real_prem_ic_nn_1', 'real_mc_mean_ins', 'real_mc_mean_diff_ins', 'real_mc_mean_div_ins', 'real_mc_prob_ins']: 1785.9369932019595
 
-+ real_age: 1793
-+ real_age_grp: 1794
-+ real_age_tail: 1793
+['real_prem_ic_nn_1', 'real_mc_median_ins']: 1789.6551050606965
+['real_prem_ic_nn_1', 'real_mc_median_diff_ins']: 1798.1502117402918
+['real_prem_ic_nn_1', 'real_mc_median_div_ins']: 1797.8546600190894
+['real_prem_ic_nn_1', 'real_mc_prob_ins']: 1794.4863608123032
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_diff_ins']: 1787.0963595466947
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins']: 1788.4610838887195
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_prob_ins']: 1787.6535291436908
+['real_prem_ic_nn_1', 'real_mc_median_diff_ins', 'real_mc_median_div_ins']: 1797.0559046516692
+['real_prem_ic_nn_1', 'real_mc_median_diff_ins', 'real_mc_prob_ins']: 1795.374539368103
+['real_prem_ic_nn_1', 'real_mc_median_div_ins', 'real_mc_prob_ins']: 1795.3279894800164
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_diff_ins', 'real_mc_median_div_ins']: 1787.570814500651
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_diff_ins', 'real_mc_prob_ins']: 1786.1159599490825
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins']: 1783.8692988967548
+['real_prem_ic_nn_1', 'real_mc_median_diff_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins']: 1794.8846885476894
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_diff_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins']: 1784.8747059306652
 
-+ real_mc_mean_sex: 1790
-+ real_mc_prob_sex: 1789
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_sex']: 1774.2972742089328
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_sex']: 1783.134668360207
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_sex']: 1782.0661816362606
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_prob_sex']: 1776.1905683197647
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_sex', 'real_mc_mean_diff_sex']: 1776.2723741464847
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_sex', 'real_mc_mean_div_sex']: 1775.2680577024566
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_sex', 'real_mc_prob_sex']: 1775.2829637705256
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex']: 1781.2192853059742
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1775.3053578487998
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1777.0825701980664
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex']: 1777.5824751660366
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1777.1775411771762
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_sex', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1775.5024720906888
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1777.7556106411212
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1776.5947986258275
 
-+ real_mc_mean_marriage: 1798
-+ real_mc_prob_marriage: 1799
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_sex']: 1774.3231895882734
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_sex']: 1783.6365181178076
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_div_sex']: 1781.0131759889591
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_prob_sex']: 1776.1905683197647
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_sex', 'real_mc_median_diff_sex']: 1773.6676587694506
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_sex', 'real_mc_median_div_sex']: 1777.4496046337058
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_sex', 'real_mc_prob_sex']: 1775.2905567824885
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_sex', 'real_mc_median_div_sex']: 1780.9033712683818
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_sex', 'real_mc_prob_sex']: 1774.6238536095268
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1775.6254155360148
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_median_div_sex']: 1774.5591974680478
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_prob_sex']: 1775.6909144954595
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_sex', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1775.699833925206
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_sex', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1774.5306761728177
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1775.3931757843343
 
-+ real_mc_mean_sex_marriage: 1791
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_zip']: 1783.8802352151656
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_zip']: 1785.1639747395834
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_zip']: 1784.1404857985065
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_prob_zip']: 1786.5319865240951
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_zip', 'real_mc_mean_diff_zip']: 1784.5052691376684
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_zip', 'real_mc_mean_div_zip']: 1784.0653471102912
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_zip', 'real_mc_prob_zip']: 1784.5333147350173
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_zip', 'real_mc_mean_div_zip']: 1784.7674637432724
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_zip', 'real_mc_prob_zip']: 1784.9248469232587
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_zip', 'real_mc_prob_zip']: 1785.4781466974266
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_zip', 'real_mc_mean_diff_zip', 'real_mc_mean_div_zip']: 1785.0392269057809
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_zip', 'real_mc_mean_diff_zip', 'real_mc_prob_zip']: 1785.0901472825872
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_zip', 'real_mc_mean_div_zip', 'real_mc_prob_zip']: 1784.049014242069
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_zip', 'real_mc_mean_div_zip', 'real_mc_prob_zip']: 1785.800003682084
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_zip', 'real_mc_mean_diff_zip', 'real_mc_mean_div_zip', 'real_mc_prob_zip']: 1784.1390478299434
 
-+ real_mc_prob_sex & mean_marriage: 1791
-+ real_mc_prob_sex & prob_marriage: 1791
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_zip']: 1785.1623482355985
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_zip']: 1785.5297125754278
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_div_zip']: 1783.614129681753
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_prob_zip']: 1786.5319865240951
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_zip', 'real_mc_median_diff_zip']: 1784.9794970557368
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_zip', 'real_mc_median_div_zip']: 1783.5796223499783
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_zip', 'real_mc_prob_zip']: 1783.579337597502
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_zip', 'real_mc_median_div_zip']: 1784.0809665476568
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_zip', 'real_mc_prob_zip']: 1785.2676783880374
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_div_zip', 'real_mc_prob_zip']: 1784.2307188547506
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_zip', 'real_mc_median_diff_zip', 'real_mc_median_div_zip']: 1783.2079668649992
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_zip', 'real_mc_median_diff_zip', 'real_mc_prob_zip']: 1784.967000830174
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_zip', 'real_mc_median_div_zip', 'real_mc_prob_zip']: 1782.8960050258754
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_zip', 'real_mc_median_div_zip', 'real_mc_prob_zip']: 1785.1926181119488
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_zip', 'real_mc_median_diff_zip', 'real_mc_median_div_zip', 'real_mc_prob_zip']: 1784.0065066430343
 
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_marriage']: 1783.4072371520695
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_marriage']: 1784.8990383222504
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_marriage']: 1784.3745288332088
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_marriage']: 1783.420659760155
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_marriage']: 1784.2504644627422
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_div_marriage']: 1784.283843068271
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_prob_marriage']: 1782.3180273542157
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_marriage', 'real_mc_mean_diff_marriage']: 1783.087108419289
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_marriage', 'real_mc_mean_div_marriage']: 1782.6356896614368
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_marriage', 'real_mc_median_marriage']: 1783.4072371520695
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_marriage', 'real_mc_median_diff_marriage']: 1783.3207720857106
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_marriage', 'real_mc_median_div_marriage']: 1782.2733736167108
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_marriage', 'real_mc_prob_marriage']: 1783.4071817060753
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_marriage', 'real_mc_mean_div_marriage']: 1783.005460350229
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_marriage', 'real_mc_median_marriage']: 1783.692833275837
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_marriage', 'real_mc_median_diff_marriage']: 1783.8380804739206
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_marriage', 'real_mc_median_div_marriage']: 1784.8378394862088
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_marriage', 'real_mc_prob_marriage']: 1783.6976887459398
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_marriage', 'real_mc_median_marriage']: 1782.6222816987802
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_marriage', 'real_mc_median_diff_marriage']: 1783.9830943037866
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_marriage', 'real_mc_median_div_marriage']: 1783.0079651805445
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_marriage', 'real_mc_prob_marriage']: 1783.071345599369
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_marriage', 'real_mc_median_diff_marriage']: 1783.316082238706
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_marriage', 'real_mc_median_div_marriage']: 1782.3182721701921
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_marriage', 'real_mc_prob_marriage']: 1783.4278745274112
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_marriage', 'real_mc_median_div_marriage']: 1783.8231262859993
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_marriage', 'real_mc_prob_marriage']: 1783.054642327482
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_div_marriage', 'real_mc_prob_marriage']: 1782.9239308744611
 
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex']: 1787.010912440195
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_diff_sex']: 1793.11215476349
-['real_prem_ic_nn_1', 'real_age', 'real_mc_prob_sex']: 1787.1841883237264
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex']: 1785.135343607413
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_prob_sex']: 1786.8542626282697
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1784.940775318955
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1784.738598753464
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_assured']: 1783.4525866970284
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_assured']: 1784.2650551944985
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_assured']: 1785.8764751519366
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_prob_assured']: 1783.089230222863
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_assured', 'real_mc_mean_diff_assured']: 1784.2799254685954
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_assured', 'real_mc_mean_div_assured']: 1784.016185883313
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_assured', 'real_mc_prob_assured']: 1783.9638844840763
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_assured', 'real_mc_mean_div_assured']: 1784.5669794810294
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_assured', 'real_mc_prob_assured']: 1783.3576772861152
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_div_assured', 'real_mc_prob_assured']: 1783.3392604516564
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_assured', 'real_mc_mean_diff_assured', 'real_mc_mean_div_assured']: 1783.3355699884276
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_assured', 'real_mc_mean_diff_assured', 'real_mc_prob_assured']: 1783.7365186146023
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_assured', 'real_mc_mean_div_assured', 'real_mc_prob_assured']: 1784.09116675198
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_diff_assured', 'real_mc_mean_div_assured', 'real_mc_prob_assured']: 1783.5197632326165
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_mean_assured', 'real_mc_mean_diff_assured', 'real_mc_mean_div_assured', 'real_mc_prob_assured']: 1784.1289670739418
 
-# No: marriage
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage']: 1785.0574858351679
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_diff_marriage']: 1785.839101487293
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_prob_marriage']: 1785.8625729375285
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage', 'real_mc_mean_diff_marriage']: 1785.8929310999101
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage', 'real_mc_prob_marriage']: 1785.252438048371
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_diff_marriage', 'real_mc_prob_marriage']: 1785.7511633329077
-['real_prem_ic_nn_1', 'real_age', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex', 'real_mc_mean_marriage', 'real_mc_mean_diff_marriage', 'real_mc_prob_marriage']: 1786.0011350450363
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured']: 1783.9428538562213
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_assured']: 1784.0249701680639
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_div_assured']: 1784.1757983179066
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_prob_assured']: 1783.089230222863
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_diff_assured']: 1782.9757119348435
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_div_assured']: 1783.8074236052678
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_prob_assured']: 1783.4414762496988
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_assured', 'real_mc_median_div_assured']: 1784.415204786371
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_assured', 'real_mc_prob_assured']: 1784.0677275555731
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_div_assured', 'real_mc_prob_assured']: 1783.0806508663743
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_mc_median_div_assured']: 1783.8951685072138
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_mc_prob_assured']: 1783.385264464197
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_div_assured', 'real_mc_prob_assured']: 1784.547581379327
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_diff_assured', 'real_mc_median_div_assured', 'real_mc_prob_assured']: 1783.346630451037
+['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_mc_median_div_assured', 'real_mc_prob_assured']: 1783.882658639003
 
-# Yes: mc_mean_diff
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex']: 1770.6868410525633
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex']: 1764.270359974596
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_prob_sex']: 1772.1862854294627
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex']: 1762.5041077193582
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_prob_sex']: 1772.4457878810592
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1762.2694519722431
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1763.6338994131777
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_ic_combo']: 1802.0780793657154
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ic_combo']: 1801.2267245655657
+['real_prem_ic_nn_1', 'real_mc_mean_div_ic_combo']: 1799.4949553996626
+['real_prem_ic_nn_1', 'real_mc_prob_ic_combo']: 1804.854593947893
+['real_prem_ic_nn_1', 'real_mc_mean_ic_combo', 'real_mc_mean_diff_ic_combo']: 1803.128219540957
+['real_prem_ic_nn_1', 'real_mc_mean_ic_combo', 'real_mc_mean_div_ic_combo']: 1801.9691373209937
+['real_prem_ic_nn_1', 'real_mc_mean_ic_combo', 'real_mc_prob_ic_combo']: 1806.382560094337
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ic_combo', 'real_mc_mean_div_ic_combo']: 1800.9681133630006
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ic_combo', 'real_mc_prob_ic_combo']: 1810.2340807482892
+['real_prem_ic_nn_1', 'real_mc_mean_div_ic_combo', 'real_mc_prob_ic_combo']: 1806.0567540644872
+['real_prem_ic_nn_1', 'real_mc_mean_ic_combo', 'real_mc_mean_diff_ic_combo', 'real_mc_mean_div_ic_combo']: 1804.2127634985916
+['real_prem_ic_nn_1', 'real_mc_mean_ic_combo', 'real_mc_mean_diff_ic_combo', 'real_mc_prob_ic_combo']: 1806.0063820792004
+['real_prem_ic_nn_1', 'real_mc_mean_ic_combo', 'real_mc_mean_div_ic_combo', 'real_mc_prob_ic_combo']: 1804.159271442469
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ic_combo', 'real_mc_mean_div_ic_combo', 'real_mc_prob_ic_combo']: 1805.5717727695983
+['real_prem_ic_nn_1', 'real_mc_mean_ic_combo', 'real_mc_mean_diff_ic_combo', 'real_mc_mean_div_ic_combo', 'real_mc_prob_ic_combo']: 1808.6532244428686
 
-# Yes: mc_mean_div
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex']: 1770.6868410525633
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex']: 1764.270359974596
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_div_sex']: 1765.6331790286324
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_prob_sex']: 1772.1862854294627
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex']: 1762.5041077193582
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_div_sex']: 1762.367800889318
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_prob_sex']: 1772.4457878810592
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex']: 1765.7630921658558
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1762.2694519722431
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1760.6043721046435
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex']: 1761.602177865311
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_diff_sex', 'real_mc_prob_sex']: 1763.6338994131777
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_sex', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1764.6058419288008
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_mean_diff_sex', 'real_mc_mean_div_sex', 'real_mc_prob_sex']: 1761.260832243446
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_ic_combo']: 1803.086899787784
+['real_prem_ic_nn_1', 'real_mc_median_diff_ic_combo']: 1800.107246059938
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_combo']: 1799.6612152175317
+['real_prem_ic_nn_1', 'real_mc_prob_ic_combo']: 1804.854593947893
+['real_prem_ic_nn_1', 'real_mc_median_ic_combo', 'real_mc_median_diff_ic_combo']: 1802.2017336022432
+['real_prem_ic_nn_1', 'real_mc_median_ic_combo', 'real_mc_median_div_ic_combo']: 1803.1138532419977
+['real_prem_ic_nn_1', 'real_mc_median_ic_combo', 'real_mc_prob_ic_combo']: 1805.612307779589
+['real_prem_ic_nn_1', 'real_mc_median_diff_ic_combo', 'real_mc_median_div_ic_combo']: 1800.083265084601
+['real_prem_ic_nn_1', 'real_mc_median_diff_ic_combo', 'real_mc_prob_ic_combo']: 1807.2539372512608
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_combo', 'real_mc_prob_ic_combo']: 1803.6992569281335
+['real_prem_ic_nn_1', 'real_mc_median_ic_combo', 'real_mc_median_diff_ic_combo', 'real_mc_median_div_ic_combo']: 1803.8893462794813
+['real_prem_ic_nn_1', 'real_mc_median_ic_combo', 'real_mc_median_diff_ic_combo', 'real_mc_prob_ic_combo']: 1805.4039123329246
+['real_prem_ic_nn_1', 'real_mc_median_ic_combo', 'real_mc_median_div_ic_combo', 'real_mc_prob_ic_combo']: 1802.8134446562583
+['real_prem_ic_nn_1', 'real_mc_median_diff_ic_combo', 'real_mc_median_div_ic_combo', 'real_mc_prob_ic_combo']: 1805.9384274207127
+['real_prem_ic_nn_1', 'real_mc_median_ic_combo', 'real_mc_median_diff_ic_combo', 'real_mc_median_div_ic_combo', 'real_mc_prob_ic_combo']: 1808.3165091221952
 
-# Yes: mc_median
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex']: 1770.7101317109893
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_diff_sex']: 1765.734770611225
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_div_sex']: 1766.4286383211495
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_prob_sex']: 1772.1862854294627
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_diff_sex']: 1762.6006402069409
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_div_sex']: 1761.868365415161
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_prob_sex']: 1772.4457878810592
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_diff_sex', 'real_mc_median_div_sex']: 1765.998724540985
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_diff_sex', 'real_mc_prob_sex']: 1762.8729875986078
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1762.719505131778
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_median_div_sex']: 1761.2448563582532
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_prob_sex']: 1761.6178915024088
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1761.9499442897504
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_diff_sex', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1759.7431877762665
-['real_prem_ic_nn_1', 'real_age', 'real_acc_dmg', 'real_acc_lia', 'real_mc_median_sex', 'real_mc_median_diff_sex', 'real_mc_median_div_sex', 'real_mc_prob_sex']: 1763.216073874318
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_ic_grp_combo']: 1803.0158720551917
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ic_grp_combo']: 1799.7436907752422
+['real_prem_ic_nn_1', 'real_mc_mean_div_ic_grp_combo']: 1798.3892350347348
+['real_prem_ic_nn_1', 'real_mc_prob_ic_grp_combo']: 1802.594898365598
+['real_prem_ic_nn_1', 'real_mc_mean_ic_grp_combo', 'real_mc_mean_diff_ic_grp_combo']: 1800.60063707484
+['real_prem_ic_nn_1', 'real_mc_mean_ic_grp_combo', 'real_mc_mean_div_ic_grp_combo']: 1801.236593632225
+['real_prem_ic_nn_1', 'real_mc_mean_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1802.56993047419
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ic_grp_combo', 'real_mc_mean_div_ic_grp_combo']: 1800.5502583777013
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1800.6818320761672
+['real_prem_ic_nn_1', 'real_mc_mean_div_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1800.826545897805
+['real_prem_ic_nn_1', 'real_mc_mean_ic_grp_combo', 'real_mc_mean_diff_ic_grp_combo', 'real_mc_mean_div_ic_grp_combo']: 1800.9888958901536
+['real_prem_ic_nn_1', 'real_mc_mean_ic_grp_combo', 'real_mc_mean_diff_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1800.117356383375
+['real_prem_ic_nn_1', 'real_mc_mean_ic_grp_combo', 'real_mc_mean_div_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1801.677662413584
+['real_prem_ic_nn_1', 'real_mc_mean_diff_ic_grp_combo', 'real_mc_mean_div_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1801.2468773450414
+['real_prem_ic_nn_1', 'real_mc_mean_ic_grp_combo', 'real_mc_mean_diff_ic_grp_combo', 'real_mc_mean_div_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1801.2971423756376
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_ic_grp_combo']: 1802.8255041259195
+['real_prem_ic_nn_1', 'real_mc_median_diff_ic_grp_combo']: 1798.7822881843376
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo']: 1799.1984693135912
+['real_prem_ic_nn_1', 'real_mc_prob_ic_grp_combo']: 1802.594898365598
+['real_prem_ic_nn_1', 'real_mc_median_ic_grp_combo', 'real_mc_median_diff_ic_grp_combo']: 1799.3782292170915
+['real_prem_ic_nn_1', 'real_mc_median_ic_grp_combo', 'real_mc_median_div_ic_grp_combo']: 1800.1073094907526
+['real_prem_ic_nn_1', 'real_mc_median_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1802.849574222068
+['real_prem_ic_nn_1', 'real_mc_median_diff_ic_grp_combo', 'real_mc_median_div_ic_grp_combo']: 1799.315893135158
+['real_prem_ic_nn_1', 'real_mc_median_diff_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1800.2617502413652
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1801.813965280635
+['real_prem_ic_nn_1', 'real_mc_median_ic_grp_combo', 'real_mc_median_diff_ic_grp_combo', 'real_mc_median_div_ic_grp_combo']: 1799.6471912425407
+['real_prem_ic_nn_1', 'real_mc_median_ic_grp_combo', 'real_mc_median_diff_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1800.0875730911466
+['real_prem_ic_nn_1', 'real_mc_median_ic_grp_combo', 'real_mc_median_div_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1801.2415573999522
+['real_prem_ic_nn_1', 'real_mc_median_diff_ic_grp_combo', 'real_mc_median_div_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1800.7481450272912
+['real_prem_ic_nn_1', 'real_mc_median_ic_grp_combo', 'real_mc_median_diff_ic_grp_combo', 'real_mc_median_div_ic_grp_combo', 'real_mc_prob_ic_grp_combo']: 1800.495290530031
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_distr']: 1796.0390990126166
+['real_prem_ic_nn_1', 'real_mc_mean_diff_distr']: 1798.957206895416
+['real_prem_ic_nn_1', 'real_mc_mean_div_distr']: 1793.1717570368205
+['real_prem_ic_nn_1', 'real_mc_prob_distr']: 1794.8886883762048
+['real_prem_ic_nn_1', 'real_mc_mean_distr', 'real_mc_mean_diff_distr']: 1792.3082504385889
+['real_prem_ic_nn_1', 'real_mc_mean_distr', 'real_mc_mean_div_distr']: 1792.333726818163
+['real_prem_ic_nn_1', 'real_mc_mean_distr', 'real_mc_prob_distr']: 1794.6195200025743
+['real_prem_ic_nn_1', 'real_mc_mean_diff_distr', 'real_mc_mean_div_distr']: 1793.2564273452185
+['real_prem_ic_nn_1', 'real_mc_mean_diff_distr', 'real_mc_prob_distr']: 1791.7375944270145
+['real_prem_ic_nn_1', 'real_mc_mean_div_distr', 'real_mc_prob_distr']: 1791.5068688217461
+['real_prem_ic_nn_1', 'real_mc_mean_distr', 'real_mc_mean_diff_distr', 'real_mc_mean_div_distr']: 1791.9529748560228
+['real_prem_ic_nn_1', 'real_mc_mean_distr', 'real_mc_mean_diff_distr', 'real_mc_prob_distr']: 1792.6098328689175
+['real_prem_ic_nn_1', 'real_mc_mean_distr', 'real_mc_mean_div_distr', 'real_mc_prob_distr']: 1791.0814303360578
+['real_prem_ic_nn_1', 'real_mc_mean_diff_distr', 'real_mc_mean_div_distr', 'real_mc_prob_distr']: 1792.6732988332835
+['real_prem_ic_nn_1', 'real_mc_mean_distr', 'real_mc_mean_diff_distr', 'real_mc_mean_div_distr', 'real_mc_prob_distr']: 1793.8187305830895
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_distr']: 1793.8110656633178
+['real_prem_ic_nn_1', 'real_mc_median_diff_distr']: 1798.728137526711
+['real_prem_ic_nn_1', 'real_mc_median_div_distr']: 1792.1539513619016
+['real_prem_ic_nn_1', 'real_mc_prob_distr']: 1794.8886883762048
+['real_prem_ic_nn_1', 'real_mc_median_distr', 'real_mc_median_diff_distr']: 1794.2664474075284
+['real_prem_ic_nn_1', 'real_mc_median_distr', 'real_mc_median_div_distr']: 1790.7654366278389
+['real_prem_ic_nn_1', 'real_mc_median_distr', 'real_mc_prob_distr']: 1793.5791778006228
+['real_prem_ic_nn_1', 'real_mc_median_diff_distr', 'real_mc_median_div_distr']: 1793.84891852966
+['real_prem_ic_nn_1', 'real_mc_median_diff_distr', 'real_mc_prob_distr']: 1793.4955735345643
+['real_prem_ic_nn_1', 'real_mc_median_div_distr', 'real_mc_prob_distr']: 1793.2386443759299
+['real_prem_ic_nn_1', 'real_mc_median_distr', 'real_mc_median_diff_distr', 'real_mc_median_div_distr']: 1791.689729139715
+['real_prem_ic_nn_1', 'real_mc_median_distr', 'real_mc_median_diff_distr', 'real_mc_prob_distr']: 1792.7137430297123
+['real_prem_ic_nn_1', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_prob_distr']: 1791.0711058565416
+['real_prem_ic_nn_1', 'real_mc_median_diff_distr', 'real_mc_median_div_distr', 'real_mc_prob_distr']: 1792.1293282093252
+['real_prem_ic_nn_1', 'real_mc_median_distr', 'real_mc_median_diff_distr', 'real_mc_median_div_distr', 'real_mc_prob_distr']: 1793.3550789281887
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_area']: 1799.7223612015125
+['real_prem_ic_nn_1', 'real_mc_mean_diff_area']: 1797.979477018769
+['real_prem_ic_nn_1', 'real_mc_mean_div_area']: 1797.9494140840336
+['real_prem_ic_nn_1', 'real_mc_prob_area']: 1800.0258580904763
+['real_prem_ic_nn_1', 'real_mc_mean_area', 'real_mc_mean_diff_area']: 1797.8161262244791
+['real_prem_ic_nn_1', 'real_mc_mean_area', 'real_mc_mean_div_area']: 1797.9344580561292
+['real_prem_ic_nn_1', 'real_mc_mean_area', 'real_mc_prob_area']: 1800.6476040425741
+['real_prem_ic_nn_1', 'real_mc_mean_diff_area', 'real_mc_mean_div_area']: 1798.2109625108103
+['real_prem_ic_nn_1', 'real_mc_mean_diff_area', 'real_mc_prob_area']: 1798.6222534756832
+['real_prem_ic_nn_1', 'real_mc_mean_div_area', 'real_mc_prob_area']: 1799.4598984349227
+['real_prem_ic_nn_1', 'real_mc_mean_area', 'real_mc_mean_diff_area', 'real_mc_mean_div_area']: 1798.0488510987936
+['real_prem_ic_nn_1', 'real_mc_mean_area', 'real_mc_mean_diff_area', 'real_mc_prob_area']: 1798.0335538940005
+['real_prem_ic_nn_1', 'real_mc_mean_area', 'real_mc_mean_div_area', 'real_mc_prob_area']: 1799.0255011875006
+['real_prem_ic_nn_1', 'real_mc_mean_diff_area', 'real_mc_mean_div_area', 'real_mc_prob_area']: 1798.511704998256
+['real_prem_ic_nn_1', 'real_mc_mean_area', 'real_mc_mean_diff_area', 'real_mc_mean_div_area', 'real_mc_prob_area']: 1799.1035363204824
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_area']: 1801.4599376152703
+['real_prem_ic_nn_1', 'real_mc_median_diff_area']: 1799.4193414336366
+['real_prem_ic_nn_1', 'real_mc_median_div_area']: 1797.879547423891
+['real_prem_ic_nn_1', 'real_mc_prob_area']: 1800.0258580904763
+['real_prem_ic_nn_1', 'real_mc_median_area', 'real_mc_median_diff_area']: 1799.5310555402466
+['real_prem_ic_nn_1', 'real_mc_median_area', 'real_mc_median_div_area']: 1798.764480718938
+['real_prem_ic_nn_1', 'real_mc_median_area', 'real_mc_prob_area']: 1800.797724689111
+['real_prem_ic_nn_1', 'real_mc_median_diff_area', 'real_mc_median_div_area']: 1798.8365047272737
+['real_prem_ic_nn_1', 'real_mc_median_diff_area', 'real_mc_prob_area']: 1800.0666085586638
+['real_prem_ic_nn_1', 'real_mc_median_div_area', 'real_mc_prob_area']: 1798.988818824346
+['real_prem_ic_nn_1', 'real_mc_median_area', 'real_mc_median_diff_area', 'real_mc_median_div_area']: 1798.4704874711713
+['real_prem_ic_nn_1', 'real_mc_median_area', 'real_mc_median_diff_area', 'real_mc_prob_area']: 1798.9366564836612
+['real_prem_ic_nn_1', 'real_mc_median_area', 'real_mc_median_div_area', 'real_mc_prob_area']: 1798.6449108015063
+['real_prem_ic_nn_1', 'real_mc_median_diff_area', 'real_mc_median_div_area', 'real_mc_prob_area']: 1799.3324134738375
+['real_prem_ic_nn_1', 'real_mc_median_area', 'real_mc_median_diff_area', 'real_mc_median_div_area', 'real_mc_prob_area']: 1799.1208142632875
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_acc_dmg']: 1787.2758332449862
+['real_prem_ic_nn_1', 'real_acc_lia']: 1794.5450602450837
+['real_prem_ic_nn_1', 'real_prem_ic_dmg']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_acc_dmg', 'real_acc_lia']: 1783.758099798377
+['real_prem_ic_nn_1', 'real_acc_dmg', 'real_prem_ic_dmg']: 1787.2758332449862
+['real_prem_ic_nn_1', 'real_acc_lia', 'real_prem_ic_dmg']: 1794.5450602450837
+['real_prem_ic_nn_1', 'real_acc_dmg', 'real_acc_lia', 'real_prem_ic_dmg']: 1783.758099798377
+
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia']: 1764.5078660400422
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel']: 1756.9912586472212
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_dage']: 1762.1235544188326
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_ins_self']: 1764.6127294381863
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_prem_terminate']: 1765.052894342169
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage']: 1756.3698893830901
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_ins_self']: 1756.2006425538725
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_prem_terminate']: 1758.7121064495639
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_dage', 'real_ins_self']: 1763.4370148223286
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_dage', 'real_prem_terminate']: 1763.8236682384165
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_ins_self', 'real_prem_terminate']: 1764.0716677512498
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_ins_self']: 1757.1272396717222
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate']: 1753.802026178614
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_ins_self', 'real_prem_terminate']: 1756.3737589297934
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_dage', 'real_ins_self', 'real_prem_terminate']: 1764.1713222198737
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_ins_self', 'real_prem_terminate']: 1755.2313820227319
+
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate']: 1753.802026178614
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo']: 1757.2143177169166
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_diff_ic_combo']: 1755.5086793420771
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_div_ic_combo']: 1755.787466911622
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_prob_ic_combo']: 1756.7394277035216
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_diff_ic_combo']: 1755.861554991541
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_div_ic_combo']: 1751.0646563188134
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_prob_ic_combo']: 1755.0919257310813
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_diff_ic_combo', 'real_mc_median_div_ic_combo']: 1755.802096861552
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_diff_ic_combo', 'real_mc_prob_ic_combo']: 1759.0045959071515
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_div_ic_combo', 'real_mc_prob_ic_combo']: 1754.612134950084
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_diff_ic_combo', 'real_mc_median_div_ic_combo']: 1754.0763570133083
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_diff_ic_combo', 'real_mc_prob_ic_combo']: 1756.8573479037598
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_div_ic_combo', 'real_mc_prob_ic_combo']: 1755.572159575698
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_diff_ic_combo', 'real_mc_median_div_ic_combo', 'real_mc_prob_ic_combo']: 1755.8182494586401
+['real_prem_ic_nn_1', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_diff_ic_combo', 'real_mc_median_div_ic_combo', 'real_mc_prob_ic_combo']: 1757.1916830317411
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1']: 1801.3997704716253
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vmm1']: 1797.1571664763544
+['real_prem_ic_nn_1', 'real_mc_mean_div_vmm1']: 1798.86269681425
+['real_prem_ic_nn_1', 'real_mc_prob_vmm1']: 1801.7982686755574
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1']: 1796.9478054674341
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1']: 1796.3078614672356
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_prob_vmm1']: 1799.6920846246587
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1']: 1797.0454245594913
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vmm1', 'real_mc_prob_vmm1']: 1798.9051041029386
+['real_prem_ic_nn_1', 'real_mc_mean_div_vmm1', 'real_mc_prob_vmm1']: 1797.7551004849263
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1']: 1795.7955880128343
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_prob_vmm1']: 1797.4150885192043
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_prob_vmm1']: 1797.032190750699
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_prob_vmm1']: 1797.7851251820412
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_prob_vmm1']: 1795.5418281940606
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_vmm1']: 1801.7510273565802
+['real_prem_ic_nn_1', 'real_mc_median_diff_vmm1']: 1801.0876302117615
+['real_prem_ic_nn_1', 'real_mc_median_div_vmm1']: 1799.5156359354003
+['real_prem_ic_nn_1', 'real_mc_prob_vmm1']: 1801.7982686755574
+['real_prem_ic_nn_1', 'real_mc_median_vmm1', 'real_mc_median_diff_vmm1']: 1798.111421026629
+['real_prem_ic_nn_1', 'real_mc_median_vmm1', 'real_mc_median_div_vmm1']: 1799.4924880779913
+['real_prem_ic_nn_1', 'real_mc_median_vmm1', 'real_mc_prob_vmm1']: 1803.1963082858176
+['real_prem_ic_nn_1', 'real_mc_median_diff_vmm1', 'real_mc_median_div_vmm1']: 1798.7209591906937
+['real_prem_ic_nn_1', 'real_mc_median_diff_vmm1', 'real_mc_prob_vmm1']: 1798.5979131060378
+['real_prem_ic_nn_1', 'real_mc_median_div_vmm1', 'real_mc_prob_vmm1']: 1800.9381462088297
+['real_prem_ic_nn_1', 'real_mc_median_vmm1', 'real_mc_median_diff_vmm1', 'real_mc_median_div_vmm1']: 1797.567854434467
+['real_prem_ic_nn_1', 'real_mc_median_vmm1', 'real_mc_median_diff_vmm1', 'real_mc_prob_vmm1']: 1798.8106884148278
+['real_prem_ic_nn_1', 'real_mc_median_vmm1', 'real_mc_median_div_vmm1', 'real_mc_prob_vmm1']: 1799.9117588617703
+['real_prem_ic_nn_1', 'real_mc_median_diff_vmm1', 'real_mc_median_div_vmm1', 'real_mc_prob_vmm1']: 1798.952593233062
+['real_prem_ic_nn_1', 'real_mc_median_vmm1', 'real_mc_median_diff_vmm1', 'real_mc_median_div_vmm1', 'real_mc_prob_vmm1']: 1799.8111750894357
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_vmm2']: 1800.8202490250903
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vmm2']: 1797.0990658223698
+['real_prem_ic_nn_1', 'real_mc_mean_div_vmm2']: 1797.6092978457223
+['real_prem_ic_nn_1', 'real_mc_prob_vmm2']: 1803.9047292049568
+['real_prem_ic_nn_1', 'real_mc_mean_vmm2', 'real_mc_mean_diff_vmm2']: 1798.4837924729763
+['real_prem_ic_nn_1', 'real_mc_mean_vmm2', 'real_mc_mean_div_vmm2']: 1798.5404251355121
+['real_prem_ic_nn_1', 'real_mc_mean_vmm2', 'real_mc_prob_vmm2']: 1804.8791868276264
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_div_vmm2']: 1797.6358402721094
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vmm2', 'real_mc_prob_vmm2']: 1799.2823907655327
+['real_prem_ic_nn_1', 'real_mc_mean_div_vmm2', 'real_mc_prob_vmm2']: 1800.2960115449873
+['real_prem_ic_nn_1', 'real_mc_mean_vmm2', 'real_mc_mean_diff_vmm2', 'real_mc_mean_div_vmm2']: 1798.6639805558616
+['real_prem_ic_nn_1', 'real_mc_mean_vmm2', 'real_mc_mean_diff_vmm2', 'real_mc_prob_vmm2']: 1799.8484062321513
+['real_prem_ic_nn_1', 'real_mc_mean_vmm2', 'real_mc_mean_div_vmm2', 'real_mc_prob_vmm2']: 1800.833471403265
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_div_vmm2', 'real_mc_prob_vmm2']: 1800.242020367784
+['real_prem_ic_nn_1', 'real_mc_mean_vmm2', 'real_mc_mean_diff_vmm2', 'real_mc_mean_div_vmm2', 'real_mc_prob_vmm2']: 1800.5111658468172
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_vmm2']: 1803.1581640658235
+['real_prem_ic_nn_1', 'real_mc_median_diff_vmm2']: 1797.9583354314304
+['real_prem_ic_nn_1', 'real_mc_median_div_vmm2']: 1798.6033152355255
+['real_prem_ic_nn_1', 'real_mc_prob_vmm2']: 1803.9047292049568
+['real_prem_ic_nn_1', 'real_mc_median_vmm2', 'real_mc_median_diff_vmm2']: 1802.2063893795525
+['real_prem_ic_nn_1', 'real_mc_median_vmm2', 'real_mc_median_div_vmm2']: 1801.7498377876902
+['real_prem_ic_nn_1', 'real_mc_median_vmm2', 'real_mc_prob_vmm2']: 1802.8137520010544
+['real_prem_ic_nn_1', 'real_mc_median_diff_vmm2', 'real_mc_median_div_vmm2']: 1799.088015638928
+['real_prem_ic_nn_1', 'real_mc_median_diff_vmm2', 'real_mc_prob_vmm2']: 1798.6508059263692
+['real_prem_ic_nn_1', 'real_mc_median_div_vmm2', 'real_mc_prob_vmm2']: 1798.5400510698407
+['real_prem_ic_nn_1', 'real_mc_median_vmm2', 'real_mc_median_diff_vmm2', 'real_mc_median_div_vmm2']: 1801.078802525367
+['real_prem_ic_nn_1', 'real_mc_median_vmm2', 'real_mc_median_diff_vmm2', 'real_mc_prob_vmm2']: 1800.5853422501916
+['real_prem_ic_nn_1', 'real_mc_median_vmm2', 'real_mc_median_div_vmm2', 'real_mc_prob_vmm2']: 1802.098521514868
+['real_prem_ic_nn_1', 'real_mc_median_diff_vmm2', 'real_mc_median_div_vmm2', 'real_mc_prob_vmm2']: 1800.6924102477446
+['real_prem_ic_nn_1', 'real_mc_median_vmm2', 'real_mc_median_diff_vmm2', 'real_mc_median_div_vmm2', 'real_mc_prob_vmm2']: 1802.1801610616576
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_vregion']: 1800.3005150615236
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vregion']: 1798.4819938819694
+['real_prem_ic_nn_1', 'real_mc_mean_div_vregion']: 1798.273709240843
+['real_prem_ic_nn_1', 'real_mc_prob_vregion']: 1802.0907087564228
+['real_prem_ic_nn_1', 'real_mc_mean_vregion', 'real_mc_mean_diff_vregion']: 1799.8119635477108
+['real_prem_ic_nn_1', 'real_mc_mean_vregion', 'real_mc_mean_div_vregion']: 1798.3115780095252
+['real_prem_ic_nn_1', 'real_mc_mean_vregion', 'real_mc_prob_vregion']: 1802.0846723792456
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vregion', 'real_mc_mean_div_vregion']: 1798.6363795208194
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vregion', 'real_mc_prob_vregion']: 1798.4029502668789
+['real_prem_ic_nn_1', 'real_mc_mean_div_vregion', 'real_mc_prob_vregion']: 1797.361722506924
+['real_prem_ic_nn_1', 'real_mc_mean_vregion', 'real_mc_mean_diff_vregion', 'real_mc_mean_div_vregion']: 1799.3913298116463
+['real_prem_ic_nn_1', 'real_mc_mean_vregion', 'real_mc_mean_diff_vregion', 'real_mc_prob_vregion']: 1799.887435350171
+['real_prem_ic_nn_1', 'real_mc_mean_vregion', 'real_mc_mean_div_vregion', 'real_mc_prob_vregion']: 1798.5173765402772
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vregion', 'real_mc_mean_div_vregion', 'real_mc_prob_vregion']: 1797.8633042626304
+['real_prem_ic_nn_1', 'real_mc_mean_vregion', 'real_mc_mean_diff_vregion', 'real_mc_mean_div_vregion', 'real_mc_prob_vregion']: 1799.2619381844934
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_vregion']: 1801.2522434984949
+['real_prem_ic_nn_1', 'real_mc_median_diff_vregion']: 1798.4042163279862
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion']: 1796.5428566075104
+['real_prem_ic_nn_1', 'real_mc_prob_vregion']: 1802.0907087564228
+['real_prem_ic_nn_1', 'real_mc_median_vregion', 'real_mc_median_diff_vregion']: 1799.1707814478839
+['real_prem_ic_nn_1', 'real_mc_median_vregion', 'real_mc_median_div_vregion']: 1798.1485580943315
+['real_prem_ic_nn_1', 'real_mc_median_vregion', 'real_mc_prob_vregion']: 1802.1714482926564
+['real_prem_ic_nn_1', 'real_mc_median_diff_vregion', 'real_mc_median_div_vregion']: 1799.1850593994316
+['real_prem_ic_nn_1', 'real_mc_median_diff_vregion', 'real_mc_prob_vregion']: 1799.0151006421136
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_mc_prob_vregion']: 1796.8361554022752
+['real_prem_ic_nn_1', 'real_mc_median_vregion', 'real_mc_median_diff_vregion', 'real_mc_median_div_vregion']: 1800.2958843925633
+['real_prem_ic_nn_1', 'real_mc_median_vregion', 'real_mc_median_diff_vregion', 'real_mc_prob_vregion']: 1800.630493349956
+['real_prem_ic_nn_1', 'real_mc_median_vregion', 'real_mc_median_div_vregion', 'real_mc_prob_vregion']: 1797.2981296388248
+['real_prem_ic_nn_1', 'real_mc_median_diff_vregion', 'real_mc_median_div_vregion', 'real_mc_prob_vregion']: 1798.4384261027576
+['real_prem_ic_nn_1', 'real_mc_median_vregion', 'real_mc_median_diff_vregion', 'real_mc_median_div_vregion', 'real_mc_prob_vregion']: 1800.3769948110448
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_vc']: 1801.6108073666085
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vc']: 1797.7510262231733
+['real_prem_ic_nn_1', 'real_mc_mean_div_vc']: 1798.0917843023901
+['real_prem_ic_nn_1', 'real_mc_prob_vc']: 1804.8607193081132
+['real_prem_ic_nn_1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1797.1298167749462
+['real_prem_ic_nn_1', 'real_mc_mean_vc', 'real_mc_mean_div_vc']: 1799.1795567364013
+['real_prem_ic_nn_1', 'real_mc_mean_vc', 'real_mc_prob_vc']: 1801.9212055508826
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vc', 'real_mc_mean_div_vc']: 1797.090545281959
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vc', 'real_mc_prob_vc']: 1799.2868495180903
+['real_prem_ic_nn_1', 'real_mc_mean_div_vc', 'real_mc_prob_vc']: 1801.3739583487877
+['real_prem_ic_nn_1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_mc_mean_div_vc']: 1798.106436358886
+['real_prem_ic_nn_1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_mc_prob_vc']: 1799.68496458832
+['real_prem_ic_nn_1', 'real_mc_mean_vc', 'real_mc_mean_div_vc', 'real_mc_prob_vc']: 1798.50808366737
+['real_prem_ic_nn_1', 'real_mc_mean_diff_vc', 'real_mc_mean_div_vc', 'real_mc_prob_vc']: 1797.7542809902939
+['real_prem_ic_nn_1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_mc_mean_div_vc', 'real_mc_prob_vc']: 1799.062977543653
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_vc']: 1803.1336058647794
+['real_prem_ic_nn_1', 'real_mc_median_diff_vc']: 1798.8595596248806
+['real_prem_ic_nn_1', 'real_mc_median_div_vc']: 1798.701448834479
+['real_prem_ic_nn_1', 'real_mc_prob_vc']: 1804.8607193081132
+['real_prem_ic_nn_1', 'real_mc_median_vc', 'real_mc_median_diff_vc']: 1800.1078010543456
+['real_prem_ic_nn_1', 'real_mc_median_vc', 'real_mc_median_div_vc']: 1800.2118334314082
+['real_prem_ic_nn_1', 'real_mc_median_vc', 'real_mc_prob_vc']: 1804.6269838771605
+['real_prem_ic_nn_1', 'real_mc_median_diff_vc', 'real_mc_median_div_vc']: 1798.5304789648503
+['real_prem_ic_nn_1', 'real_mc_median_diff_vc', 'real_mc_prob_vc']: 1797.5877063256921
+['real_prem_ic_nn_1', 'real_mc_median_div_vc', 'real_mc_prob_vc']: 1800.8451606495344
+['real_prem_ic_nn_1', 'real_mc_median_vc', 'real_mc_median_diff_vc', 'real_mc_median_div_vc']: 1801.4708169346475
+['real_prem_ic_nn_1', 'real_mc_median_vc', 'real_mc_median_diff_vc', 'real_mc_prob_vc']: 1803.352256528088
+['real_prem_ic_nn_1', 'real_mc_median_vc', 'real_mc_median_div_vc', 'real_mc_prob_vc']: 1802.9677209277402
+['real_prem_ic_nn_1', 'real_mc_median_diff_vc', 'real_mc_median_div_vc', 'real_mc_prob_vc']: 1799.0753927465496
+['real_prem_ic_nn_1', 'real_mc_median_vc', 'real_mc_median_diff_vc', 'real_mc_median_div_vc', 'real_mc_prob_vc']: 1803.9193099664722
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_vmy']: 1796.9139970899466
+['real_prem_ic_nn_1', 'real_vmy_tail']: 1797.0223968084852
+['real_prem_ic_nn_1', 'real_prem_ic_vmy']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_vmy', 'real_vmy_tail']: 1796.9139970899466
+['real_prem_ic_nn_1', 'real_vmy', 'real_prem_ic_vmy']: 1796.9139970899466
+['real_prem_ic_nn_1', 'real_vmy_tail', 'real_prem_ic_vmy']: 1797.0223968084852
+['real_prem_ic_nn_1', 'real_vmy', 'real_vmy_tail', 'real_prem_ic_vmy']: 1796.9139970899466
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'cat_vengine']: 1793.5492950337668
+['real_prem_ic_nn_1', 'real_vcost']: 1795.209104417954
+['real_prem_ic_nn_1', 'real_vqpt']: 1798.4966524495123
+['real_prem_ic_nn_1', 'real_vequip']: 1799.5705890477402
+['real_prem_ic_nn_1', 'cat_vengine', 'real_vcost']: 1793.663002073196
+['real_prem_ic_nn_1', 'cat_vengine', 'real_vqpt']: 1793.4422266577155
+['real_prem_ic_nn_1', 'cat_vengine', 'real_vequip']: 1793.5492950337668
+['real_prem_ic_nn_1', 'real_vcost', 'real_vqpt']: 1795.2679542949668
+['real_prem_ic_nn_1', 'real_vcost', 'real_vequip']: 1795.209104417954
+['real_prem_ic_nn_1', 'real_vqpt', 'real_vequip']: 1798.4966524495123
+['real_prem_ic_nn_1', 'cat_vengine', 'real_vcost', 'real_vqpt']: 1794.388690957834
+['real_prem_ic_nn_1', 'cat_vengine', 'real_vcost', 'real_vequip']: 1793.663002073196
+['real_prem_ic_nn_1', 'cat_vengine', 'real_vqpt', 'real_vequip']: 1793.4422266577155
+['real_prem_ic_nn_1', 'real_vcost', 'real_vqpt', 'real_vequip']: 1795.2679542949668
+['real_prem_ic_nn_1', 'cat_vengine', 'real_vcost', 'real_vqpt', 'real_vequip']: 1794.388690957834
+
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy']: 1794.2518316603491
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'cat_vengine']: 1789.9946163569614
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'real_vcost']: 1789.7174676035293
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'real_vqpt']: 1792.455651120494
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'real_vequip']: 1794.2518316603491
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'cat_vengine', 'real_vcost']: 1789.0610750287974
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'cat_vengine', 'real_vqpt']: 1788.6819076688441
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'cat_vengine', 'real_vequip']: 1789.9946163569614
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'real_vcost', 'real_vqpt']: 1789.6295926510143
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'real_vcost', 'real_vequip']: 1789.7174676035293
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'real_vqpt', 'real_vequip']: 1792.455651120494
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'cat_vengine', 'real_vcost', 'real_vqpt']: 1789.3260364218604
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'cat_vengine', 'real_vcost', 'real_vequip']: 1789.0610750287974
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip']: 1788.6819076688441
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'real_vcost', 'real_vqpt', 'real_vequip']: 1789.6295926510143
+['real_prem_ic_nn_1', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_median_div_vregion', 'real_mc_mean_vc', 'real_mc_mean_diff_vc', 'real_vmy', 'cat_vengine', 'real_vcost', 'real_vqpt', 'real_vequip']: 1789.3260364218604
+
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip']: 1784.7797765590224
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1']: 1786.6226566752036
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1']: 1786.0199868803793
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_div_vmm1']: 1786.6877703742593
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm2']: 1786.7977659202074
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vc']: 1787.512581229609
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vc']: 1787.368616113202
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1']: 1788.2514094672254
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1']: 1789.2795809981649
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm2']: 1786.332920003095
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_vc']: 1788.9150494946978
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vc']: 1787.136326955472
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1']: 1788.1304711805844
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2']: 1786.3634085286765
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_vc']: 1786.2832500981588
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vc']: 1786.5829010740292
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2']: 1787.6092527227995
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_div_vmm1', 'real_mc_mean_vc']: 1786.9109704022576
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vc']: 1785.5378026996461
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc']: 1786.7832369224434
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1787.422304562024
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1787.337870475117
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1']: 1789.4443256008205
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2']: 1789.941280485633
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_vc']: 1787.0265662818324
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vc']: 1787.5501690462843
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2']: 1789.1301205968957
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_vc']: 1788.3095623143922
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vc']: 1789.1184173933
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc']: 1786.7200544916693
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1785.9170677223133
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1788.2783179008495
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2']: 1785.0556836804126
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_vc']: 1787.9574928302638
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vc']: 1787.2504298068745
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc']: 1788.0527009773766
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1787.996410714684
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1786.7894054074247
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc']: 1788.3687706258797
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1786.7499425347385
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_div_vmm1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1786.2098726246531
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1787.8821054385
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2']: 1788.659344355351
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_vc']: 1788.4377575918638
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vc']: 1789.3926859789115
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc']: 1788.8269071201057
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1787.7123949517786
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1788.6413033731355
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc']: 1788.7415446601785
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1788.9651165569555
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1789.1373050584577
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1787.2451410144306
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc']: 1788.3848342129565
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1785.9837118509074
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1787.0378784916552
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1788.4115152236227
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1787.5026143621246
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc']: 1788.7256350513703
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1789.4626613011203
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1789.4277940199734
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1787.3063670055258
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1789.5644658831184
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1788.723316662672
+['real_prem_ic_nn_1', 'real_mc_median_div_vregion', 'real_vmy', 'cat_vengine', 'real_vqpt', 'real_vequip', 'real_mc_mean_vmm1', 'real_mc_mean_diff_vmm1', 'real_mc_mean_div_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_vc', 'real_mc_mean_diff_vc']: 1788.2243297395007
+
+['real_prem_ic_nn_1', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion']: 1784.9840045659182
+['real_prem_ic_nn_1', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm1']: 1785.9456877742227
+['real_prem_ic_nn_1', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm2']: 1786.3946176047539
+['real_prem_ic_nn_1', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vc']: 1786.870756835357
+['real_prem_ic_nn_1', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2']: 1786.2937156649346
+['real_prem_ic_nn_1', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vc']: 1786.468721747729
+['real_prem_ic_nn_1', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1786.61148392162
+['real_prem_ic_nn_1', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc']: 1786.3497685931593
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_nearest_claim']: 1800.7401412100623
+['real_prem_ic_nn_1', 'real_num_claim']: 1799.9847068383253
+['real_prem_ic_nn_1', 'real_claim_fault']: 1798.5969760165187
+['real_prem_ic_nn_1', 'real_claimants']: 1798.4057414321232
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_num_claim']: 1799.9833604987455
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_claim_fault']: 1797.8190389999543
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_claimants']: 1798.9108490079434
+['real_prem_ic_nn_1', 'real_num_claim', 'real_claim_fault']: 1798.2721479981813
+['real_prem_ic_nn_1', 'real_num_claim', 'real_claimants']: 1800.3723134990728
+['real_prem_ic_nn_1', 'real_claim_fault', 'real_claimants']: 1797.530733851308
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_num_claim', 'real_claim_fault']: 1798.278690388482
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_num_claim', 'real_claimants']: 1799.1914787572496
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_claim_fault', 'real_claimants']: 1792.5849718696297
+['real_prem_ic_nn_1', 'real_num_claim', 'real_claim_fault', 'real_claimants']: 1798.2478224388358
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants']: 1792.475404178364
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_nearest_claim']: 1800.7401412100623
+['real_prem_ic_nn_1', 'real_num_claim16']: 1798.9623689037976
+['real_prem_ic_nn_1', 'real_claim_fault16']: 1797.5485078943125
+['real_prem_ic_nn_1', 'real_claimants16']: 1797.7046159826662
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_num_claim16']: 1801.5826409800725
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_claim_fault16']: 1796.3068631787576
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_claimants16']: 1798.0499840699529
+['real_prem_ic_nn_1', 'real_num_claim16', 'real_claim_fault16']: 1798.528812450579
+['real_prem_ic_nn_1', 'real_num_claim16', 'real_claimants16']: 1797.1707393761965
+['real_prem_ic_nn_1', 'real_claim_fault16', 'real_claimants16']: 1796.7945955841005
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_num_claim16', 'real_claim_fault16']: 1796.8597038249404
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_num_claim16', 'real_claimants16']: 1800.0659377320505
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_claim_fault16', 'real_claimants16']: 1795.14968104432
+['real_prem_ic_nn_1', 'real_num_claim16', 'real_claim_fault16', 'real_claimants16']: 1796.17765789507
+['real_prem_ic_nn_1', 'real_nearest_claim', 'real_num_claim16', 'real_claim_fault16', 'real_claimants16']: 1796.634614336136
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_loss']: 1792.49822494716
+['real_prem_ic_nn_1', 'real_loss_ins']: 1792.2814086066355
+['real_prem_ic_nn_1', 'real_expense']: 1796.6098499294603
+['real_prem_ic_nn_1', 'real_salvage']: 1799.6763269995552
+['real_prem_ic_nn_1', 'real_loss', 'real_loss_ins']: 1789.1900579158046
+['real_prem_ic_nn_1', 'real_loss', 'real_expense']: 1793.83555609982
+['real_prem_ic_nn_1', 'real_loss', 'real_salvage']: 1791.4779527914372
+['real_prem_ic_nn_1', 'real_loss_ins', 'real_expense']: 1790.8131047637698
+['real_prem_ic_nn_1', 'real_loss_ins', 'real_salvage']: 1788.8367697428778
+['real_prem_ic_nn_1', 'real_expense', 'real_salvage']: 1796.111407436636
+['real_prem_ic_nn_1', 'real_loss', 'real_loss_ins', 'real_expense']: 1789.8252027087979
+['real_prem_ic_nn_1', 'real_loss', 'real_loss_ins', 'real_salvage']: 1788.817212716467
+['real_prem_ic_nn_1', 'real_loss', 'real_expense', 'real_salvage']: 1792.0648485133595
+['real_prem_ic_nn_1', 'real_loss_ins', 'real_expense', 'real_salvage']: 1789.9639719789013
+['real_prem_ic_nn_1', 'real_loss', 'real_loss_ins', 'real_expense', 'real_salvage']: 1788.9558719883537
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_loss16']: 1797.8613172449648
+['real_prem_ic_nn_1', 'real_loss_ins16']: 1796.010354998025
+['real_prem_ic_nn_1', 'real_expense16']: 1799.5299109800837
+['real_prem_ic_nn_1', 'real_salvage16']: 1799.1380393997015
+['real_prem_ic_nn_1', 'real_loss16', 'real_loss_ins16']: 1793.756812877989
+['real_prem_ic_nn_1', 'real_loss16', 'real_expense16']: 1797.7411087923035
+['real_prem_ic_nn_1', 'real_loss16', 'real_salvage16']: 1797.9728006390778
+['real_prem_ic_nn_1', 'real_loss_ins16', 'real_expense16']: 1795.851262728232
+['real_prem_ic_nn_1', 'real_loss_ins16', 'real_salvage16']: 1794.5276513810156
+['real_prem_ic_nn_1', 'real_expense16', 'real_salvage16']: 1799.7618935231408
+['real_prem_ic_nn_1', 'real_loss16', 'real_loss_ins16', 'real_expense16']: 1793.7531426563264
+['real_prem_ic_nn_1', 'real_loss16', 'real_loss_ins16', 'real_salvage16']: 1794.6778699226766
+['real_prem_ic_nn_1', 'real_loss16', 'real_expense16', 'real_salvage16']: 1798.1219975674337
+['real_prem_ic_nn_1', 'real_loss_ins16', 'real_expense16', 'real_salvage16']: 1795.245561511387
+['real_prem_ic_nn_1', 'real_loss16', 'real_loss_ins16', 'real_expense16', 'real_salvage16']: 1794.0981286520112
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_claim_cause']: 1795.5899237953126
+['real_prem_ic_nn_1', 'real_mc_mean_diff_claim_cause']: 1798.7584779016584
+['real_prem_ic_nn_1', 'real_mc_mean_div_claim_cause']: 1797.60763244531
+['real_prem_ic_nn_1', 'real_mc_prob_claim_cause']: 1795.6388944014013
+['real_prem_ic_nn_1', 'real_mc_mean_claim_cause', 'real_mc_mean_diff_claim_cause']: 1794.871002469643
+['real_prem_ic_nn_1', 'real_mc_mean_claim_cause', 'real_mc_mean_div_claim_cause']: 1794.204097791837
+['real_prem_ic_nn_1', 'real_mc_mean_claim_cause', 'real_mc_prob_claim_cause']: 1796.9481068238133
+['real_prem_ic_nn_1', 'real_mc_mean_diff_claim_cause', 'real_mc_mean_div_claim_cause']: 1796.32481836808
+['real_prem_ic_nn_1', 'real_mc_mean_diff_claim_cause', 'real_mc_prob_claim_cause']: 1793.1102206916016
+['real_prem_ic_nn_1', 'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause']: 1792.8976655213628
+['real_prem_ic_nn_1', 'real_mc_mean_claim_cause', 'real_mc_mean_diff_claim_cause', 'real_mc_mean_div_claim_cause']: 1794.0708704878512
+['real_prem_ic_nn_1', 'real_mc_mean_claim_cause', 'real_mc_mean_diff_claim_cause', 'real_mc_prob_claim_cause']: 1796.3012156110908
+['real_prem_ic_nn_1', 'real_mc_mean_claim_cause', 'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause']: 1796.4748232700263
+['real_prem_ic_nn_1', 'real_mc_mean_diff_claim_cause', 'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause']: 1792.6820825480313
+['real_prem_ic_nn_1', 'real_mc_mean_claim_cause', 'real_mc_mean_diff_claim_cause', 'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause']: 1794.885390332473
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_claim_cause']: 1795.6663983781805
+['real_prem_ic_nn_1', 'real_mc_median_diff_claim_cause']: 1799.7897099288512
+['real_prem_ic_nn_1', 'real_mc_median_div_claim_cause']: 1798.5570319666858
+['real_prem_ic_nn_1', 'real_mc_prob_claim_cause']: 1795.6388944014013
+['real_prem_ic_nn_1', 'real_mc_median_claim_cause', 'real_mc_median_diff_claim_cause']: 1795.6556971438636
+['real_prem_ic_nn_1', 'real_mc_median_claim_cause', 'real_mc_median_div_claim_cause']: 1793.0826888980093
+['real_prem_ic_nn_1', 'real_mc_median_claim_cause', 'real_mc_prob_claim_cause']: 1797.057277662523
+['real_prem_ic_nn_1', 'real_mc_median_diff_claim_cause', 'real_mc_median_div_claim_cause']: 1797.0714692187578
+['real_prem_ic_nn_1', 'real_mc_median_diff_claim_cause', 'real_mc_prob_claim_cause']: 1794.9840541693347
+['real_prem_ic_nn_1', 'real_mc_median_div_claim_cause', 'real_mc_prob_claim_cause']: 1794.0745753118254
+['real_prem_ic_nn_1', 'real_mc_median_claim_cause', 'real_mc_median_diff_claim_cause', 'real_mc_median_div_claim_cause']: 1792.323239249818
+['real_prem_ic_nn_1', 'real_mc_median_claim_cause', 'real_mc_median_diff_claim_cause', 'real_mc_prob_claim_cause']: 1798.1973229290745
+['real_prem_ic_nn_1', 'real_mc_median_claim_cause', 'real_mc_median_div_claim_cause', 'real_mc_prob_claim_cause']: 1793.6741222201385
+['real_prem_ic_nn_1', 'real_mc_median_diff_claim_cause', 'real_mc_median_div_claim_cause', 'real_mc_prob_claim_cause']: 1793.3727913942632
+['real_prem_ic_nn_1', 'real_mc_median_claim_cause', 'real_mc_median_diff_claim_cause', 'real_mc_median_div_claim_cause', 'real_mc_prob_claim_cause']: 1792.9349858153832
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_mean_claim_area']: 1798.4083631837434
+['real_prem_ic_nn_1', 'real_mc_mean_diff_claim_area']: 1799.0929239571021
+['real_prem_ic_nn_1', 'real_mc_mean_div_claim_area']: 1798.8993374134275
+['real_prem_ic_nn_1', 'real_mc_prob_claim_area']: 1791.2500590541263
+['real_prem_ic_nn_1', 'real_mc_mean_claim_area', 'real_mc_mean_diff_claim_area']: 1797.226184875457
+['real_prem_ic_nn_1', 'real_mc_mean_claim_area', 'real_mc_mean_div_claim_area']: 1795.189371419313
+['real_prem_ic_nn_1', 'real_mc_mean_claim_area', 'real_mc_prob_claim_area']: 1799.1181828689869
+['real_prem_ic_nn_1', 'real_mc_mean_diff_claim_area', 'real_mc_mean_div_claim_area']: 1797.5667399152394
+['real_prem_ic_nn_1', 'real_mc_mean_diff_claim_area', 'real_mc_prob_claim_area']: 1797.78123044795
+['real_prem_ic_nn_1', 'real_mc_mean_div_claim_area', 'real_mc_prob_claim_area']: 1796.360409053681
+['real_prem_ic_nn_1', 'real_mc_mean_claim_area', 'real_mc_mean_diff_claim_area', 'real_mc_mean_div_claim_area']: 1795.155950488921
+['real_prem_ic_nn_1', 'real_mc_mean_claim_area', 'real_mc_mean_diff_claim_area', 'real_mc_prob_claim_area']: 1797.3606560181768
+['real_prem_ic_nn_1', 'real_mc_mean_claim_area', 'real_mc_mean_div_claim_area', 'real_mc_prob_claim_area']: 1796.5267577177685
+['real_prem_ic_nn_1', 'real_mc_mean_diff_claim_area', 'real_mc_mean_div_claim_area', 'real_mc_prob_claim_area']: 1796.7232956299338
+['real_prem_ic_nn_1', 'real_mc_mean_claim_area', 'real_mc_mean_diff_claim_area', 'real_mc_mean_div_claim_area', 'real_mc_prob_claim_area']: 1796.4123847904937
+
+['real_prem_ic_nn_1']: 1799.5705890477402
+['real_prem_ic_nn_1', 'real_mc_median_claim_area']: 1801.4073714563585
+['real_prem_ic_nn_1', 'real_mc_median_diff_claim_area']: 1797.7844102191282
+['real_prem_ic_nn_1', 'real_mc_median_div_claim_area']: 1798.4830647211008
+['real_prem_ic_nn_1', 'real_mc_prob_claim_area']: 1791.2500590541263
+['real_prem_ic_nn_1', 'real_mc_median_claim_area', 'real_mc_median_diff_claim_area']: 1796.9279781865803
+['real_prem_ic_nn_1', 'real_mc_median_claim_area', 'real_mc_median_div_claim_area']: 1797.3683076441628
+['real_prem_ic_nn_1', 'real_mc_median_claim_area', 'real_mc_prob_claim_area']: 1793.8974709695924
+['real_prem_ic_nn_1', 'real_mc_median_diff_claim_area', 'real_mc_median_div_claim_area']: 1797.3788244086295
+['real_prem_ic_nn_1', 'real_mc_median_diff_claim_area', 'real_mc_prob_claim_area']: 1796.13417253926
+['real_prem_ic_nn_1', 'real_mc_median_div_claim_area', 'real_mc_prob_claim_area']: 1797.4597403677067
+['real_prem_ic_nn_1', 'real_mc_median_claim_area', 'real_mc_median_diff_claim_area', 'real_mc_median_div_claim_area']: 1797.0897577283024
+['real_prem_ic_nn_1', 'real_mc_median_claim_area', 'real_mc_median_diff_claim_area', 'real_mc_prob_claim_area']: 1796.903655437657
+['real_prem_ic_nn_1', 'real_mc_median_claim_area', 'real_mc_median_div_claim_area', 'real_mc_prob_claim_area']: 1798.0846624498051
+['real_prem_ic_nn_1', 'real_mc_median_diff_claim_area', 'real_mc_median_div_claim_area', 'real_mc_prob_claim_area']: 1796.8555239019156
+['real_prem_ic_nn_1', 'real_mc_median_claim_area', 'real_mc_median_diff_claim_area', 'real_mc_median_div_claim_area', 'real_mc_prob_claim_area']: 1796.8958623035135
 '''

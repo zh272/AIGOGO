@@ -89,7 +89,7 @@ def get_bs2_feature_selection(df_policy, df_claim):
     X_fs = X_fs.assign(real_acc_lia = get_bs2_cat(df_policy, X_fs.index, 'plia_acc'))
 
     print('Getting column real_prem_ic_lia')
-    X_fs = X_fs.assign(real_prem_ic_dmg = get_bs2_real_prem_ic(df_policy, X_fs.index, X_fs['real_acc_lia']))
+    X_fs = X_fs.assign(real_prem_ic_lia = get_bs2_real_prem_ic(df_policy, X_fs.index, X_fs['real_acc_lia']))
 
     print('Getting column cat_area')
     X_fs = X_fs.assign(cat_area = get_bs2_cat(df_policy, X_fs.index, 'iply_area'))
@@ -123,10 +123,10 @@ def get_bs2_feature_selection(df_policy, df_claim):
     X_fs = X_fs.assign(real_prem_ic_vmy = get_bs2_real_prem_ic(df_policy, X_fs.index, X_fs['real_vmy_tail']))
 
     print('Getting column real_vengine')
-    X_fs = X_fs.assign(cat_vengine = get_bs2_cat(df_policy, X_fs.index, 'Engine_Displacement_(Cubic_Centimeter)'))
+    X_fs = X_fs.assign(real_vengine = get_bs2_cat(df_policy, X_fs.index, 'Engine_Displacement_(Cubic_Centimeter)'))
 
     print('Getting column real_vengine_grp')
-    X_fs = X_fs.assign(cat_vengine = get_bs2_real_vengine_grp(df_policy, X_fs.index))
+    X_fs = X_fs.assign(real_vengine_grp = get_bs2_real_vengine_grp(df_policy, X_fs.index))
 
     print('Getting column cat_vregion')
     X_fs = X_fs.assign(cat_vregion = get_bs2_cat(df_policy, X_fs.index, 'Imported_or_Domestic_Car'))
@@ -342,38 +342,55 @@ def select_bs2_features(params, cols_fs, cols_default, max_len=-1):
     data = [X_train, y_train, X_valid, y_valid]
 
     max_len = len(cols_fs) + 1 if max_len == -1 else max_len
-    lst_cols_fs = []
+    lst_cols_fs = [cols_default]
     for l in range(1, max_len):
         for lst in itertools.combinations(cols_fs, l):
             lst_cols_fs.append(cols_default + list(lst))
 
     for cols_fs in lst_cols_fs:
-        get_bs2_quick_mae(params, get_imp=False, data=data, cols_fs=cols_fs)
+        get_bs2_quick_mae(params, get_imp=True, data=data, cols_fs=cols_fs)
 
     return(None)
 
 
 def demo():
-    df_claim = read_data('claim_0702.csv', path='raw')
-    df_policy = read_data('policy_0702.csv', path='raw')
-    get_bs2_feature_selection(df_policy, df_claim)
+#    df_claim = read_data('claim_0702.csv', path='raw')
+#    df_policy = read_data('policy_0702.csv', path='raw')
+#    get_bs2_feature_selection(df_policy, df_claim)
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
         'num_iterations': 5000,
         'objective': 'regression_l1',
         'metric': 'mae',
+
+        'num_leaves': 31,
+        'max_depth': -1,
+        'min_data_in_leaf': 20,
+        'bagging_fraction': 1.0,
+        'bagging_freq': 0,
+        'feature_fraction': 1.0,
+        'max_bin': 255,
+        'min_data_in_bin': 3,
+        'max_delta_step': 0.0,
+        'lambda_l1': 0.0,
+        'lambda_l2': 0.0,
+        'min_gain_to_split': 0.0,
+        'bin_construct_sample_cnt': 220000,
+
         'seed': 0,
+        'bagging_seed': 3,
+        'feature_fraction_seed': 2,
     }
     lgb_train_params = {
         'early_stopping_rounds': 3,
         'learning_rates': lambda iter: max(0.1*(0.99**iter), 0.005),
-        'verbose_eval': False,
+        'verbose_eval': True,
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
 
-    cols_fs = ['real_mc_mean_ins', 'real_mc_mean_diff_ins', 'real_mc_mean_div_ins', 'real_mc_prob_ins']
-    cols_default = ['real_prem_ic_nn_1']
+    cols_fs = []
+    cols_default = ['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_age', 'real_mc_median_sex', 'real_mc_median_diff_sex','real_mc_prob_marriage', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_div_ic_combo', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc', 'real_loss', 'real_loss_ins', 'real_salvage', 'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause', 'real_mc_prob_claim_area', 'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants']
     max_len = -1
     select_bs2_features(lgb_params, cols_fs, cols_default, max_len=max_len)
 
