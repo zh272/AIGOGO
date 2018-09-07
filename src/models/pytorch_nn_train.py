@@ -249,7 +249,7 @@ def demo(
 
     # begin training
     # num_neuron = [160,50,10]
-    num_neuron = [50,10]
+    num_neuron = [50]
     # num_neuron = [10]
     print('Network Architecture: {}'.format(num_neuron))
     # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
@@ -266,9 +266,9 @@ def demo(
         # 'scheduler': 'plateau',
         'lr_schedule':{
             10:base_lr,
-            25:base_lr/2, 
-            50:base_lr/10, 
-            100:base_lr/100,
+            25:base_lr/5, 
+            50:base_lr/50, 
+            100:base_lr/500,
             200:base_lr/1000
         }
     }

@@ -677,14 +677,15 @@ def create_feature_selection_data(df_policy, df_claim, reduction=10):
     #     'prem_60_{}.csv'.format(reduction), 
     #     'ia_60_{}.csv'.format(reduction)
     # ])
-    # _X = get_base_prem(file_names=[
-    #     'prem_60.csv', 
-    #     'ia_60.csv'
-    # ])
     _X = get_base_prem(file_names=[
-        'prem_60_9.csv', 
-        'ia_60_10.csv'
+        'prem_60.csv', 
+        'ia_60.csv',
+        'cd_60.csv'
     ])
+    # _X = get_base_prem(file_names=[
+    #     'prem_60_9.csv', 
+    #     'ia_60_10.csv'
+    # ])
     # _X = get_base_prem(file_names=[
     #     'prem_60_1.csv', 
     #     'ia_60_1.csv'

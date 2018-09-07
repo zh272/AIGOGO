@@ -187,6 +187,20 @@ def gen_ia_60(df_policy, save=False):
 
     return ia60
 
+def gen_cd_60(df_policy, save=False):
+
+    # rows: policy number; cols: insurance coverage
+    cd60 = df_policy.set_index('Insurance_Coverage', append=True)[
+        ['Coverage_Deductible_if_applied']
+    ].unstack(level=1).fillna(0)
+    cd60.columns = ['_'.join(col) for col in cd60.columns]
+
+    if save:
+        interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+        write_sample_path = os.path.join(interim_data_path, 'cd_60.csv')
+        cd60.to_csv(write_sample_path)
+
+    return cd60
 
 def demo(
     epochs=80, base_lr=0.001, momentum=0.9, weight_decay=0, 
@@ -200,6 +214,8 @@ def demo(
         X = gen_prem_60(df_policy, save=False)
     elif raw=='ia':
         X = gen_ia_60(df_policy, save=False)
+    elif raw=='cd':
+        X = gen_cd_60(df_policy, save=True)
 
     X_test = read_data('X_test_bs.csv', path='interim')
 
@@ -273,18 +289,23 @@ def demo(
     if save:
         # # remove terminated cols
         real_ia = df_policy['Insured_Amount1'] + df_policy['Insured_Amount2'] + df_policy['Insured_Amount3']
+        real_cd = df_policy['Coverage_Deductible_if_applied']
         # df_policy = df_policy[real_ia != 0]
 
         scaler = model_output['scaler']
 
         # transform dataframe to matrix
         if raw=='prem':
-            df_policy_iapos = df_policy.assign(Premium = np.where(real_ia != 0, df_policy['Premium'], 0))
+            df_policy_iapos = df_policy.assign(Premium = np.where(np.logical_and(real_ia!=0, real_cd>=0), df_policy['Premium'], 0))
             mtx_df = df_policy_iapos.set_index('Insurance_Coverage', append=True)[['Premium']].unstack(level=1).fillna(0)
         elif raw=='ia':
             mtx_df = df_policy.set_index('Insurance_Coverage', append=True)[
                 ['Insured_Amount1','Insured_Amount2','Insured_Amount3']
             ].unstack(level=1).fillna(0)
+        elif raw=='cd':
+            mtx_df = df_policy.set_index('Insurance_Coverage', append=True)[
+                ['Coverage_Deductible_if_applied']
+            ].unstack(level=1).fillna(-2)
 
         # nn dimension reduction
         model = model_output['model'].model
