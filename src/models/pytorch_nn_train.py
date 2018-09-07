@@ -23,10 +23,11 @@ def get_submission(
     test_along=False, optimizer='sgd', hyper={}, save=False, load=False, mdl_name='mlp.pt',all_train=False
 ):    
     if all_train:
-        X_train = pd.concat([X_train, X_valid])
-        y_train = pd.concat([y_train, y_valid])
-        X_valid = None
-        y_valid = None
+        if X_valid is not None:
+            X_train = pd.concat([X_train, X_valid])
+            y_train = pd.concat([y_train, y_valid])
+            X_valid = None
+            y_valid = None
         test_along = False
 
         train_set, valid_set, X_test_np, X_train_np, X_valid_np, _ = get_dataset(
@@ -215,18 +216,50 @@ def demo(
     get_train=False, get_test=False, save=False, load=False
 ):
     rand_reset(seed)
-    # X_train = read_interim_data('X_train_prefs.csv')
-    # y_train = read_interim_data('y_train_prefs.csv')
-    # X_valid = read_interim_data('X_valid_prefs.csv')
-    # y_valid = read_interim_data('y_valid_prefs.csv')
-    # X_test = read_interim_data('X_test_prefs.csv')
-    X_train = read_interim_data('X_train_new.csv')
-    y_train = read_interim_data('y_train_new.csv')
-    X_valid = read_interim_data('X_valid_new.csv')
-    y_valid = read_interim_data('y_valid_new.csv')
-    X_test = read_interim_data('X_test_new.csv')
+    if all_train:
+        X_train = read_interim_data('X_train_all_bs2.csv')
+        y_train = read_interim_data('y_train_all_bs2.csv')
+        X_valid = None
+        y_valid = None
+        X_test = read_interim_data('X_test_bs2.csv')
+    else:
+        X_train = read_interim_data('X_train_fs.csv')
+        y_train = read_interim_data('y_train_fs.csv')
+        X_valid = read_interim_data('X_valid_fs.csv')
+        y_valid = read_interim_data('y_valid_fs.csv')
+        X_test = read_interim_data('X_test_bs2.csv')
 
-    feature_list = [feature for feature in X_train.columns.values if 'cat_' not in feature]
+    # X_train = read_interim_data('X_train_new.csv')
+    # y_train = read_interim_data('y_train_new.csv')
+    # X_valid = read_interim_data('X_valid_new.csv')
+    # y_valid = read_interim_data('y_valid_new.csv')
+    # X_test = read_interim_data('X_test_new.csv')
+
+
+    feature_list = [
+        'real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 
+        'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_age', 'real_mc_median_sex', 
+        'real_mc_median_diff_sex', 'real_mc_prob_marriage', 
+        'real_mc_median_distr', 'real_mc_median_div_distr', 'real_acc_dmg', 
+        'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 
+        'real_mc_median_div_ic_combo', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 
+        'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 
+        'real_mc_mean_diff_vc', 'real_loss', 'real_loss_ins', 'real_salvage', 
+        'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause', 'real_mc_prob_claim_area', 
+        'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants'
+    ]
+    feature_list_test = [
+        'real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 
+        'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_age', 'real_mc_median_sex', 
+        'real_mc_median_diff_sex', 'real_mc_prob_marriage', 
+        'real_mc_median_distr', 'real_mc_median_div_distr', 'real_acc_dmg', 
+        'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 
+        'real_mc_median_div_ic_combo', 'real_vmy', 'real_vcost', 'real_vengine', 'real_vqpt', 
+        'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 
+        'real_mc_mean_diff_vc', 'real_loss', 'real_loss_ins', 'real_salvage', 
+        'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause', 'real_mc_prob_claim_area', 
+        'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants'
+    ]
 
     # feature_list = [feature for feature in feature_list if 'vequip' not in feature]
     # feature_list = [feature for feature in feature_list if 'nmf' not in feature]
@@ -238,19 +271,21 @@ def demo(
     print('Number of features: {}'.format(num_features))
 
     # Filter features
-    X_train = X_train[feature_list]
-    X_valid = X_valid[feature_list]
-    X_test = X_test[feature_list]
+    X_train = X_train[feature_list_test]
+    if X_valid is not None:
+        X_valid = X_valid[feature_list]
+    X_test = X_test[feature_list_test]
 
     ### Fill Missing Values
     X_train = X_train.apply(lambda x:x.fillna(-1))
-    X_valid = X_valid.apply(lambda x:x.fillna(-1))
+    if X_valid is not None:
+        X_valid = X_valid.apply(lambda x:x.fillna(-1))
     X_test = X_test.apply(lambda x:x.fillna(-1))
 
     # begin training
     # num_neuron = [160,50,10]
-    num_neuron = [50]
-    # num_neuron = [10]
+    num_neuron = [50,10]
+    # num_neuron = [100]
     print('Network Architecture: {}'.format(num_neuron))
     # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
     # num_neuron = [160,30,8]
@@ -265,10 +300,9 @@ def demo(
         'weight_decay':weight_decay, 
         # 'scheduler': 'plateau',
         'lr_schedule':{
-            10:base_lr,
-            25:base_lr/5, 
-            50:base_lr/50, 
-            100:base_lr/500,
+            25:base_lr, 
+            50:base_lr/10, 
+            100:base_lr/100,
             200:base_lr/1000
         }
     }
