@@ -767,3 +767,19 @@ def get_bs2_real_claimants(df_claim, idx_df):
     real_claimants = df_claim.loc[idx_df, 'number_of_claimants'].fillna(0)
 
     return(real_claimants)
+
+
+def get_bs2_real_next_known(df_policy, idx_df):
+    '''
+    In:
+        DataFrame(df_policy),
+        Any(idx_df)
+    Out:
+        Series(real_next_known),
+    Description:
+        get known next premium
+    '''
+    df_policy = df_policy.groupby(level=0).agg({'Prior_Policy_Number': lambda x: x.iloc[0], 'Premium': np.sum})
+    real_next_known = df_policy['Prior_Policy_Number'].map(df_policy['Premium'])
+
+    return(real_next_known.loc[idx_df])

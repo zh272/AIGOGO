@@ -48,6 +48,9 @@ def get_bs2_combined_features(df_policy, df_claim):
     print('Getting column real_cancel')
     X_fs = X_fs.assign(real_cancel = get_bs2_real_cancel(df_policy, X_fs.index))
 
+    print('Getting column cat_area')
+    X_fs = X_fs.assign(cat_area = get_bs2_cat(df_policy, X_fs.index, 'iply_area'))
+
     print('Getting column cat_ic_combo')
     X_fs = X_fs.assign(cat_ic_combo = get_bs2_cat_ic_combo(df_policy, X_fs.index))
 
@@ -163,7 +166,7 @@ def get_bs2_combined_features(df_policy, df_claim):
         X_train_all[col_median] = get_bs2_real_mc_median_diff(col_cat, X_train_all, y_train_all, X_valid=pd.DataFrame(), train_only=True, fold=5, prior=1000)
 
     # add median encoding on median of div btw next_premium and premium
-    cols_cat = ['cat_ins', 'cat_assured', 'cat_sex', 'cat_distr', 'cat_ic_combo']
+    cols_cat = ['cat_ins', 'cat_assured', 'cat_sex', 'cat_distr', 'cat_ic_combo', 'cat_ic_grp_combo', 'cat_area', 'cat_vregion']
     for col_cat in cols_cat:
         col_median = col_cat.replace('cat_', 'real_mc_median_div_')
         print('Getting column ' + col_median)
@@ -228,22 +231,26 @@ def demo():
 
     lgb_model_params = {
         'boosting_type': 'gbdt',
-        'num_iterations': 5000,
+        'num_iterations': 3000,
         'objective': 'regression_l1',
         'metric': 'mae',
 
-        'num_leaves': 31,
-        'max_depth': -1,
-        'min_data_in_leaf': 20,
-        'bagging_fraction': 1.0,
-        'bagging_freq': 0,
-        'feature_fraction': 1.0,
-        'max_bin': 255,
-        'min_data_in_bin': 3,
-        'max_delta_step': 0.0,
-        'lambda_l1': 0.0,
-        'lambda_l2': 0.0,
-        'min_gain_to_split': 0.0,
+#        'num_leaves': 31,
+#        'max_depth': -1,
+#        'min_data_in_leaf': 20,
+#        'bagging_fraction': 1.0,
+#        'bagging_freq': 0,
+#        'feature_fraction': 1.0,
+#        'max_bin': 255,
+#        'min_data_in_bin': 3,
+#        'max_delta_step': 0.0,
+#        'lambda_l1': 0.0,
+#        'lambda_l2': 0.0,
+#        'min_gain_to_split': 0.0,
+#        'bin_construct_sample_cnt': 220000,
+        'num_leaves': 63,
+        'min_data_in_leaf': 15,
+        'min_gain_to_split': 0.01,
         'bin_construct_sample_cnt': 220000,
 
         'seed': 0,
@@ -251,8 +258,8 @@ def demo():
         'feature_fraction_seed': 2,
     }
     lgb_train_params = {
-        'early_stopping_rounds': 3,
-        'learning_rates': lambda iter: max(0.1*(0.99**iter), 0.005),
+        'early_stopping_rounds': None,
+        'learning_rates': lambda iter: max(0.01*(0.99**iter), 0.005),
         'verbose_eval': True,
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}

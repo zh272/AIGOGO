@@ -364,18 +364,18 @@ def demo():
         'objective': 'regression_l1',
         'metric': 'mae',
 
-        'num_leaves': 31,
+        'num_leaves': 63,
         'max_depth': -1,
-        'min_data_in_leaf': 20,
-        'bagging_fraction': 1.0,
-        'bagging_freq': 0,
+        'min_data_in_leaf': 15,
+#        'subsample': 0.8,
+#        'bagging_freq': 9,
         'feature_fraction': 1.0,
         'max_bin': 255,
         'min_data_in_bin': 3,
         'max_delta_step': 0.0,
         'lambda_l1': 0.0,
         'lambda_l2': 0.0,
-        'min_gain_to_split': 0.0,
+        'min_gain_to_split': 0.01,
         'bin_construct_sample_cnt': 220000,
 
         'seed': 0,
@@ -383,14 +383,14 @@ def demo():
         'feature_fraction_seed': 2,
     }
     lgb_train_params = {
-        'early_stopping_rounds': 3,
-        'learning_rates': lambda iter: max(0.1*(0.99**iter), 0.005),
+        'early_stopping_rounds': 20,
+        'learning_rates': lambda iter: max(0.01*(0.99**iter), 0.005),
         'verbose_eval': True,
     }
     lgb_params = {'model': lgb_model_params, 'train': lgb_train_params}
 
     cols_fs = []
-    cols_default = ['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_age', 'real_mc_median_sex', 'real_mc_median_diff_sex','real_mc_prob_marriage', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_mc_median_div_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_div_ic_combo', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 'real_mc_median_div_vregion', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc', 'real_loss', 'real_loss_ins', 'real_salvage', 'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause', 'real_mc_prob_claim_area', 'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants']
+    cols_default = ['real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_age', 'real_mc_median_sex', 'real_mc_median_diff_sex','real_mc_prob_marriage', 'real_mc_median_distr', 'real_mc_median_div_distr', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 'real_mc_median_div_ic_combo', 'real_vmy', 'real_vcost', 'real_vengine', 'real_vqpt', 'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 'real_mc_mean_diff_vc', 'real_loss', 'real_loss_ins', 'real_salvage', 'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause', 'real_mc_prob_claim_area', 'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants', 'real_mc_median_div_vregion', 'real_mc_median_div_ic_grp_combo', 'real_mc_median_div_area']
     max_len = -1
     select_bs2_features(lgb_params, cols_fs, cols_default, max_len=max_len)
 
