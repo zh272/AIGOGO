@@ -160,9 +160,11 @@ def gen_prem_60(df_policy, save=False):
 
     # remove terminated cols
     real_ia = df_policy['Insured_Amount1'] + df_policy['Insured_Amount2'] + df_policy['Insured_Amount3']
-
     # rows: policy number; cols: insurance coverage
     prem60 = df_policy[real_ia != 0].set_index('Insurance_Coverage', append=True)[['Premium']].unstack(level=1).fillna(0)
+
+    # prem60 = df_policy.set_index('Insurance_Coverage', append=True)[['Premium']].unstack(level=1).fillna(0)
+
     prem60.columns = [col[1] for col in prem60.columns]
 
     if save:
@@ -188,11 +190,17 @@ def gen_ia_60(df_policy, save=False):
     return ia60
 
 def gen_cd_60(df_policy, save=False):
+    real_cd = df_policy['Coverage_Deductible_if_applied']
+    df_policy.loc[real_cd<0, 'Coverage_Deductible_if_applied'] = -1
+    # df_policy['real_cd'] = df_policy['real_cd'].where(df_policy['real_cd']>=0, -1)
 
     # rows: policy number; cols: insurance coverage
-    cd60 = df_policy.set_index('Insurance_Coverage', append=True)[
-        ['Coverage_Deductible_if_applied']
-    ].unstack(level=1).fillna(0)
+    # .groupby(level=1).agg({'Coverage_Deductible_if_applied': lambda x: sum(x)})
+    df_policy = df_policy.set_index('Insurance_Coverage', append=True).groupby(level=[0,1]).agg(
+        {'Coverage_Deductible_if_applied': lambda x: sum(x)}
+    )
+    
+    cd60 = df_policy[['Coverage_Deductible_if_applied']].unstack(level=1).fillna(-999)
     cd60.columns = ['_'.join(col) for col in cd60.columns]
 
     if save:
@@ -201,6 +209,18 @@ def gen_cd_60(df_policy, save=False):
         cd60.to_csv(write_sample_path)
 
     return cd60
+
+def gen_prem_ia_cd(save=False):
+    df = read_data('prem_60_10.csv', path='interim')
+    df = df.merge(read_data('ia_60_10.csv', path='interim'), how='left', left_index=True, right_index=True)
+    df = df.merge(read_data('cd_60_10.csv', path='interim'), how='left', left_index=True, right_index=True)
+
+    if save:
+        interim_data_path = os.path.join(os.path.dirname('__file__'), os.path.pardir, os.path.pardir, 'data', 'interim')
+        write_sample_path = os.path.join(interim_data_path, 'prem_ia_cd.csv')
+        df.to_csv(write_sample_path)
+
+    return df
 
 def demo(
     epochs=80, base_lr=0.001, momentum=0.9, weight_decay=0, 
@@ -211,16 +231,18 @@ def demo(
     df_policy = read_data('policy_0702.csv', path='raw')
     # X = read_data('premium_60.csv', path='interim')
     if raw=='prem':
-        X = gen_prem_60(df_policy, save=False)
+        X = gen_prem_60(df_policy, save=True)
     elif raw=='ia':
-        X = gen_ia_60(df_policy, save=False)
+        X = gen_ia_60(df_policy, save=True)
     elif raw=='cd':
         X = gen_cd_60(df_policy, save=True)
+    elif raw=='all':
+        X = gen_prem_ia_cd(save=True)
 
-    X_test = read_data('X_test_bs.csv', path='interim')
+    X_test = read_data('X_test_bs2.csv', path='interim')
 
-    y_train = read_data('y_train_prefs.csv', path='interim')
-    y_valid = read_data('y_valid_prefs.csv', path='interim')
+    y_train = read_data('y_train_fs.csv', path='interim')
+    y_valid = read_data('y_valid_fs.csv', path='interim')
 
     X_train = X.loc[y_train.index]
     X_valid = X.loc[y_valid.index]
@@ -295,22 +317,27 @@ def demo(
         scaler = model_output['scaler']
 
         # transform dataframe to matrix
-        if raw=='prem':
-            df_policy_iapos = df_policy.assign(Premium = np.where(np.logical_and(real_ia!=0, real_cd>=0), df_policy['Premium'], 0))
-            mtx_df = df_policy_iapos.set_index('Insurance_Coverage', append=True)[['Premium']].unstack(level=1).fillna(0)
-        elif raw=='ia':
-            mtx_df = df_policy.set_index('Insurance_Coverage', append=True)[
-                ['Insured_Amount1','Insured_Amount2','Insured_Amount3']
-            ].unstack(level=1).fillna(0)
-        elif raw=='cd':
-            mtx_df = df_policy.set_index('Insurance_Coverage', append=True)[
-                ['Coverage_Deductible_if_applied']
-            ].unstack(level=1).fillna(-2)
+        # if raw=='prem':
+        #     df_policy_iapos = df_policy.assign(Premium = np.where(np.logical_and(real_ia!=0, real_cd>=0), df_policy['Premium'], 0))
+        #     mtx_df = df_policy_iapos.set_index('Insurance_Coverage', append=True)[['Premium']].unstack(level=1).fillna(0)
+        # elif raw=='ia':
+        #     mtx_df = df_policy.set_index('Insurance_Coverage', append=True)[
+        #         ['Insured_Amount1','Insured_Amount2','Insured_Amount3']
+        #     ].unstack(level=1).fillna(0)
+        # elif raw=='cd':
+        #     mtx_df = df_policy.set_index('Insurance_Coverage', append=True)[
+        #         ['Coverage_Deductible_if_applied']
+        #     ].unstack(level=1).fillna(-2)
+        # elif raw=='all':
+        #     mtx_df = df_policy.set_index('Insurance_Coverage', append=True)[
+        #         ['Coverage_Deductible_if_applied']
+        #     ].unstack(level=1).fillna(-2)
 
         # nn dimension reduction
         model = model_output['model'].model
         model.eval() # evaluation mode
-        inp = torch.FloatTensor(scaler.transform(mtx_df.values))
+        # inp = torch.FloatTensor(scaler.transform(mtx_df.values))
+        inp = torch.FloatTensor(scaler.transform(X.values))
         with torch.no_grad():
             if torch.cuda.is_available():
                 inp = torch.autograd.Variable(inp.cuda())
@@ -328,7 +355,7 @@ def demo(
 
         n_comp = nn_df.shape[1]
         print('>>> number of reduced features: {}'.format(n_comp))
-        real_ic_nn = pd.DataFrame(nn_df, index = mtx_df.index).fillna(0)
+        real_ic_nn = pd.DataFrame(nn_df, index = X.index).fillna(0)
         real_ic_nn.columns = ['real_{}_ic_nn_'.format(raw) + str(i) for i in range(1, n_comp+1)]
 
         interim_data_path = os.path.join(

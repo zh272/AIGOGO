@@ -28,14 +28,20 @@ def get_submission(
             y_train = pd.concat([y_train, y_valid])
             X_valid = None
             y_valid = None
-        test_along = False
+        # test_along = False
 
-        train_set, valid_set, X_test_np, X_train_np, X_valid_np, _ = get_dataset(
-            X_train.values, y_train.values, X_test.values
+        # train_set, valid_set, X_test_np, X_train_np, y_train_np, X_valid_np, y_valid_np, _ = get_dataset(
+        #     X_train.values, y_train.values, X_test.values, valid_size=0.2
+        # )
+        train_set, valid_set, X_test, X_train, y_train, X_valid, y_valid, _ = get_dataset(
+            X_train, y_train, X_test, valid_size=0.2
         )
     else:
-        train_set, valid_set, X_test_np, X_train_np, X_valid_np, _ = get_dataset(
-            X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
+        # train_set, valid_set, X_test_np, X_train_np, y_train_np, X_valid_np, y_valid_np, _ = get_dataset(
+        #     X_train.values, y_train.values, X_test.values, X_valid.values, y_valid.values
+        # )
+        train_set, valid_set, X_test, X_train, y_train, X_valid, y_valid, _ = get_dataset(
+            X_train, y_train, X_test, X_valid, y_valid
         )
     
     PATH = './saved_models'
@@ -93,17 +99,17 @@ def get_submission(
     # train_loss = trainer.loss_epoch(load='train')
     # valid_loss = trainer.loss_epoch(load='valid')
     
-    train_pred = trainer.predict(torch.FloatTensor(X_train_np)).cpu().data.numpy()
+    train_pred = trainer.predict(torch.FloatTensor(X_train.values)).cpu().data.numpy()
     train_loss = mean_absolute_error(y_train.values, train_pred)
     
-    if X_valid_np is not None:
-        valid_pred = trainer.predict(torch.FloatTensor(X_valid_np)).cpu().data.numpy()
+    if X_valid is not None:
+        valid_pred = trainer.predict(torch.FloatTensor(X_valid.values)).cpu().data.numpy()
         valid_loss = mean_absolute_error(y_valid.values, valid_pred)
     else:
         valid_pred = None
         valid_loss = 0
 
-    test_pred = trainer.predict(torch.FloatTensor(X_test_np)).cpu().data.numpy()
+    test_pred = trainer.predict(torch.FloatTensor(X_test.values)).cpu().data.numpy()
 
     # print('>>> original valid loss: {}'.format(valid_loss))
     # valid_pred[valid_pred<=50] = 0
@@ -211,67 +217,100 @@ def write_precessed_data(df, suffix=None):
 
 # empirical scale: weight_decay=0.0001
 def demo(
-    epochs=100, base_lr=0.001, momentum=0.9, weight_decay=0, all_train=False,
+    epochs=100, base_lr=0.001, momentum=0.9, weight_decay=0, all_train=True,
     batch_size=128, optimizer='sgd', dropout=False, seed=random.randint(0,1000), 
     get_train=False, get_test=False, save=False, load=False
 ):
+    print('>>> random seed: {}'.format(seed))
     rand_reset(seed)
+
+
+    # _X = read_interim_data('premium_60.csv')
+    # _X = _X.merge(read_interim_data('ia_60.csv'), how='left', left_index=True, right_index=True)
+    # _X = _X.merge(read_interim_data('cd_60.csv'), how='left', left_index=True, right_index=True)
+    
+
     if all_train:
-        X_train = read_interim_data('X_train_all_bs2.csv')
-        y_train = read_interim_data('y_train_all_bs2.csv')
+        # X_train = read_interim_data('X_train_all_bs2 (1).csv')
+        # y_train = read_interim_data('y_train_all_bs2 (1).csv')
+        # X_valid = None
+        # y_valid = None
+        # X_test = read_interim_data('X_test_bs2 (1).csv')
+        
+        X_train = read_interim_data('X_train_all_prefs.csv')
+        y_train = read_interim_data('y_train_all_prefs.csv')
         X_valid = None
         y_valid = None
-        X_test = read_interim_data('X_test_bs2.csv')
+        X_test = read_interim_data('X_test_prefs.csv')
+
+
+        # _X = read_interim_data('prem_60_10.csv')
+        # _X = _X.merge(read_interim_data('ia_60_10.csv'), how='left', left_index=True, right_index=True)
+        # _X = _X.merge(read_interim_data('cd_60_10.csv'), how='left', left_index=True, right_index=True)
+
+        # X_train = X_train.merge(read_interim_data('X_train_all_prefs.csv'), how='left', left_index=True, right_index=True)
+        # X_test = X_test.merge(read_interim_data('X_test_prefs.csv'), how='left', left_index=True, right_index=True)
+
+        # _nmf_ia1 = read_interim_data('real_ia1_nmf_bs2.csv')
+        # X_train = X_train.merge(_nmf_ia1, how='left', left_index=True, right_index=True)
+        # X_test = X_test.merge(_nmf_ia1, how='left', left_index=True, right_index=True)
+
+        # _nmf_ia2 = read_interim_data('real_ia2_nmf_bs2.csv')
+        # X_train = X_train.merge(_nmf_ia2, how='left', left_index=True, right_index=True)
+        # X_test = X_test.merge(_nmf_ia2, how='left', left_index=True, right_index=True)
+        
+        # _nmf_ia3 = read_interim_data('real_ia3_nmf_bs2.csv')
+        # X_train = X_train.merge(_nmf_ia3, how='left', left_index=True, right_index=True)
+        # X_test = X_test.merge(_nmf_ia3, how='left', left_index=True, right_index=True)
+
+        # _nmf_cd = read_interim_data('real_cd_nmf_bs2.csv')
+        # X_train = X_train.merge(_nmf_cd, how='left', left_index=True, right_index=True)
+        # X_test = X_test.merge(_nmf_cd, how='left', left_index=True, right_index=True)
+
     else:
-        X_train = read_interim_data('X_train_fs.csv')
-        y_train = read_interim_data('y_train_fs.csv')
-        X_valid = read_interim_data('X_valid_fs.csv')
-        y_valid = read_interim_data('y_valid_fs.csv')
-        X_test = read_interim_data('X_test_bs2.csv')
+        X_train = read_interim_data('X_train_fs (1).csv')
+        y_train = read_interim_data('y_train_fs (1).csv')
+        X_valid = read_interim_data('X_valid_fs (1).csv')
+        y_valid = read_interim_data('y_valid_fs (1).csv')
+        X_test = read_interim_data('X_test_bs2 (1).csv')
 
-    # X_train = read_interim_data('X_train_new.csv')
-    # y_train = read_interim_data('y_train_new.csv')
-    # X_valid = read_interim_data('X_valid_new.csv')
-    # y_valid = read_interim_data('y_valid_new.csv')
-    # X_test = read_interim_data('X_test_new.csv')
-
+    # feature_list = X_train.columns.values
+    # feature_list = [feature for feature in feature_list if 'cat_' not in feature]
+    # feature_list = [feature for feature in feature_list if 'nn' not in feature]
+    # feature_list = [feature for feature in feature_list if '_y' not in feature]
 
     feature_list = [
-        'real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 
-        'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_age', 'real_mc_median_sex', 
-        'real_mc_median_diff_sex', 'real_mc_prob_marriage', 
-        'real_mc_median_distr', 'real_mc_median_div_distr', 'real_acc_dmg', 
-        'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 
-        'real_mc_median_div_ic_combo', 'real_vmy', 'real_vcost', 'cat_vengine', 'real_vqpt', 
-        'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 
-        'real_mc_mean_diff_vc', 'real_loss', 'real_loss_ins', 'real_salvage', 
-        'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause', 'real_mc_prob_claim_area', 
-        'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants'
+        'real_prem_ic_nmf_1', 'real_prem_ic_nmf_2', 'real_prem_ic_nmf_3', 'real_prem_ic_nmf_4', 
+        'real_prem_ic_nmf_5', 'real_prem_ic_nmf_6', 'real_prem_ic_nmf_7', 'real_prem_plc', 
+        'real_prem_terminate', 'real_prem_dmg', 'real_prem_lia', 'real_prem_thf', 'real_prem_ic', 
+        'real_prem_ic_sex', 'real_prem_ic_vmy', 'real_prem_ic_dmg', 'real_prem_ic_lia', 
+        'real_mc_median_ins', 'real_mc_prob_ins', 'real_ismale', 'real_isfemale', 'real_ismarried', 
+        'real_notmarried', 'real_mc_prob_assured', 'real_mc_median_diff_zip', 'real_mc_median_div_zip', 
+        'real_other', 'real_age', 'real_mc_median_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_diff_distr', 
+        'real_mc_median_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_ins_self', 
+        'real_mc_mean_vregion', 'real_vqpt', 'real_vcost', 'real_mc_prob_claim_cause', 'real_mc_median_claim_area', 
+        'real_mc_median_div_claim_area', 'real_nearest_claim', 'real_claim_fault', 'real_loss', 'real_salvage'
     ]
     feature_list_test = [
-        'real_prem_ic_nn_1', 'real_mc_median_ins', 'real_mc_median_div_ins', 'real_mc_prob_ins', 
-        'real_mc_median_assured', 'real_mc_median_diff_assured', 'real_age', 'real_mc_median_sex', 
-        'real_mc_median_diff_sex', 'real_mc_prob_marriage', 
-        'real_mc_median_distr', 'real_mc_median_div_distr', 'real_acc_dmg', 
-        'real_acc_lia', 'real_cancel', 'real_dage', 'real_prem_terminate', 'real_mc_median_ic_combo', 
-        'real_mc_median_div_ic_combo', 'real_vmy', 'real_vcost', 'real_vengine', 'real_vqpt', 
-        'real_mc_mean_diff_vmm1', 'real_mc_mean_diff_vmm2', 
-        'real_mc_mean_diff_vc', 'real_loss', 'real_loss_ins', 'real_salvage', 
-        'real_mc_mean_div_claim_cause', 'real_mc_prob_claim_cause', 'real_mc_prob_claim_area', 
-        'real_nearest_claim', 'real_num_claim', 'real_claim_fault', 'real_claimants'
+        'real_prem_ic_nmf_1', 'real_prem_ic_nmf_2', 'real_prem_ic_nmf_3', 'real_prem_ic_nmf_4', 
+        'real_prem_ic_nmf_5', 'real_prem_ic_nmf_6', 'real_prem_ic_nmf_7', 'real_prem_plc', 
+        'real_prem_terminate', 'real_prem_dmg', 'real_prem_lia', 'real_prem_thf', 'real_prem_ic', 
+        'real_prem_ic_sex', 'real_prem_ic_vmy', 'real_prem_ic_dmg', 'real_prem_ic_lia', 
+        'real_mc_median_ins', 'real_mc_prob_ins', 'real_ismale', 'real_isfemale', 'real_ismarried', 
+        'real_notmarried', 'real_mc_prob_assured', 'real_mc_median_diff_zip', 'real_mc_median_div_zip', 
+        'real_other', 'real_age', 'real_mc_median_ic_grp_combo', 'real_mc_median_distr', 'real_mc_median_diff_distr', 
+        'real_mc_median_area', 'real_acc_dmg', 'real_acc_lia', 'real_cancel', 'real_dage', 'real_ins_self', 
+        'real_mc_mean_diff_vregion', 'real_vqpt', 'real_vcost', 'real_mc_prob_claim_cause', 'real_mc_median_claim_area', 
+        'real_mc_median_div_claim_area', 'real_nearest_claim', 'real_claim_fault', 'real_loss', 'real_salvage'
     ]
 
-    # feature_list = [feature for feature in feature_list if 'vequip' not in feature]
-    # feature_list = [feature for feature in feature_list if 'nmf' not in feature]
-    # feature_list = [feature for feature in feature_list if 'real_mc_mean_diff' in feature or 'real_acc' in feature]
-    # feature_list = [feature for feature in feature_list if 'nmf' in feature]
 
 
     num_features = len(feature_list)
     print('Number of features: {}'.format(num_features))
 
     # Filter features
-    X_train = X_train[feature_list_test]
+    X_train = X_train[feature_list]
     if X_valid is not None:
         X_valid = X_valid[feature_list]
     X_test = X_test[feature_list_test]
@@ -284,7 +323,7 @@ def demo(
 
     # begin training
     # num_neuron = [160,50,10]
-    num_neuron = [50,10]
+    num_neuron = [80,12]
     # num_neuron = [100]
     print('Network Architecture: {}'.format(num_neuron))
     # num_neuron = [round(1.5*num_features),round(0.3*num_features),round(0.1*num_features)]
@@ -300,25 +339,27 @@ def demo(
         'weight_decay':weight_decay, 
         # 'scheduler': 'plateau',
         'lr_schedule':{
-            25:base_lr, 
+            10:base_lr,
+            25:base_lr/2, 
             50:base_lr/10, 
             100:base_lr/100,
             200:base_lr/1000
         }
     }
-
     # optim_hyper = {
     #     'lr':base_lr, 
     #     'momentum':momentum,
     #     'weight_decay':weight_decay, 
+    #     # 'scheduler': 'plateau',
     #     'lr_schedule':{
-    #         epochs//4:base_lr,
-    #         epochs//2:base_lr/5, 
-    #         epochs//4*3:base_lr/50, 
-    #         epochs: base_lr/200
+    #         25:base_lr,
+    #         50:base_lr/10, 
+    #         100:base_lr/100,
+    #         200:base_lr/1000
     #     }
     # }
 
+    # train_weights = read_interim_data('training_weight_bs2.csv').values
     train_weights = None
     
     model_output = get_submission(

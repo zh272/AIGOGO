@@ -2,6 +2,7 @@ import os
 import torch
 import pickle
 import numpy as np
+import pandas as pd
 import torch.utils.data
 import torch.optim as optim
 import torch.nn.functional as F
@@ -59,26 +60,30 @@ class MultiColumnLabelEncoder:
 
 
 
-def get_dataset(X_train, y_train, X_test, X_valid=None, y_valid=None, target_type=torch.FloatTensor, target_shape=None):
+def get_dataset(X_train, y_train, X_test, X_valid=None, y_valid=None, valid_size=None, target_type=torch.FloatTensor, target_shape=None):
     if target_shape:
         y_train = y_train.reshape(*target_shape)
         if y_valid is not None:
             y_valid = y_valid.reshape(*target_shape)
-    # X_train, X_valid, y_train, y_valid = train_test_split(X_train,y_train,test_size=0.2,random_state=101)
+    if valid_size is not None:
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train,y_train,test_size=valid_size,random_state=101)
     # scaler = preprocessing.MinMaxScaler()
     scaler = preprocessing.StandardScaler()
-    X_train = scaler.fit_transform(X_train)
+    # X_train.data = scaler.fit_transform(X_train)
+    X_train = pd.DataFrame(data=scaler.fit_transform(X_train), columns=X_train.columns, index=X_train.index)
     if X_valid is not None:
-        X_valid = scaler.transform(X_valid)
-    X_test = scaler.transform(X_test)
+        # X_valid.data = scaler.transform(X_valid)
+        X_valid = pd.DataFrame(data=scaler.transform(X_valid), columns=X_valid.columns, index=X_valid.index)
+    # X_test.data = scaler.transform(X_test)
+    X_test = pd.DataFrame(data=scaler.transform(X_test), columns=X_test.columns, index=X_test.index)
 
-    train_set = torch.utils.data.TensorDataset(torch.FloatTensor(X_train), target_type(y_train))
+    train_set = torch.utils.data.TensorDataset(torch.FloatTensor(X_train.values), target_type(y_train.values))
     if X_valid is None:
         valid_set = None
     else:
-        valid_set = torch.utils.data.TensorDataset(torch.FloatTensor(X_valid), target_type(y_valid))
+        valid_set = torch.utils.data.TensorDataset(torch.FloatTensor(X_valid.values), target_type(y_valid.values))
 
-    return train_set, valid_set, X_test, X_train, X_valid, scaler
+    return train_set, valid_set, X_test, X_train, y_train, X_valid, y_valid, scaler
 
 def ready(steps, threshold=100, population=None):
     return steps%threshold == 0
@@ -255,12 +260,14 @@ class WeightedSubsetRandomSampler(torch.utils.data.sampler.Sampler):
             self.weights = torch.tensor([1.0], dtype=torch.double).expand_as(indices)
         else:
             assert len(weights) == len(indices)
-            self.weights = torch.tensor(weights, dtype=torch.double)
+            self.weights = torch.tensor(weights.flatten(), dtype=torch.double)
         self.num_samples = len(self.indices)
         self.replacement = replacement
+        
+        self.w_i_iter = torch.multinomial(self.weights, self.num_samples, self.replacement)
 
     def __iter__(self):
-        return (self.indices[i] for i in torch.multinomial(self.weights, self.num_samples, self.replacement))
+        return (self.indices[i] for i in self.w_i_iter)
 
     def __len__(self):
         return self.num_samples
